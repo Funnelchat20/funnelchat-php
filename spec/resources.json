@@ -1,0 +1,157 @@
+{
+  "x-fc-resources": {
+    "title": "Recursos del SDK",
+    "description": "Qué operación de la especificación es cada método de cada recurso. Son los mismos recursos y los mismos nombres que funnelchat-node (src/resources/*.ts en feat/inicial @ 88557ce), para que los dos SDKs se lean igual. El generador (`composer generate`) arma src/Resources/*.php con esto y con la especificación: los parámetros, la query, el cuerpo y la respuesta de cada método salen de la operación. Si una operación de esta lista ya no está en la especificación, la generación falla y dice cuál.",
+    "fields": {
+      "property": "La propiedad del cliente: `$funnelchat->contacts`.",
+      "class": "La clase en Funnelchat\\Resources.",
+      "doc": "El comentario de la clase.",
+      "traits": "Traits escritos a mano que suma la clase.",
+      "methods[].op": "`MÉTODO /ruta`, tal como está en la especificación.",
+      "methods[].paginate": "Devuelve un Paginator (todas las páginas con foreach) en vez de la respuesta.",
+      "methods[].doc": "El comentario del método. Empieza con la operación entre comillas invertidas.",
+      "methods[].query": "`false` quita el parámetro `$query` (como en Node); `true` lo pone aunque la especificación no declare query. Si falta: está cuando la operación declara query o cuando pagina.",
+      "methods[].bodyOptional": "El cuerpo se puede omitir (como en Node). Si falta, el cuerpo es un argumento obligatorio cuando la operación lo tiene.",
+      "methods[].bodyDefaults": "Campos del cuerpo que, si no los pasás, se completan con un parámetro de ruta (y en el tipo quedan opcionales)."
+    }
+  },
+  "resources": [
+    {
+      "property": "contacts",
+      "class": "Contacts",
+      "doc": "Contacts (conversations area): search, create, update, custom fields, notes and the 24-hour window.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/contacts", "paginate": true, "doc": "`GET /api/v1/contacts`, paginated. Filter by `phone` without the `+`." },
+        { "name": "create", "op": "POST /api/v1/contacts", "doc": "`POST /api/v1/contacts`." },
+        { "name": "upsert", "op": "POST /api/v1/contacts/update-or-create", "doc": "`POST /api/v1/contacts/update-or-create`: creates the contact or updates the one with that phone." },
+        { "name": "retrieve", "op": "GET /api/v1/contacts/{contact}", "doc": "`GET /api/v1/contacts/{contact}`." },
+        { "name": "update", "op": "PUT /api/v1/contacts/{contact}", "doc": "`PUT /api/v1/contacts/{contact}`." },
+        { "name": "delete", "op": "POST /api/v1/contacts/delete", "doc": "`POST /api/v1/contacts/delete`: deletes the contacts of the body (`contactIds`, or a filter)." },
+        { "name": "listTags", "op": "GET /api/v1/contacts/{contact}/tags", "paginate": true, "doc": "`GET /api/v1/contacts/{contact}/tags`, paginated." },
+        { "name": "listCustomFields", "op": "GET /api/v1/contacts/{contact}/custom-fields", "paginate": true, "doc": "`GET /api/v1/contacts/{contact}/custom-fields`, paginated." },
+        { "name": "attachCustomField", "op": "POST /api/v1/contacts/attach-custom-field", "doc": "`POST /api/v1/contacts/attach-custom-field`: sets a custom field on contacts." },
+        { "name": "detachCustomField", "op": "POST /api/v1/contacts/detach-custom-field", "doc": "`POST /api/v1/contacts/detach-custom-field`." },
+        { "name": "metaWindow", "op": "GET /api/v1/contacts/{contact}/meta-window", "doc": "`GET /api/v1/contacts/{contact}/meta-window`: whether the 24-hour window with the contact is open on a WhatsApp Cloud number (`is_open`). Outside it, only templates can be sent." },
+        { "name": "listByDevice", "op": "GET /api/v1/devices/{device}/contacts", "paginate": true, "doc": "`GET /api/v1/devices/{device}/contacts`, paginated: the contacts of one number." },
+        { "name": "listNotes", "op": "GET /api/v1/contacts/{contact}/notes", "paginate": true, "doc": "`GET /api/v1/contacts/{contact}/notes`, paginated." },
+        { "name": "createNote", "op": "POST /api/v1/contacts/{contact}/notes", "doc": "`POST /api/v1/contacts/{contact}/notes`." },
+        { "name": "deleteNote", "op": "DELETE /api/v1/contacts/{contact}/notes/{note}", "doc": "`DELETE /api/v1/contacts/{contact}/notes/{note}`." }
+      ]
+    },
+    {
+      "property": "conversations",
+      "class": "Conversations",
+      "doc": "Conversations (conversations area): the inbox, its counters and the state of each conversation.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/conversations", "paginate": true, "doc": "`GET /api/v1/conversations`, paginated by cursor." },
+        { "name": "update", "op": "PUT /api/v1/contacts/{contact}/update", "doc": "`PUT /api/v1/contacts/{contact}/update`: changes the conversation with a contact (open, assigned…)." },
+        { "name": "countUnread", "op": "GET /api/v1/conversations/count/unread", "doc": "`GET /api/v1/conversations/count/unread`." },
+        { "name": "countOpen", "op": "GET /api/v1/conversations/count/open", "doc": "`GET /api/v1/conversations/count/open`." },
+        { "name": "countClosed", "op": "GET /api/v1/conversations/count/closed", "doc": "`GET /api/v1/conversations/count/closed`." },
+        { "name": "countAll", "op": "GET /api/v1/conversations/count/all", "doc": "`GET /api/v1/conversations/count/all`." },
+        { "name": "markAllRead", "op": "POST /api/v1/conversations/mark-all-read", "bodyOptional": true, "doc": "`POST /api/v1/conversations/mark-all-read`." },
+        { "name": "markAllUnread", "op": "POST /api/v1/conversations/mark-all-unread", "bodyOptional": true, "doc": "`POST /api/v1/conversations/mark-all-unread`." }
+      ]
+    },
+    {
+      "property": "messages",
+      "class": "Messages",
+      "doc": "Messages to one contact (conversations area): send text, files and buttons, read the history, forward, react.\n\nSending with an API key needs the `conversations:send` permission and is subject to the WhatsApp rules: `422 window_closed`, `422 antiblock_*`, `422 recipient_*` and `429 rate_limited` (with `retryAfter`). A rejected send stores nothing. Send operations are never retried automatically unless you pass `retrySend: true`.",
+      "methods": [
+        { "name": "send", "op": "POST /api/v1/contacts/{contact}/message", "bodyDefaults": { "contact_id": "contact" }, "doc": "`POST /api/v1/contacts/{contact}/message`: text, a file (`file` with a URL) or buttons and lists (`options`). Answers `204` with no body.\n\nSend `phone` (or `whatsapp_id`) of the same contact: the API validates it. `contact_id` is optional: it defaults to the contact of the route. `client_reference` (pending of the spec) comes back in the history and in `message.status_changed`." },
+        { "name": "list", "op": "GET /api/v1/contacts/{contactId}/messages", "paginate": true, "doc": "`GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact." },
+        { "name": "sendContactCard", "op": "POST /api/v1/contacts/{contact}/message/contact-card", "doc": "`POST /api/v1/contacts/{contact}/message/contact-card`: sends up to 5 contact cards." },
+        { "name": "forward", "op": "POST /api/v1/contacts/{contact}/messages/{message}/forward", "doc": "`POST /api/v1/contacts/{contact}/messages/{message}/forward`: forwards a message to up to 5 contacts." },
+        { "name": "react", "op": "PUT /api/v1/contacts/{contact}/messages/{message}/reaction", "doc": "`PUT /api/v1/contacts/{contact}/messages/{message}/reaction`: reacts with an emoji." },
+        { "name": "removeReaction", "op": "DELETE /api/v1/contacts/{contact}/messages/{message}/reaction", "doc": "`DELETE /api/v1/contacts/{contact}/messages/{message}/reaction`: removes your reaction." }
+      ]
+    },
+    {
+      "property": "templates",
+      "class": "Templates",
+      "doc": "WhatsApp message templates (conversations area): list, create, edit, send.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/templates", "paginate": true, "doc": "`GET /api/v1/templates`, paginated." },
+        { "name": "create", "op": "POST /api/v1/templates", "doc": "`POST /api/v1/templates`: creates a template and submits it to Meta." },
+        { "name": "retrieve", "op": "GET /api/v1/templates/{template}", "doc": "`GET /api/v1/templates/{template}`." },
+        { "name": "update", "op": "PUT /api/v1/templates/{template}", "doc": "`PUT /api/v1/templates/{template}`." },
+        { "name": "quickReplyButtons", "op": "GET /api/v1/templates/{template}/quick-reply-buttons", "doc": "`GET /api/v1/templates/{template}/quick-reply-buttons`." },
+        { "name": "send", "op": "POST /api/v1/devices/{device}/templates/{template}/send-template", "doc": "`POST /api/v1/devices/{device}/templates/{template}/send-template`: sends an approved template (the way to write to a contact outside the 24-hour window). `phone` and `contact_id` are required; `template_variables.body` fills the body variables in order." },
+        { "name": "delete", "op": "DELETE /api/v1/devices/{device}/templates/{template}", "doc": "`DELETE /api/v1/devices/{device}/templates/{template}`." }
+      ]
+    },
+    {
+      "property": "tags",
+      "class": "Tags",
+      "doc": "Tags (conversations area).",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/tags", "paginate": true, "doc": "`GET /api/v1/tags`, paginated." },
+        { "name": "create", "op": "POST /api/v1/tags", "doc": "`POST /api/v1/tags`." },
+        { "name": "retrieve", "op": "GET /api/v1/tags/{tag}", "query": false, "doc": "`GET /api/v1/tags/{tag}`." },
+        { "name": "update", "op": "PUT /api/v1/tags/{tag}", "doc": "`PUT /api/v1/tags/{tag}`." },
+        { "name": "delete", "op": "POST /api/v1/tags/delete", "doc": "`POST /api/v1/tags/delete`: deletes the tags in `tagIds`." },
+        { "name": "listContacts", "op": "GET /api/v1/tags/{tag}/contacts", "paginate": true, "doc": "`GET /api/v1/tags/{tag}/contacts`, paginated: the contacts with a tag." }
+      ]
+    },
+    {
+      "property": "customFields",
+      "class": "CustomFields",
+      "doc": "Custom fields of contacts (conversations area). To set a value on a contact, see `contacts->attachCustomField()`.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/custom-fields", "paginate": true, "doc": "`GET /api/v1/custom-fields`, paginated." },
+        { "name": "create", "op": "POST /api/v1/custom-fields", "doc": "`POST /api/v1/custom-fields`." },
+        { "name": "retrieve", "op": "GET /api/v1/custom-fields/{customField}", "doc": "`GET /api/v1/custom-fields/{customField}`." },
+        { "name": "update", "op": "PUT /api/v1/custom-fields/{customField}", "doc": "`PUT /api/v1/custom-fields/{customField}`." },
+        { "name": "delete", "op": "POST /api/v1/custom-fields/delete", "doc": "`POST /api/v1/custom-fields/delete`." }
+      ]
+    },
+    {
+      "property": "groups",
+      "class": "Groups",
+      "doc": "WhatsApp groups (communities area). Today the public API reads groups; creating and managing them by API (contract 1014, C3) is not in the spec yet.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/groups", "paginate": true, "doc": "`GET /api/v1/groups`, paginated." },
+        { "name": "retrieve", "op": "GET /api/v1/groups/{group}", "doc": "`GET /api/v1/groups/{group}`." },
+        { "name": "listByDevice", "op": "GET /api/v1/devices/{device}/groups", "paginate": true, "doc": "`GET /api/v1/devices/{device}/groups`, paginated (`page`, `pageSize`): the groups of one number." },
+        { "name": "metadata", "op": "GET /api/v1/groups/{groupUid}/metadata", "doc": "`GET /api/v1/groups/{groupUid}/metadata`: live metadata of a group by its WhatsApp uid, read through one number." },
+        { "name": "listParticipants", "op": "GET /api/v1/groups/participants", "paginate": true, "doc": "`GET /api/v1/groups/participants`, paginated: the participants of one group (`groupUid`)." },
+        { "name": "listParticipantEvents", "op": "GET /api/v1/groups/{group}/participant-events", "paginate": true, "doc": "`GET /api/v1/groups/{group}/participant-events`, paginated: joins and leaves." },
+        { "name": "listMessages", "op": "GET /api/v1/groups/{group}/messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/messages`, paginated." },
+        { "name": "listScheduledMessages", "op": "GET /api/v1/groups/{group}/scheduled-messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/scheduled-messages`, paginated." },
+        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." }
+      ]
+    },
+    {
+      "property": "devices",
+      "class": "Devices",
+      "doc": "WhatsApp numbers of the account (accounts area). The `id` of a number is the `device_id` used to send.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/devices", "paginate": true, "query": false, "doc": "`GET /api/v1/devices`. Iterate it with `foreach`, or call `firstPage()`." },
+        { "name": "retrieve", "op": "GET /api/v1/devices/{device}", "doc": "`GET /api/v1/devices/{device}`." },
+        { "name": "update", "op": "PUT /api/v1/devices/{device}", "doc": "`PUT /api/v1/devices/{device}`." },
+        { "name": "status", "op": "GET /api/v1/devices/{device}/status", "doc": "`GET /api/v1/devices/{device}/status`: connection status." },
+        { "name": "health", "op": "GET /api/v1/devices/{device}/health", "doc": "`GET /api/v1/devices/{device}/health`." },
+        { "name": "me", "op": "GET /api/v1/devices/{device}/me", "doc": "`GET /api/v1/devices/{device}/me`: the WhatsApp profile of the number." },
+        { "name": "checkPhone", "op": "GET /api/v1/devices/{device}/check-phone", "doc": "`GET /api/v1/devices/{device}/check-phone`: whether a phone has WhatsApp." },
+        { "name": "listConnectionHistory", "op": "GET /api/v1/devices/{device}/connection-history", "paginate": true, "doc": "`GET /api/v1/devices/{device}/connection-history`, paginated." }
+      ]
+    },
+    {
+      "property": "webhooks",
+      "class": "Webhooks",
+      "doc": "Webhook subscriptions (accounts area) and the verification of deliveries.\n\nPENDING OF THE SPEC: the `/api/v1/webhooks` subscription routes come from accounts `origin/main` @ c34cba2c (unified subscriptions, in production since 13-10), not from the snapshot; their types are in spec/pending.json until a snapshot brings them. At that commit the routes are not in the gate's `allowed` list, so an API key may get `403 route_not_available` until accounts opens them. The event catalog (`events()`) is in the snapshot.",
+      "traits": ["Funnelchat\\Webhooks\\WebhookHelpers"],
+      "methods": [
+        { "name": "events", "op": "GET /api/v1/webhooks/events", "doc": "`GET /api/v1/webhooks/events`: the event types you can subscribe to, each with `status`." },
+        { "name": "list", "op": "GET /api/v1/webhooks", "doc": "`GET /api/v1/webhooks`: every subscription of the account (at most 50), not only yours." },
+        { "name": "create", "op": "POST /api/v1/webhooks", "doc": "`POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`." },
+        { "name": "retrieve", "op": "GET /api/v1/webhooks/{id}", "doc": "`GET /api/v1/webhooks/{id}` (without the secret)." },
+        { "name": "update", "op": "PUT /api/v1/webhooks/{id}", "doc": "`PUT /api/v1/webhooks/{id}`: replaces `url`, `events`, `description` and `filters`. The secret stays." },
+        { "name": "delete", "op": "DELETE /api/v1/webhooks/{id}", "doc": "`DELETE /api/v1/webhooks/{id}`." },
+        { "name": "rotateSecret", "op": "POST /api/v1/webhooks/{id}/rotate-secret", "doc": "`POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops working." },
+        { "name": "test", "op": "POST /api/v1/webhooks/{id}/test", "doc": "`POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`." },
+        { "name": "listDeliveries", "op": "GET /api/v1/webhooks/{id}/deliveries", "paginate": true, "doc": "`GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first." }
+      ]
+    }
+  ]
+}
