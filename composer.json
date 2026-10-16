@@ -1,0 +1,84 @@
+{
+    "name": "funnelchat/funnelchat-php",
+    "description": "SDK oficial de PHP para la API pública de Funnelchat",
+    "type": "library",
+    "license": "proprietary",
+    "keywords": [
+        "funnelchat",
+        "whatsapp",
+        "api",
+        "sdk",
+        "webhooks",
+        "psr-18"
+    ],
+    "authors": [
+        {
+            "name": "Funnelchat",
+            "homepage": "https://funnelchat.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "ext-json": "*",
+        "php-http/discovery": "^1.19",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1 || ^2.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "guzzlehttp/guzzle": "^7.8 || ^8.0",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpunit/phpunit": "^10.5 || ^11.5 || ^12.0"
+    },
+    "suggest": {
+        "guzzlehttp/guzzle": "El cliente HTTP que el SDK arma solo, con el timeout aplicado (Guzzle 7 u 8; cualquier cliente PSR-18 sirve)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Funnelchat\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Funnelchat\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "generate": "@php scripts/generate.php",
+        "generate:check": "@php scripts/generate.php --check",
+        "test": "@php vendor/bin/phpunit",
+        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=1G",
+        "cs": "@php vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "@php vendor/bin/php-cs-fixer fix",
+        "check": [
+            "@generate:check",
+            "@cs",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "scripts-descriptions": {
+        "generate": "Regenera src/Generated y src/Resources desde spec/ (con --spec <archivo>, importa una especificación nueva).",
+        "generate:check": "Falla si lo generado no está al día con spec/.",
+        "test": "PHPUnit, sin red ni claves.",
+        "analyse": "PHPStan en el nivel máximo.",
+        "cs": "PHP-CS-Fixer en modo verificación.",
+        "cs:fix": "PHP-CS-Fixer: aplica el formato.",
+        "check": "Todo lo de arriba, en orden."
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-production": "0.1.x-dev"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
