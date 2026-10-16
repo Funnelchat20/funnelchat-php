@@ -612,13 +612,16 @@ final class Contacts extends AbstractResource
      * `DELETE /api/v1/contacts/{contact}/notes/{note}`.
      *
      * Permission: `conversations:write`.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param int $note
      * @param RequestOptions $options
+     *
+     * @return mixed
      */
-    public function deleteNote(int|string $contact, int|string $note, array $options = []): void
+    public function deleteNote(int|string $contact, int|string $note, array $options = []): mixed
     {
-        $this->client->request('DELETE', '/api/v1/contacts/{contact}/notes/{note}', ['path' => ['contact' => $contact, 'note' => $note]] + $options);
+        return $this->client->request('DELETE', '/api/v1/contacts/{contact}/notes/{note}', ['path' => ['contact' => $contact, 'note' => $note]] + $options);
     }
 }

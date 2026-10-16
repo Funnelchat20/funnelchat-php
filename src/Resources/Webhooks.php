@@ -155,13 +155,16 @@ final class Webhooks extends AbstractResource
      *
      * Permission: `accounts:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param string $id
      * @param RequestOptions $options
+     *
+     * @return mixed
      */
-    public function delete(int|string $id, array $options = []): void
+    public function delete(int|string $id, array $options = []): mixed
     {
-        $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
+        return $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
     }
 
     /**

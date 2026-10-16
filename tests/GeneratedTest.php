@@ -128,6 +128,55 @@ final class GeneratedTest extends TestCase
         }
     }
 
+    public function testNoResourceMethodDropsTheAnswer(): void
+    {
+        // A regeneration must never bring back `void`: a body the API sends is always returned.
+        foreach (glob(self::ROOT . '/src/Resources/*.php') ?: [] as $file) {
+            $class = 'Funnelchat\\Resources\\' . basename($file, '.php');
+            self::assertTrue(class_exists($class), $class);
+            foreach ((new \ReflectionClass($class))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+                if ($method->getDeclaringClass()->getName() !== $class) {
+                    continue;
+                }
+                $type = $method->getReturnType();
+                self::assertNotSame('void', $type instanceof \ReflectionNamedType ? $type->getName() : null, "{$class}::{$method->getName()}");
+            }
+        }
+    }
+
+    public function testTypesTheAnswerOfTheSendsWhileTheSnapshotSaysSendPending(): void
+    {
+        $spec = self::readJson('funnelchat.json');
+        $patches = self::at(self::readJson('pending.json'), 'responsePatches');
+        self::assertIsArray($patches);
+        $routes = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
+            self::assertIsArray($route);
+            self::assertIsString($route['method']);
+            self::assertIsString($route['path']);
+            $routes["{$route['method']} {$route['path']}"] = $route;
+        }
+        foreach ($patches as $patch) {
+            self::assertIsArray($patch);
+            self::assertIsString($patch['method']);
+            self::assertIsString($patch['path']);
+            if (self::at($spec, 'paths', $patch['path'], $patch['method'], 'x-portal-v0') !== 'send_pending') {
+                continue;
+            }
+            $route = $routes[strtoupper($patch['method']) . " {$patch['path']}"] ?? null;
+            self::assertIsArray($route, $patch['path']);
+            self::assertTrue($route['pending'], $patch['path']);
+            if (!\is_string($route['sdk'])) {
+                continue;
+            }
+            // The resource method documents the pending answer, not "no body".
+            [$property, $name] = explode('->', $route['sdk']);
+            $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
+            self::assertStringContainsString('conversations-send-result', $doc, $route['sdk']);
+            self::assertStringContainsString('Pending', $doc, $route['sdk']);
+        }
+    }
+
     public function testKnowsEveryEventOfTheSnapshotAndThePendingOnes(): void
     {
         $catalog = self::constant(WebhookEvents::class, 'CATALOG');

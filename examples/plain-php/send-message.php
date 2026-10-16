@@ -44,14 +44,15 @@ try {
     $window = $funnelchat->contacts->metaWindow($contactId, ['device_id' => $deviceId]);
 
     if ($window['is_open']) {
-        // Open window: free text. `send` answers 204, with no body.
-        $funnelchat->messages->send($contactId, [
+        // Open window: free text. `send` returns the registered message (pending of the spec,
+        // conversations feat/envio-devuelve-id), or null while the API answers 204.
+        $result = $funnelchat->messages->send($contactId, [
             'device_id' => $deviceId,
             'phone' => $phone,                 // the phone of the same contact, without +
             'text' => '¡Hola! Te paso la info…',
             'client_reference' => 'pedido-8841', // optional: your reference to follow it
         ]);
-        echo "Enviado.\n";
+        echo 'Enviado: ', $result['message']['id'] ?? 'sin id todavía', ' (', $result['message']['status'] ?? '?', ")\n";
     } else {
         // Closed window: an approved template (the id comes from $funnelchat->templates->list()).
         $funnelchat->templates->send($deviceId, '45', [

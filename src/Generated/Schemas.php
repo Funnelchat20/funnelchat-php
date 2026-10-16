@@ -1597,6 +1597,40 @@ namespace Funnelchat\Generated;
  *     duration_ms: int|null,
  *     delivery_id: int,
  * }
+ * @phpstan-type PendingPublicMessage array{
+ *     id: int,
+ *     contact_id: int|null,
+ *     device_id: int|null,
+ *     direction: 'outbound'|'inbound',
+ *     type: string,
+ *     status: 'queued'|'sent'|'delivered'|'read'|'failed'|null,
+ *     error: array{
+ *         code: int|null,
+ *         title: string|null,
+ *     }|null,
+ *     client_reference: string|null,
+ *     created_at: string|null,
+ *     updated_at: string|null,
+ * }
+ * @phpstan-type PendingQueuedContactCard array{
+ *     id: null,
+ *     contact_id: int|null,
+ *     device_id: int|null,
+ *     direction: 'outbound',
+ *     type: 'contact',
+ *     status: 'queued'|'failed',
+ *     error: string|null,
+ *     client_reference: string|null,
+ *     created_at: string|null,
+ *     updated_at: string|null,
+ * }
+ * @phpstan-type PendingForwardResult array{
+ *     contact_id: int,
+ *     mode: 'internal'|'native',
+ *     status: 'queued'|'blocked',
+ *     reason: string|null,
+ *     message: PendingPublicMessage|null,
+ * }
  * @phpstan-type PendingMessage array{
  *     message: string,
  * }

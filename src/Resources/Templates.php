@@ -19,6 +19,7 @@ use Funnelchat\Pagination\Paginator;
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingClientReference from Schemas
+ * @phpstan-import-type PendingPublicMessage from Schemas
  * @phpstan-import-type StoreMessageTemplateRequest from Schemas
  * @phpstan-import-type TemplateResource from Schemas
  * @phpstan-import-type UpdateMessageTemplateRequest from Schemas
@@ -97,14 +98,17 @@ final class Templates extends AbstractResource
      * `PUT /api/v1/templates/{template}`.
      *
      * Permission: `conversations:write`.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $template
      * @param UpdateMessageTemplateRequest $body
      * @param RequestOptions $options
+     *
+     * @return mixed
      */
-    public function update(int|string $template, array $body, array $options = []): void
+    public function update(int|string $template, array $body, array $options = []): mixed
     {
-        $this->client->request('PUT', '/api/v1/templates/{template}', ['path' => ['template' => $template], 'body' => $body] + $options);
+        return $this->client->request('PUT', '/api/v1/templates/{template}', ['path' => ['template' => $template], 'body' => $body] + $options);
     }
 
     /**
@@ -138,6 +142,8 @@ final class Templates extends AbstractResource
      *
      * Permission: `conversations:send`.
      * Pending of the spec (`conversations-c2` in spec/pending.json): `client_reference`.
+     * Response: pending of the spec (`conversations-send-result` in spec/pending.json); it may
+     * change.
      * Portal note (v0, `send_pending`): sending with an API key is not open yet; until it is, this
      * route answers `403 route_not_available`.
      *
@@ -153,11 +159,17 @@ final class Templates extends AbstractResource
      * } $body
      * @param RequestOptions $options
      *
-     * @return string
+     * @return array{
+     *     message: PendingPublicMessage|null,
+     * }
      */
     public function send(int|string $device, int|string $template, array $body, array $options = []): mixed
     {
-        /** @var string $result */
+        /**
+         * @var array{
+         *     message: PendingPublicMessage|null,
+         * } $result
+         */
         $result = $this->client->request('POST', '/api/v1/devices/{device}/templates/{template}/send-template', ['path' => ['device' => $device, 'template' => $template], 'body' => $body] + $options);
 
         return $result;
@@ -167,13 +179,16 @@ final class Templates extends AbstractResource
      * `DELETE /api/v1/devices/{device}/templates/{template}`.
      *
      * Permission: `conversations:write`.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $device
      * @param int $template
      * @param RequestOptions $options
+     *
+     * @return mixed
      */
-    public function delete(int|string $device, int|string $template, array $options = []): void
+    public function delete(int|string $device, int|string $template, array $options = []): mixed
     {
-        $this->client->request('DELETE', '/api/v1/devices/{device}/templates/{template}', ['path' => ['device' => $device, 'template' => $template]] + $options);
+        return $this->client->request('DELETE', '/api/v1/devices/{device}/templates/{template}', ['path' => ['device' => $device, 'template' => $template]] + $options);
     }
 }

@@ -6,6 +6,7 @@
       "paths": "Una operación (método + ruta) se agrega solo si la instantánea no la tiene.",
       "operationPatches": "Un parche agrega propiedades al cuerpo de una operación de la instantánea solo mientras esa operación cumple la condición de `while`.",
       "webhooks": "Un evento se agrega si la instantánea no lo tiene, o lo reemplaza mientras cumple la condición de `x-fc-replace-while`.",
+      "responsePatches": "Un parche reemplaza las respuestas de una operación de la instantánea (todas las 2xx, y las otras que traiga por código) solo mientras esa operación cumple la condición de `while`.",
       "webhookPatches": "Un parche agrega propiedades a `data` de un evento de la instantánea solo mientras el evento no las trae (ni en su esquema ni en su ejemplo).",
       "components.schemas": "Los esquemas de esta capa empiezan con `Pending` para no chocar con los de la instantánea."
     },
@@ -14,6 +15,7 @@
       "accounts-webhooks": "accounts origin/main @ c34cba2c (2026-10-16): back/routes/api/webhooks.php, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Catalogs/Areas/*Events.php. En producción desde el 13-10 (accounts #978).",
       "conversations-c2": "conversations feat/armar-funnelchat-f1 @ eadef46c (PR #2284, SIN MERGEAR): envío con clave (contrato 1014, C2) y client_reference.",
       "conversations-c1": "conversations feat/armar-funnelchat-f1 @ eadef46c (PR #2284, SIN MERGEAR): forma de data de message.status_changed (contrato 1014, C1).",
+      "conversations-send-result": "conversations feat/envio-devuelve-id @ d3ac33994 (2026-10-16, rama LOCAL, SIN PR; sale de feat/armar-funnelchat-f1 @ eadef46c): lo que responde un envío con clave, el mensaje registrado con `status: queued` (back/app/Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, PublicMessageStatus.php, Http/Resources/PublicMessageResource.php y Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php). La forma puede cambiar.",
       "conversations-received-device": "conversations feat/armar-funnelchat-f1 @ eadef46c (PR #2284, SIN MERGEAR): `device_id` en `data` de message.received (back/app/Modules/Webhook/Payloads/MessageReceivedPayload.php)."
     }
   },
@@ -131,6 +133,66 @@
           "delivery_id": { "type": "integer" }
         },
         "required": ["succeeded", "response_status", "error", "duration_ms", "delivery_id"]
+      },
+      "PendingPublicMessage": {
+        "type": "object",
+        "description": "Un mensaje como lo ve una clave: siempre estas diez claves. Pendiente de la especificación (conversations feat/envio-devuelve-id @ d3ac33994, sin PR): la forma puede cambiar.",
+        "properties": {
+          "id": { "type": "integer", "description": "El id del mensaje en el historial del contacto: el mismo `message_id` de `message.status_changed`." },
+          "contact_id": { "type": ["integer", "null"] },
+          "device_id": { "type": ["integer", "null"] },
+          "direction": { "type": "string", "enum": ["outbound", "inbound"] },
+          "type": { "type": "string", "description": "El tipo público del mensaje (`text`, `image`, `contact`…), el mismo de `message.received`." },
+          "status": {
+            "type": ["string", "null"],
+            "enum": ["queued", "sent", "delivered", "read", "failed", null],
+            "description": "Un envío recién aceptado está `queued`. `null` cuando el mensaje no tiene estado de entrega (recibido, nota) o no se sabe."
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": { "code": { "type": ["integer", "null"] }, "title": { "type": ["string", "null"] } },
+                "required": ["code", "title"]
+              },
+              { "type": "null" }
+            ],
+            "description": "Solo cuando `status` es `failed`."
+          },
+          "client_reference": { "type": ["string", "null"] },
+          "created_at": { "type": ["string", "null"], "format": "date-time" },
+          "updated_at": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "required": ["id", "contact_id", "device_id", "direction", "type", "status", "error", "client_reference", "created_at", "updated_at"]
+      },
+      "PendingQueuedContactCard": {
+        "type": "object",
+        "description": "Una tarjeta de contacto después de la primera: las mismas claves del mensaje, sin id. Pendiente de la especificación (conversations feat/envio-devuelve-id @ d3ac33994, sin PR).",
+        "properties": {
+          "id": { "type": "null" },
+          "contact_id": { "type": ["integer", "null"] },
+          "device_id": { "type": ["integer", "null"] },
+          "direction": { "type": "string", "enum": ["outbound"] },
+          "type": { "type": "string", "enum": ["contact"] },
+          "status": { "type": "string", "enum": ["queued", "failed"] },
+          "error": { "type": ["string", "null"] },
+          "client_reference": { "type": ["string", "null"] },
+          "created_at": { "type": ["string", "null"] },
+          "updated_at": { "type": ["string", "null"] }
+        },
+        "required": ["id", "contact_id", "device_id", "direction", "type", "status", "error", "client_reference", "created_at", "updated_at"]
+      },
+      "PendingForwardResult": {
+        "type": "object",
+        "description": "El resultado de un reenvío para un destino, con su mensaje. Pendiente de la especificación (conversations feat/envio-devuelve-id @ d3ac33994, sin PR).",
+        "properties": {
+          "contact_id": { "type": "integer" },
+          "mode": { "type": "string", "enum": ["internal", "native"] },
+          "status": { "type": "string", "enum": ["queued", "blocked"] },
+          "reason": { "type": ["string", "null"] },
+          "message": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }] }
+        },
+        "required": ["contact_id", "mode", "status", "reason", "message"]
       },
       "PendingMessage": {
         "type": "object",
@@ -354,6 +416,102 @@
       "while": { "x-portal-v0": "send_pending" },
       "x-fc-pending": "conversations-c2",
       "requestBodyProperties": { "client_reference": { "$ref": "#/components/schemas/PendingClientReference" } }
+    }
+  ],
+  "responsePatches": [
+    {
+      "method": "post",
+      "path": "/api/v1/contacts/{contact}/message",
+      "while": { "x-portal-v0": "send_pending" },
+      "x-fc-pending": "conversations-send-result",
+      "responses": {
+        "204": { "description": "Hasta que se despliegue conversations feat/envio-devuelve-id: sin cuerpo." },
+        "200": {
+          "description": "El mensaje quedó registrado (`status: queued`) y sale desde la cola. `message` es `null` si no se pudo leer de vuelta.",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "message": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }] } },
+            "required": ["message"]
+          } } }
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/api/v1/contacts/{contact}/message/contact-card",
+      "while": { "x-portal-v0": "send_pending" },
+      "x-fc-pending": "conversations-send-result",
+      "responses": {
+        "204": { "description": "Hasta que se despliegue conversations feat/envio-devuelve-id: sin cuerpo." },
+        "200": {
+          "description": "Una entrada por tarjeta, en orden: la primera es el mensaje (o `null` si no se pudo leer), las demás una marca `queued` o `failed` sin id.",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "messages": { "type": "array", "items": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "$ref": "#/components/schemas/PendingQueuedContactCard" }, { "type": "null" }] } } },
+            "required": ["messages"]
+          } } }
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/api/v1/contacts/{contact}/messages/{message}/forward",
+      "while": { "x-portal-v0": "send_pending" },
+      "x-fc-pending": "conversations-send-result",
+      "responses": {
+        "200": {
+          "description": "Un ítem por destino, en el orden pedido, cada uno con su `message` (o `null`: en cola sin registrar todavía, bloqueado, o no se pudo leer).",
+          "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PendingForwardResult" } } } }
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/api/v1/message/send-message",
+      "while": { "x-portal-v0": "send_pending" },
+      "x-fc-pending": "conversations-send-result",
+      "responses": {
+        "200": {
+          "description": "El mensaje registrado, y `error` si el envío directo falló.",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "message": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }] },
+              "error": { "type": ["string", "null"] }
+            },
+            "required": ["message", "error"]
+          } } }
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/api/v1/devices/{device}/templates/{template}/send-template",
+      "while": { "x-portal-v0": "send_pending" },
+      "x-fc-pending": "conversations-send-result",
+      "responses": {
+        "200": {
+          "description": "La plantilla quedó registrada como mensaje.",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": { "message": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }] } },
+            "required": ["message"]
+          } } }
+        },
+        "502": {
+          "description": "Meta rechazó la plantilla. El cuerpo llega en `ApiException::$body`.",
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "error": { "type": "string" },
+              "error_code": { "type": ["string", "null"] },
+              "placeholders": { "type": "array", "items": { "type": "string" } },
+              "message": { "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }] }
+            },
+            "required": ["error", "error_code", "placeholders", "message"]
+          } } }
+        }
+      }
     }
   ],
   "webhookPatches": [

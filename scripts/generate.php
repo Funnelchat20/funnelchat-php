@@ -344,6 +344,36 @@ final class Generator
             $report['applied'][] = $label;
         }
 
+        foreach (self::arr($pending['responsePatches'] ?? null) as $patch) {
+            $patch = self::obj($patch);
+            $method = self::str($patch['method'] ?? null) ?? '';
+            $path = self::str($patch['path'] ?? null) ?? '';
+            $replacement = self::obj($patch['responses'] ?? null);
+            $label = strtoupper($method) . " {$path} (respuesta)";
+            $item = self::obj($paths[$path] ?? null);
+            $op = self::obj($item[$method] ?? null);
+            if ($op === []) {
+                $report['missing'][] = $label;
+
+                continue;
+            }
+            if (!self::matches($op, self::obj($patch['while'] ?? null))) {
+                $report['superseded'][] = $label;
+
+                continue;
+            }
+            $responses = self::obj($op['responses'] ?? null);
+            if (array_intersect(array_keys($replacement), SUCCESS_STATUSES) !== []) {
+                // The pending answer is the whole 2xx: a `204` of the snapshot would say "no body".
+                $responses = array_diff_key($responses, array_flip(SUCCESS_STATUSES));
+            }
+            $op['responses'] = $replacement + $responses;
+            $op['x-fc-pending-response'] = $patch['x-fc-pending'] ?? true;
+            $item[$method] = $op;
+            $paths[$path] = $item;
+            $report['applied'][] = $label;
+        }
+
         $snapshotTypes = [];
         foreach (array_keys($webhooks) as $key) {
             $snapshotTypes[self::eventTypeOfKey((string) $key)] = (string) $key;
@@ -465,7 +495,7 @@ final class Generator
                     'permission' => self::str($op['x-fc-permission'] ?? null),
                     'tag' => self::str($tags[0] ?? null),
                     'summary' => self::str($op['summary'] ?? null),
-                    'pending' => isset($op['x-fc-pending']),
+                    'pending' => isset($op['x-fc-pending']) || isset($op['x-fc-pending-response']),
                     'sdk' => $sdkMethods[$label] ?? null,
                 ];
             }
@@ -867,8 +897,10 @@ final class Generator
             $returnDoc = 'Paginator<' . $this->listItemType($op, $types) . '>';
             $native = 'Paginator';
         } elseif (!$hasContent) {
-            $returnDoc = null;
-            $native = 'void';
+            // Never `void`: when the spec documents no body, whatever the API answers is still
+            // returned (a regeneration must not drop a body the API started sending).
+            $returnDoc = 'mixed';
+            $native = 'mixed';
         } else {
             $returnDoc = $hasEmpty ? "{$responseType}|null" : $responseType;
             $native = 'mixed';
@@ -887,6 +919,14 @@ final class Generator
             $notes[] = 'Pending of the spec' . (\is_string($pending) ? " (`{$pending}` in spec/pending.json)" : '')
                 . ($fields === [] ? '.' : ': `' . implode('`, `', $fields) . '`.');
         }
+        $pendingResponse = $op['x-fc-pending-response'] ?? null;
+        if ($pendingResponse !== null) {
+            $notes[] = 'Response: pending of the spec' . (\is_string($pendingResponse) ? " (`{$pendingResponse}` in spec/pending.json)" : '')
+                . '; it may change.';
+        }
+        if (!$hasContent && !$paginate) {
+            $notes[] = 'The spec documents no body: returns `null`, or the decoded body if the API sends one.';
+        }
         if (($op['x-portal-v0'] ?? null) === 'send_pending') {
             $notes[] = 'Portal note (v0, `send_pending`): sending with an API key is not open yet; until it is, this route answers `403 route_not_available`.';
         }
@@ -899,10 +939,7 @@ final class Generator
         }
         $tags[] = '     * @param RequestOptions $options';
         $docblock = "    /**\n" . implode('', $lines) . "     *\n" . implode("\n", $tags) . "\n";
-        if ($returnDoc !== null) {
-            $docblock .= "     *\n" . Php::docTag("@return {$returnDoc}", '', '    ') . "\n";
-        }
-        $docblock .= "     */\n";
+        $docblock .= "     *\n" . Php::docTag("@return {$returnDoc}", '', '    ') . "\n     */\n";
 
         $signature = [];
         foreach ($args as $arg) {
@@ -923,8 +960,8 @@ final class Generator
             $body .= Php::docTag("@var {$returnDoc} \$result", '', '        ', '', true) . "\n"
                 . '        $result = $this->client->paginate(' . Php::value($path) . ", {$request});\n\n"
                 . "        return \$result;\n";
-        } elseif ($native === 'void') {
-            $body .= '        $this->client->request(' . Php::value($httpMethod) . ', ' . Php::value($path) . ", {$request});\n";
+        } elseif ($returnDoc === 'mixed') {
+            $body .= '        return $this->client->request(' . Php::value($httpMethod) . ', ' . Php::value($path) . ", {$request});\n";
         } else {
             $body .= Php::docTag("@var {$returnDoc} \$result", '', '        ', '', true) . "\n"
                 . '        $result = $this->client->request(' . Php::value($httpMethod) . ', ' . Php::value($path) . ", {$request});\n\n"
