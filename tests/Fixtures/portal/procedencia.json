@@ -1,0 +1,18 @@
+{
+  "description": "Copia exacta de snippets/verificar-firma.php del portal. Los tests de firma comparan Webhook::verify con esta función, caso por caso. No la reformatees: si el portal la cambia, copiala de nuevo y actualizá el sha256.",
+  "file": "tests/Fixtures/portal/verificar-firma.php",
+  "sha256": "4c24481ac51822f9397ee277a1dcf843f52799907f12a06c538251cd122d80bc",
+  "source": {
+    "repository": "git@github.com:Funnelchat20/developers-portal.git",
+    "path": "snippets/verificar-firma.php",
+    "branch": "feat/armar-funnelchat-portal",
+    "commit": "dd7cd4273152ea6b41ec4da6de7f07b9ad56dba7",
+    "identical_in": "feat/openapi-unificada @ 0ef4abb"
+  },
+  "vectors": {
+    "path": "tests/test_firmas.py",
+    "sha256": "3feae28beafe48090127fa2d586c2f008efa1bbe99721240f664f713b5145c0e",
+    "replicated_in": "tests/Fixtures/PortalSignatureVectors.php"
+  },
+  "copied_at": "2026-10-16T06:12:32Z"
+}
