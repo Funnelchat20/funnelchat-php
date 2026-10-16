@@ -55,56 +55,111 @@ final class GeneratedTest extends TestCase
         return $json;
     }
 
-    private static function countOperations(mixed $paths): int
+    /** The value at a path of decoded JSON, or `null` when some step is missing. */
+    private static function at(mixed $json, string ...$keys): mixed
     {
-        $n = 0;
-        foreach (\is_array($paths) ? $paths : [] as $item) {
+        foreach ($keys as $key) {
+            if (!\is_array($json) || !\array_key_exists($key, $json)) {
+                return null;
+            }
+            $json = $json[$key];
+        }
+
+        return $json;
+    }
+
+    /**
+     * @return list<string> "METHOD /path" of every operation of a `paths` object
+     */
+    private static function operations(mixed $paths): array
+    {
+        $operations = [];
+        foreach (\is_array($paths) ? $paths : [] as $path => $item) {
             foreach (['get', 'put', 'post', 'delete', 'patch'] as $method) {
                 if (\is_array($item) && isset($item[$method])) {
-                    ++$n;
+                    $operations[] = strtoupper($method) . " {$path}";
                 }
             }
         }
 
-        return $n;
+        return $operations;
     }
 
     public function testHasEveryOperationOfTheSnapshotPlusThePendingOnesFlagged(): void
     {
-        $snapshotOps = self::countOperations(self::readJson('funnelchat.json')['paths'] ?? null);
-        $pendingWebhookOps = \count(array_filter(Routes::ALL, static fn(array $r): bool => $r['pending'] && str_starts_with($r['path'], '/api/v1/webhooks')));
+        $snapshot = self::operations(self::readJson('funnelchat.json')['paths'] ?? null);
+        $pendingOnly = array_values(array_diff(self::operations(self::readJson('pending.json')['paths'] ?? null), $snapshot));
+        $routes = self::constant(Routes::class, 'ALL');
 
-        self::assertGreaterThan(0, $snapshotOps);
-        self::assertCount($snapshotOps + $pendingWebhookOps, Routes::ALL);
-        self::assertLessThanOrEqual(self::countOperations(self::readJson('pending.json')['paths'] ?? null), $pendingWebhookOps);
+        self::assertGreaterThan(0, \count($snapshot));
+        self::assertCount(\count($snapshot) + \count($pendingOnly), $routes);
+        foreach ($routes as $route) {
+            self::assertIsArray($route);
+            self::assertIsString($route['method']);
+            self::assertIsString($route['path']);
+            $label = "{$route['method']} {$route['path']}";
+            if (\in_array($label, $pendingOnly, true)) {
+                self::assertTrue($route['pending'], "{$label} comes from spec/pending.json");
+            }
+        }
+    }
 
-        $pending = array_map(static fn(array $r): string => "{$r['method']} {$r['path']}", array_values(array_filter(Routes::ALL, static fn(array $r): bool => $r['pending'])));
-        foreach ([
-            'GET /api/v1/webhooks',
-            'POST /api/v1/webhooks',
-            'GET /api/v1/webhooks/{id}',
-            'PUT /api/v1/webhooks/{id}',
-            'DELETE /api/v1/webhooks/{id}',
-            'POST /api/v1/webhooks/{id}/rotate-secret',
-            'POST /api/v1/webhooks/{id}/test',
-            'GET /api/v1/webhooks/{id}/deliveries',
-            // Patched with client_reference while the snapshot says send_pending.
-            'POST /api/v1/contacts/{contact}/message',
-        ] as $route) {
-            self::assertContains($route, $pending);
+    public function testFlagsThePatchedOperationsWhileTheSnapshotSaysSendPending(): void
+    {
+        $spec = self::readJson('funnelchat.json');
+        $routes = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
+            self::assertIsArray($route);
+            self::assertIsString($route['method']);
+            self::assertIsString($route['path']);
+            $routes["{$route['method']} {$route['path']}"] = $route;
+        }
+        $patches = self::readJson('pending.json')['operationPatches'] ?? [];
+        self::assertIsArray($patches);
+        foreach ($patches as $patch) {
+            self::assertIsArray($patch);
+            self::assertIsString($patch['method']);
+            self::assertIsString($patch['path']);
+            $op = self::at($spec, 'paths', $patch['path'], $patch['method']);
+            $label = strtoupper($patch['method']) . " {$patch['path']}";
+            if (\is_array($op) && ($op['x-portal-v0'] ?? null) === 'send_pending') {
+                self::assertTrue(($routes[$label] ?? [])['pending'] ?? false, "{$label} is patched with client_reference");
+            }
         }
     }
 
     public function testKnowsEveryEventOfTheSnapshotAndThePendingOnes(): void
     {
-        foreach (['message.received', 'group.created', 'webhook.test', 'message.status_changed', 'device.connected', 'device.disconnected'] as $type) {
-            self::assertArrayHasKey($type, self::constant(WebhookEvents::class, 'CATALOG'));
+        $catalog = self::constant(WebhookEvents::class, 'CATALOG');
+        $types = [];
+        $snapshotWebhooks = self::at(self::readJson('funnelchat.json'), 'webhooks');
+        $pendingWebhooks = self::at(self::readJson('pending.json'), 'webhooks');
+        self::assertIsArray($snapshotWebhooks);
+        self::assertIsArray($pendingWebhooks);
+        foreach (array_keys($snapshotWebhooks) as $key) {
+            $types[] = (string) preg_replace('/\s*\(.*\)\s*$/', '', (string) $key);
         }
-        self::assertSame('planned', self::event('message.status_changed')['status']);
-        self::assertTrue(self::event('message.status_changed')['pending']);
+        foreach (array_keys($pendingWebhooks) as $type) {
+            $types[] = (string) $type;
+            self::assertArrayHasKey((string) $type, $catalog);
+        }
+        self::assertEqualsCanonicalizing(array_values(array_unique($types)), array_keys($catalog));
+        foreach (['message.received', 'webhook.test', 'message.status_changed', 'device.connected'] as $type) {
+            self::assertArrayHasKey($type, $catalog);
+        }
         self::assertSame(['conversations', 'communities'], self::event('webhook.test')['domains']);
-        // device_id of message.received comes from the pending layer while the snapshot lacks it.
-        self::assertSame(['device_id'], self::event('message.received')['pendingFields']);
+    }
+
+    public function testAddsThePendingFieldsOfAnEventOnlyWhileTheSnapshotLacksThem(): void
+    {
+        $content = self::at(self::readJson('funnelchat.json'), 'webhooks', 'message.received', 'post', 'requestBody', 'content', 'application/json');
+        // Present means the key is there, even with a null value: the same rule as the generator.
+        $exampleData = self::at($content, 'example', 'data');
+        $schemaData = self::at($content, 'schema', 'properties', 'data', 'properties');
+        $inSnapshot = (\is_array($exampleData) && \array_key_exists('device_id', $exampleData))
+            || (\is_array($schemaData) && \array_key_exists('device_id', $schemaData));
+
+        self::assertSame($inSnapshot ? [] : ['device_id'], self::event('message.received')['pendingFields']);
     }
 
     public function testHasTheSameResourcesAsTheNodeSdk(): void

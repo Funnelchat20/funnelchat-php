@@ -77,6 +77,41 @@ final class WebhookSignatureTest extends TestCase
         self::assertSame(verificarFirma($body, $header, $secret, 600), Webhook::verify($body, $header, $secret, 600));
     }
 
+    public function testAnswersLikeThePortalSnippetOn2000RandomDeliveries(): void
+    {
+        // Seeded, so a failure can be reproduced: valid, altered and malformed headers, bodies and
+        // secrets, with timestamps around the tolerance.
+        mt_srand(20261016);
+        $now = time();
+        $bodies = [V::BODY, V::UTF8_BODY, '', str_replace('Hola', 'Hole', V::BODY), '{"a":1}'];
+        $secrets = [V::SECRET, V::SECRET_WITHOUT_PREFIX, V::SECRET . 'x', ''];
+        $accepted = 0;
+        for ($i = 0; $i < 2000; ++$i) {
+            $body = $bodies[mt_rand(0, \count($bodies) - 1)];
+            $signedBody = mt_rand(0, 4) === 0 ? $bodies[mt_rand(0, \count($bodies) - 1)] : $body;
+            $secret = $secrets[mt_rand(0, \count($secrets) - 1)];
+            $signingSecret = mt_rand(0, 4) === 0 ? $secrets[mt_rand(0, \count($secrets) - 1)] : $secret;
+            $t = $now + mt_rand(-400, 400);
+            $v1 = hash_hmac('sha256', "{$t}." . $signedBody, $signingSecret);
+            $parts = match (mt_rand(0, 5)) {
+                0 => ["t={$t}", "v1={$v1}"],
+                1 => ["v1={$v1}", "t={$t}"],
+                2 => ["t={$t}", 'v1=' . hash('sha256', (string) mt_rand()), " v1={$v1} "],
+                3 => ["t={$t}", 'v1=' . strtoupper($v1)],
+                4 => ['t=' . (mt_rand(0, 1) === 0 ? 'abc' : " {$t}"), "v1={$v1}"],
+                default => ["t={$t}", 'v1=' . substr($v1, 0, mt_rand(0, 63)), 'basura'],
+            };
+            $header = implode(mt_rand(0, 3) === 0 ? ', ' : ',', $parts);
+
+            $expected = verificarFirma($body, $header, $secret);
+            self::assertSame($expected, Webhook::verify($body, $header, $secret), "case {$i}: {$header}");
+            $accepted += $expected ? 1 : 0;
+        }
+        // The sample has both answers, so the comparison means something.
+        self::assertGreaterThan(100, $accepted);
+        self::assertLessThan(1900, $accepted);
+    }
+
     public function testTheCopyOfThePortalSnippetIsTheOneRecordedInItsProvenance(): void
     {
         $provenance = json_decode((string) file_get_contents(__DIR__ . '/Fixtures/portal/procedencia.json'), true, 512, \JSON_THROW_ON_ERROR);
