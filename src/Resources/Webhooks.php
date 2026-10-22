@@ -18,11 +18,10 @@ use Funnelchat\Webhooks\WebhookHelpers;
 /**
  * Webhook subscriptions (accounts area) and the verification of deliveries.
  *
- * PENDING OF THE SPEC: the `/api/v1/webhooks` subscription routes come from accounts `origin/main`
- * @ c34cba2c (unified subscriptions, in production since 13-10), not from the snapshot; their types
- * are in spec/pending.json until a snapshot brings them. At that commit the routes are not in the
- * gate's `allowed` list, so an API key may get `403 route_not_available` until accounts opens them.
- * The event catalog (`events()`) is in the snapshot.
+ * The subscription routes need `webhooks:read` / `webhooks:write`, and a key only sees and manages
+ * subscriptions whose events are of areas it can read (`{area}:read`). The catalog (`events()`)
+ * needs `accounts:read`. PENDING OF THE SPEC: the subscription routes come from accounts v1.4.24,
+ * not from the snapshot; their types are in spec/pending.json until a snapshot brings them.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingWebhookSubscription from Schemas
@@ -74,19 +73,25 @@ final class Webhooks extends AbstractResource
     }
 
     /**
-     * `GET /api/v1/webhooks`: every subscription of the account (at most 50), not only yours.
+     * `GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only
+     * yours, except those with events of an area your key cannot read.
      *
-     * Permission: `accounts:read`.
+     * Permission: `webhooks:read`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
+     * @param array{
+     *     perPage?: int,
+     *     page?: int,
+     *     cursor?: string,
+     * } $query
      * @param RequestOptions $options
      *
-     * @return list<PendingWebhookSubscription>
+     * @return Paginator<PendingWebhookSubscription>
      */
-    public function list(array $options = []): mixed
+    public function list(array $query = [], array $options = []): Paginator
     {
-        /** @var list<PendingWebhookSubscription> $result */
-        $result = $this->client->request('GET', '/api/v1/webhooks', $options);
+        /** @var Paginator<PendingWebhookSubscription> $result */
+        $result = $this->client->paginate('/api/v1/webhooks', ['query' => $query] + $options);
 
         return $result;
     }
@@ -94,7 +99,7 @@ final class Webhooks extends AbstractResource
     /**
      * `POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`.
      *
-     * Permission: `accounts:write`.
+     * Permission: `webhooks:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param PendingWebhookSubscriptionCreate $body
@@ -113,7 +118,7 @@ final class Webhooks extends AbstractResource
     /**
      * `GET /api/v1/webhooks/{id}` (without the secret).
      *
-     * Permission: `accounts:read`.
+     * Permission: `webhooks:read`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -133,7 +138,7 @@ final class Webhooks extends AbstractResource
      * `PUT /api/v1/webhooks/{id}`: replaces `url`, `events`, `description` and `filters`. The
      * secret stays.
      *
-     * Permission: `accounts:write`.
+     * Permission: `webhooks:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -153,7 +158,7 @@ final class Webhooks extends AbstractResource
     /**
      * `DELETE /api/v1/webhooks/{id}`.
      *
-     * Permission: `accounts:write`.
+     * Permission: `webhooks:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
@@ -169,9 +174,10 @@ final class Webhooks extends AbstractResource
 
     /**
      * `POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops
-     * working.
+     * working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available`
+     * (rotate it in the panel).
      *
-     * Permission: `accounts:write`.
+     * Permission: `webhooks:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -190,7 +196,7 @@ final class Webhooks extends AbstractResource
     /**
      * `POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`.
      *
-     * Permission: `accounts:write`.
+     * Permission: `webhooks:write`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -209,7 +215,7 @@ final class Webhooks extends AbstractResource
     /**
      * `GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first.
      *
-     * Permission: `accounts:read`.
+     * Permission: `webhooks:read`.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id

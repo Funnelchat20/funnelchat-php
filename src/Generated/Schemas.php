@@ -694,6 +694,7 @@ namespace Funnelchat\Generated;
  *     form_answers?: string,
  *     reactions: list<mixed>,
  *     file_original_name: string|null,
+ *     client_reference: string|null,
  * }
  * @phpstan-type ConversationsUserResource array{
  *     id: string,
@@ -802,6 +803,16 @@ namespace Funnelchat\Generated;
  *     connected: int,
  *     active: int|null,
  *     health: string,
+ *     number_key: string|null,
+ *     number_key_confirmed: bool,
+ *     is_coexistence: bool,
+ *     slot_state: 'free'|'reserved'|'pending'|'held',
+ *     pool_suspended: bool,
+ *     pool_suspension_reason: 'over_pool'|'payment_lapse'|null,
+ *     pool_keep: bool,
+ *     qr_allowed: bool,
+ *     can_change_to_meta: bool,
+ *     capabilities: PendingDeviceCapabilities,
  * }
  * @phpstan-type DisconnectSurveyResource array{
  *     pending: bool,
@@ -1244,6 +1255,8 @@ namespace Funnelchat\Generated;
  *         domain?: string,
  *     },
  *     client_reference?: PendingClientReference,
+ *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
+ *     file_name?: string|null,
  * }
  * @phpstan-type SslValidationMethod 'TXT'|'HTTP'
  * @phpstan-type StoreAlertDestinationRequest array{
@@ -1602,24 +1615,9 @@ namespace Funnelchat\Generated;
  *     contact_id: int|null,
  *     device_id: int|null,
  *     direction: 'outbound'|'inbound',
- *     type: string,
+ *     type: 'text'|'image'|'video'|'document'|'sticker'|'contact'|'audio'|'note'|'action'|'invalid'|'interactive'|'location'|'voice_call'|'video_call'|'event'|'button'|'template'|'notification'|'option_list'|'template_button_reply'|'poll'|'whatsapp_form'|'call_permission_request'|'call_permission_reply'|'request_contact_info',
  *     status: 'queued'|'sent'|'delivered'|'read'|'failed'|null,
- *     error: array{
- *         code: int|null,
- *         title: string|null,
- *     }|null,
- *     client_reference: string|null,
- *     created_at: string|null,
- *     updated_at: string|null,
- * }
- * @phpstan-type PendingQueuedContactCard array{
- *     id: null,
- *     contact_id: int|null,
- *     device_id: int|null,
- *     direction: 'outbound',
- *     type: 'contact',
- *     status: 'queued'|'failed',
- *     error: string|null,
+ *     error: PendingMessageError|null,
  *     client_reference: string|null,
  *     created_at: string|null,
  *     updated_at: string|null,
@@ -1628,11 +1626,124 @@ namespace Funnelchat\Generated;
  *     contact_id: int,
  *     mode: 'internal'|'native',
  *     status: 'queued'|'blocked',
- *     reason: string|null,
+ *     reason: 'mac_lockout_24h'|'mac_limit_reached'|'device_unavailable'|'not_sent'|'target_not_found'|null,
  *     message: PendingPublicMessage|null,
  * }
  * @phpstan-type PendingMessage array{
  *     message: string,
+ * }
+ * @phpstan-type PendingGroupActionAccepted array{
+ *     action_id: string,
+ *     status: 'queued',
+ * }
+ * @phpstan-type PendingGroupActionParticipantResult array{
+ *     identity: string|null,
+ *     identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *     status: 'added'|'invited'|'removed'|'promoted'|'demoted'|'approved'|'rejected'|'failed',
+ *     reason: string|null,
+ * }
+ * @phpstan-type PendingGroupRef array{
+ *     uid: string,
+ *     name: string|null,
+ * }
+ * @phpstan-type PendingGroupAction array{
+ *     action_id: string,
+ *     type: 'create_group'|'add_participants'|'remove_participants'|'promote_admins'|'demote_admins'|'update_name'|'update_description'|'update_photo'|'update_settings'|'renew_invite_link'|'send_message'|'approve_join_requests'|'reject_join_requests',
+ *     status: 'queued'|'running'|'completed'|'failed',
+ *     device_id: int,
+ *     group: PendingGroupRef|null,
+ *     result: array{
+ *         participants?: list<PendingGroupActionParticipantResult>,
+ *         group?: PendingGroupRef,
+ *         invite_link?: string,
+ *         message?: array{
+ *             uid: string,
+ *         },
+ *     }|null,
+ *     reason: string|null,
+ *     created_at: string|null,
+ *     started_at: string|null,
+ *     completed_at: string|null,
+ *     failed_at: string|null,
+ * }
+ * @phpstan-type PendingGroupJoinRequest array{
+ *     participant: array{
+ *         identity: string|null,
+ *         identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *         name: string|null,
+ *     },
+ *     requested_at: string|null,
+ * }
+ * @phpstan-type PendingDeviceCapabilities array{
+ *     messages: array{
+ *         text: bool,
+ *         media: bool,
+ *         buttons: bool,
+ *         lists: bool,
+ *         templates: bool,
+ *         location: bool,
+ *         voice_note: bool,
+ *         polls: bool,
+ *         events: bool,
+ *         contact_card: bool,
+ *         reactions: bool,
+ *     },
+ *     groups: array{
+ *         create: bool,
+ *         add_participants: 'direct'|'invite'|false,
+ *         remove_participants: bool,
+ *         admins: bool,
+ *         photo: bool,
+ *         settings: bool,
+ *         invite_link: bool,
+ *         send: bool,
+ *         join_requests: 'list'|'list_and_decide'|false,
+ *     },
+ *     statuses: list<'sent'|'delivered'|'read'|'failed'>,
+ * }
+ * @phpstan-type PendingMessageError array{
+ *     code: int|null,
+ *     title: string|null,
+ *     reason: 'device_unavailable'|'insufficient_balance'|'window_closed'|'recipient_unreachable'|'template_not_found'|'template_unresolved_placeholder'|'not_queued'|'not_sent'|null,
+ * }
+ * @phpstan-type PendingFormLintIssue array{
+ *     code: string,
+ *     severity: string,
+ *     screenId: string|null,
+ *     itemId: string|null,
+ *     message: string,
+ * }
+ * @phpstan-type PendingFormNumber array{
+ *     device_id: int|null,
+ *     primary: bool,
+ *     status: 'draft'|'published'|'publishing'|'failed',
+ *     error: string|null,
+ * }
+ * @phpstan-type PendingForm array{
+ *     id: int,
+ *     family_id: int,
+ *     name: string,
+ *     label: string|null,
+ *     category: string|null,
+ *     status: 'draft'|'published'|'deprecated',
+ *     version: int,
+ *     has_endpoint: bool,
+ *     first_screen: string|null,
+ *     first_screen_dynamic: bool,
+ *     lint_errors_count: int,
+ *     meta_flow_id: string|null,
+ *     published_at: string|null,
+ *     updated_at: string,
+ *     definition?: array<string, mixed>,
+ *     fields?: list<mixed>,
+ *     mapping?: mixed,
+ *     tag_rules?: mixed,
+ *     flow_json?: mixed,
+ *     validation_errors?: mixed,
+ *     sends?: int,
+ *     responses?: int,
+ *     draft_id?: int,
+ *     draft_version?: int,
  * }
  */
 final class Schemas

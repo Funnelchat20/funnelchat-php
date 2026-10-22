@@ -138,14 +138,12 @@ final class Templates extends AbstractResource
     /**
      * `POST /api/v1/devices/{device}/templates/{template}/send-template`: sends an approved
      * template (the way to write to a contact outside the 24-hour window). `phone` and `contact_id`
-     * are required; `template_variables.body` fills the body variables in order.
+     * are required; `template_variables.body` fills the body variables in order. Returns
+     * `['message' => …]`, the registered message (`type` `template`).
      *
      * Permission: `conversations:send`.
-     * Pending of the spec (`conversations-c2` in spec/pending.json): `client_reference`.
-     * Response: pending of the spec (`conversations-send-result` in spec/pending.json); it may
-     * change.
-     * Portal note (v0, `send_pending`): sending with an API key is not open yet; until it is, this
-     * route answers `403 route_not_available`.
+     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
+     * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $device
      * @param string $template
@@ -160,14 +158,14 @@ final class Templates extends AbstractResource
      * @param RequestOptions $options
      *
      * @return array{
-     *     message: PendingPublicMessage|null,
+     *     message: PendingPublicMessage,
      * }
      */
     public function send(int|string $device, int|string $template, array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     message: PendingPublicMessage|null,
+         *     message: PendingPublicMessage,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/devices/{device}/templates/{template}/send-template', ['path' => ['device' => $device, 'template' => $template], 'body' => $body] + $options);

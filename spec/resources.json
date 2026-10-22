@@ -56,12 +56,13 @@
     {
       "property": "messages",
       "class": "Messages",
-      "doc": "Messages to one contact (conversations area): send text, files and buttons, read the history, forward, react.\n\nSending with an API key needs the `conversations:send` permission and is subject to the WhatsApp rules: `422 window_closed`, `422 antiblock_*`, `422 recipient_*` and `429 rate_limited` (with `retryAfter`). A rejected send stores nothing. Send operations are never retried automatically unless you pass `retrySend: true`.",
+      "doc": "Messages to one contact (conversations area): send text, files and buttons, read the history or one message by id, forward, react.\n\nSending with an API key needs the `conversations:send` permission and is subject to the WhatsApp rules: `422 window_closed`, `422 antiblock_*`, `422 recipient_*`, `422 device_unavailable`, `429 rate_limited` (with `retryAfter`) and `429 mac_lockout_24h`. A rejected send goes nowhere (see `Funnelchat\\Exception\\SendErrors`). Send operations are never retried automatically unless you pass `retrySend: true`.",
       "methods": [
-        { "name": "send", "op": "POST /api/v1/contacts/{contact}/message", "bodyDefaults": { "contact_id": "contact" }, "doc": "`POST /api/v1/contacts/{contact}/message`: text, a file (`file` with a URL) or buttons and lists (`options`). Returns `['message' => …]`: the registered message, `status` `queued` (pending of the spec), or `null` while the API answers `204`.\n\nSend `phone` (or `whatsapp_id`) of the same contact: the API validates it. `contact_id` is optional: it defaults to the contact of the route. `client_reference` (pending of the spec) comes back in the history and in `message.status_changed`." },
-        { "name": "list", "op": "GET /api/v1/contacts/{contactId}/messages", "paginate": true, "doc": "`GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact." },
-        { "name": "sendContactCard", "op": "POST /api/v1/contacts/{contact}/message/contact-card", "doc": "`POST /api/v1/contacts/{contact}/message/contact-card`: sends up to 5 contact cards." },
-        { "name": "forward", "op": "POST /api/v1/contacts/{contact}/messages/{message}/forward", "doc": "`POST /api/v1/contacts/{contact}/messages/{message}/forward`: forwards a message to up to 5 contacts." },
+        { "name": "send", "op": "POST /api/v1/contacts/{contact}/message", "bodyDefaults": { "contact_id": "contact" }, "doc": "`POST /api/v1/contacts/{contact}/message`: text, a file (`file` with a URL) or buttons and lists (`options`). Returns `['message' => …]`: the registered message, with its `id` and `status` `queued`. Queued is not sent: the next states arrive by `message.status_changed`, or read them with `get()`.\n\nSend `phone` (or `whatsapp_id`) of the same contact: the API validates it. `contact_id` is optional: it defaults to the contact of the route. A file from a URL that does not show its format (signed, or without extension) needs `file_type`; a document like that, `file_name` with its extension. `client_reference` comes back in the message, the history and `message.status_changed`." },
+        { "name": "list", "op": "GET /api/v1/contacts/{contactId}/messages", "paginate": true, "doc": "`GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact, with the `client_reference` of each send." },
+        { "name": "get", "op": "GET /api/v1/contacts/{contact}/messages/{message}", "doc": "`GET /api/v1/contacts/{contact}/messages/{message}`: one message by the id a send or a webhook gave you (`message_id` of `message.status_changed`), with its current `status` and `error`. Any refusal is a `404`." },
+        { "name": "sendContactCard", "op": "POST /api/v1/contacts/{contact}/message/contact-card", "doc": "`POST /api/v1/contacts/{contact}/message/contact-card`: sends up to 5 contact cards. Returns `['messages' => […]]`, one registered message per card, in order." },
+        { "name": "forward", "op": "POST /api/v1/contacts/{contact}/messages/{message}/forward", "doc": "`POST /api/v1/contacts/{contact}/messages/{message}/forward`: forwards a message to up to 5 contacts. Returns one item per target, in order: `status` `queued` or `blocked` (with `reason`) and its `message`." },
         { "name": "react", "op": "PUT /api/v1/contacts/{contact}/messages/{message}/reaction", "doc": "`PUT /api/v1/contacts/{contact}/messages/{message}/reaction`: reacts with an emoji." },
         { "name": "removeReaction", "op": "DELETE /api/v1/contacts/{contact}/messages/{message}/reaction", "doc": "`DELETE /api/v1/contacts/{contact}/messages/{message}/reaction`: removes your reaction." }
       ]
@@ -76,8 +77,34 @@
         { "name": "retrieve", "op": "GET /api/v1/templates/{template}", "doc": "`GET /api/v1/templates/{template}`." },
         { "name": "update", "op": "PUT /api/v1/templates/{template}", "doc": "`PUT /api/v1/templates/{template}`." },
         { "name": "quickReplyButtons", "op": "GET /api/v1/templates/{template}/quick-reply-buttons", "doc": "`GET /api/v1/templates/{template}/quick-reply-buttons`." },
-        { "name": "send", "op": "POST /api/v1/devices/{device}/templates/{template}/send-template", "doc": "`POST /api/v1/devices/{device}/templates/{template}/send-template`: sends an approved template (the way to write to a contact outside the 24-hour window). `phone` and `contact_id` are required; `template_variables.body` fills the body variables in order." },
+        { "name": "send", "op": "POST /api/v1/devices/{device}/templates/{template}/send-template", "doc": "`POST /api/v1/devices/{device}/templates/{template}/send-template`: sends an approved template (the way to write to a contact outside the 24-hour window). `phone` and `contact_id` are required; `template_variables.body` fills the body variables in order. Returns `['message' => …]`, the registered message (`type` `template`)." },
         { "name": "delete", "op": "DELETE /api/v1/devices/{device}/templates/{template}", "doc": "`DELETE /api/v1/devices/{device}/templates/{template}`." }
+      ]
+    },
+    {
+      "property": "forms",
+      "class": "Forms",
+      "doc": "WhatsApp Forms (conversations area): build them, version and publish them, choose their numbers, send them to a contact and read the answers.\n\nA form has versions: the `{id}` routes take a VERSION id, the `families/{familyId}` routes the form's id (`family_id`). Reading needs `conversations:read`, changing `conversations:write` and sending `conversations:send`. The answers also arrive by `whatsapp_form.completed`.",
+      "methods": [
+        { "name": "list", "op": "GET /api/v1/forms", "paginate": true, "doc": "`GET /api/v1/forms`, paginated: one row per form, with its current version." },
+        { "name": "templates", "op": "GET /api/v1/forms/templates", "doc": "`GET /api/v1/forms/templates`: the templates to start a form from (`blank` is an empty one)." },
+        { "name": "create", "op": "POST /api/v1/forms", "doc": "`POST /api/v1/forms`: creates a draft from a template (`template_key`) for a number." },
+        { "name": "retrieve", "op": "GET /api/v1/forms/{id}", "doc": "`GET /api/v1/forms/{id}`: one version (`id` is the version id), with its lint issues, versions and numbers." },
+        { "name": "update", "op": "PUT /api/v1/forms/{id}", "doc": "`PUT /api/v1/forms/{id}`: saves a draft. A published version answers `409 PUBLISHED`; with `expected_updated_at`, someone else's change answers `409 STALE`." },
+        { "name": "delete", "op": "DELETE /api/v1/forms/{id}", "doc": "`DELETE /api/v1/forms/{id}`: deletes a draft (a published form is deprecated, not deleted)." },
+        { "name": "createVersion", "op": "POST /api/v1/forms/{id}/versions", "doc": "`POST /api/v1/forms/{id}/versions`: a new draft from this version, or the draft that already existed (`created: false`)." },
+        { "name": "sync", "op": "POST /api/v1/forms/{id}/sync", "doc": "`POST /api/v1/forms/{id}/sync`: validates the version in Meta (`502 META` when Meta rejects it)." },
+        { "name": "publish", "op": "POST /api/v1/forms/{id}/publish", "doc": "`POST /api/v1/forms/{id}/publish`: publishes the version (`422 LINT` with errors)." },
+        { "name": "listNumbers", "op": "GET /api/v1/forms/{id}/numbers", "doc": "`GET /api/v1/forms/{id}/numbers`: the numbers of the form and their state." },
+        { "name": "addNumber", "op": "POST /api/v1/forms/{id}/numbers", "doc": "`POST /api/v1/forms/{id}/numbers`: adds a number." },
+        { "name": "removeNumber", "op": "DELETE /api/v1/forms/{id}/numbers/{deviceId}", "doc": "`DELETE /api/v1/forms/{id}/numbers/{deviceId}`: removes a number (not the primary one)." },
+        { "name": "retryNumbers", "op": "POST /api/v1/forms/{id}/numbers/retry", "doc": "`POST /api/v1/forms/{id}/numbers/retry`: retries the numbers that failed." },
+        { "name": "definition", "op": "GET /api/v1/forms/families/{familyId}/definition", "doc": "`GET /api/v1/forms/families/{familyId}/definition`: the published definition of a form (`familyId`), or `data: null`." },
+        { "name": "listVersions", "op": "GET /api/v1/forms/families/{familyId}/versions", "paginate": true, "doc": "`GET /api/v1/forms/families/{familyId}/versions`, paginated: the versions of a form." },
+        { "name": "listResponses", "op": "GET /api/v1/forms/families/{familyId}/responses", "paginate": true, "doc": "`GET /api/v1/forms/families/{familyId}/responses`, paginated: the answers to a form, with `columns`." },
+        { "name": "retrieveResponse", "op": "GET /api/v1/forms/families/{familyId}/responses/{runId}", "doc": "`GET /api/v1/forms/families/{familyId}/responses/{runId}`: one answer in detail." },
+        { "name": "metrics", "op": "GET /api/v1/forms/families/{familyId}/metrics", "doc": "`GET /api/v1/forms/families/{familyId}/metrics`: the funnel: sent, delivered, read, completed and the rates." },
+        { "name": "send", "op": "POST /api/v1/contacts/{contact}/message/form", "doc": "`POST /api/v1/contacts/{contact}/message/form`: sends a published form to a contact (`conversations:send`): a message with a button that opens it. Returns `['message' => …]`, the registered message (`type` `whatsapp_form`). The answers arrive by `whatsapp_form.completed`. A send: never retried automatically." }
       ]
     },
     {
@@ -108,7 +135,7 @@
     {
       "property": "groups",
       "class": "Groups",
-      "doc": "WhatsApp groups (communities area). Today the public API reads groups; creating and managing them by API (contract 1014, C3) is not in the spec yet.",
+      "doc": "WhatsApp groups (communities area): read groups, and act on them by API: create, manage participants and admins, name, description, photo, settings, invite link, send a message, and join requests.\n\nGroup actions are asynchronous: each one answers `202` with `action_id` and `status: queued`; follow it with `retrieveAction()` or the `group_action.completed` / `group_action.failed` events. They are OFF by default: until communities turns them on, they answer `403 route_not_available` to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422 provider_unsupported` without it).",
       "methods": [
         { "name": "list", "op": "GET /api/v1/groups", "paginate": true, "doc": "`GET /api/v1/groups`, paginated." },
         { "name": "retrieve", "op": "GET /api/v1/groups/{group}", "doc": "`GET /api/v1/groups/{group}`." },
@@ -118,7 +145,23 @@
         { "name": "listParticipantEvents", "op": "GET /api/v1/groups/{group}/participant-events", "paginate": true, "doc": "`GET /api/v1/groups/{group}/participant-events`, paginated: joins and leaves." },
         { "name": "listMessages", "op": "GET /api/v1/groups/{group}/messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/messages`, paginated." },
         { "name": "listScheduledMessages", "op": "GET /api/v1/groups/{group}/scheduled-messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/scheduled-messages`, paginated." },
-        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." }
+        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." },
+        { "name": "create", "op": "POST /api/v1/groups", "doc": "`POST /api/v1/groups`: creates a group (`communities:operate`). On a QR number `participants` is required (up to 20); on an official one it is not allowed." },
+        { "name": "retrieveAction", "op": "GET /api/v1/groups/actions/{action}", "doc": "`GET /api/v1/groups/actions/{action}`: an action you requested, with its `status` (`queued`, `running`, `completed`, `failed`), `result` and `reason`." },
+        { "name": "addParticipants", "op": "POST /api/v1/groups/{group}/participants", "doc": "`POST /api/v1/groups/{group}/participants`: adds participants (an official number invites them)." },
+        { "name": "removeParticipants", "op": "POST /api/v1/groups/{group}/participants/remove", "doc": "`POST /api/v1/groups/{group}/participants/remove`: removes participants." },
+        { "name": "promoteAdmins", "op": "POST /api/v1/groups/{group}/admins", "doc": "`POST /api/v1/groups/{group}/admins`: makes participants admins (QR numbers only)." },
+        { "name": "demoteAdmins", "op": "POST /api/v1/groups/{group}/admins/remove", "doc": "`POST /api/v1/groups/{group}/admins/remove`: removes admins (QR numbers only)." },
+        { "name": "updateName", "op": "PUT /api/v1/groups/{group}/name", "doc": "`PUT /api/v1/groups/{group}/name`: changes the name." },
+        { "name": "updateDescription", "op": "PUT /api/v1/groups/{group}/description", "doc": "`PUT /api/v1/groups/{group}/description`: changes the description (`null` or empty clears it on a QR number)." },
+        { "name": "updatePhoto", "op": "PUT /api/v1/groups/{group}/photo", "doc": "`PUT /api/v1/groups/{group}/photo`: changes the photo from a public `https` URL to a `.jpg`, `.jpeg` or `.png` (QR numbers only)." },
+        { "name": "updateSettings", "op": "PUT /api/v1/groups/{group}/settings", "doc": "`PUT /api/v1/groups/{group}/settings`: whether members can send messages (QR numbers only)." },
+        { "name": "renewInviteLink", "op": "POST /api/v1/groups/{group}/invite-link/renew", "doc": "`POST /api/v1/groups/{group}/invite-link/renew`: revokes the invite link and creates a new one." },
+        { "name": "inviteLink", "op": "GET /api/v1/groups/{group}/invite-link/live", "doc": "`GET /api/v1/groups/{group}/invite-link/live`: the current invite link, read live through `device_id` (cached 30 seconds)." },
+        { "name": "sendMessage", "op": "POST /api/v1/groups/{group}/messages", "doc": "`POST /api/v1/groups/{group}/messages`: sends text or a file (`media_url`) to a group (`communities:send`). A send: never retried automatically." },
+        { "name": "listJoinRequests", "op": "GET /api/v1/groups/{group}/join-requests", "doc": "`GET /api/v1/groups/{group}/join-requests`: the pending join requests (up to 100), read live. Official numbers and groups only." },
+        { "name": "approveJoinRequests", "op": "POST /api/v1/groups/{group}/join-requests/approve", "doc": "`POST /api/v1/groups/{group}/join-requests/approve`: approves join requests by phone. Official numbers only, behind an option communities keeps off." },
+        { "name": "rejectJoinRequests", "op": "POST /api/v1/groups/{group}/join-requests/reject", "doc": "`POST /api/v1/groups/{group}/join-requests/reject`: rejects join requests by phone. Official numbers only, behind an option communities keeps off." }
       ]
     },
     {
@@ -139,16 +182,16 @@
     {
       "property": "webhooks",
       "class": "Webhooks",
-      "doc": "Webhook subscriptions (accounts area) and the verification of deliveries.\n\nPENDING OF THE SPEC: the `/api/v1/webhooks` subscription routes come from accounts `origin/main` @ c34cba2c (unified subscriptions, in production since 13-10), not from the snapshot; their types are in spec/pending.json until a snapshot brings them. At that commit the routes are not in the gate's `allowed` list, so an API key may get `403 route_not_available` until accounts opens them. The event catalog (`events()`) is in the snapshot.",
+      "doc": "Webhook subscriptions (accounts area) and the verification of deliveries.\n\nThe subscription routes need `webhooks:read` / `webhooks:write`, and a key only sees and manages subscriptions whose events are of areas it can read (`{area}:read`). The catalog (`events()`) needs `accounts:read`. PENDING OF THE SPEC: the subscription routes come from accounts v1.4.24, not from the snapshot; their types are in spec/pending.json until a snapshot brings them.",
       "traits": ["Funnelchat\\Webhooks\\WebhookHelpers"],
       "methods": [
         { "name": "events", "op": "GET /api/v1/webhooks/events", "doc": "`GET /api/v1/webhooks/events`: the event types you can subscribe to, each with `status`." },
-        { "name": "list", "op": "GET /api/v1/webhooks", "doc": "`GET /api/v1/webhooks`: every subscription of the account (at most 50), not only yours." },
+        { "name": "list", "op": "GET /api/v1/webhooks", "paginate": true, "doc": "`GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only yours, except those with events of an area your key cannot read." },
         { "name": "create", "op": "POST /api/v1/webhooks", "doc": "`POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`." },
         { "name": "retrieve", "op": "GET /api/v1/webhooks/{id}", "doc": "`GET /api/v1/webhooks/{id}` (without the secret)." },
         { "name": "update", "op": "PUT /api/v1/webhooks/{id}", "doc": "`PUT /api/v1/webhooks/{id}`: replaces `url`, `events`, `description` and `filters`. The secret stays." },
         { "name": "delete", "op": "DELETE /api/v1/webhooks/{id}", "doc": "`DELETE /api/v1/webhooks/{id}`." },
-        { "name": "rotateSecret", "op": "POST /api/v1/webhooks/{id}/rotate-secret", "doc": "`POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops working." },
+        { "name": "rotateSecret", "op": "POST /api/v1/webhooks/{id}/rotate-secret", "doc": "`POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available` (rotate it in the panel)." },
         { "name": "test", "op": "POST /api/v1/webhooks/{id}/test", "doc": "`POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`." },
         { "name": "listDeliveries", "op": "GET /api/v1/webhooks/{id}/deliveries", "paginate": true, "doc": "`GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first." }
       ]

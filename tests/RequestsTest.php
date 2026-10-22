@@ -379,7 +379,7 @@ final class RequestsTest extends TestCase
             $this->capture(static fn(Funnelchat $c) => $c->webhooks->listDeliveries($id, ['per_page' => 50])->firstPage()),
         );
         self::assertSame(['GET', '/api/v1/webhooks/events'], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->events())), 0, 2));
-        self::assertSame(['GET', '/api/v1/webhooks'], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->list())), 0, 2));
+        self::assertSame(['GET', '/api/v1/webhooks'], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->list()->firstPage())), 0, 2));
     }
 
     /**
@@ -393,6 +393,16 @@ final class RequestsTest extends TestCase
             'devices->checkPhone' => [static fn(Funnelchat $c) => $c->devices->checkPhone(3, ['phone' => '5491100000000']), 'GET', '/api/v1/devices/3/check-phone'],
             'groups->retrieve' => [static fn(Funnelchat $c) => $c->groups->retrieve('xK9mQz'), 'GET', '/api/v1/groups/xK9mQz'],
             'groups->listMessages' => [static fn(Funnelchat $c) => $c->groups->listMessages('xK9mQz')->firstPage(), 'GET', '/api/v1/groups/xK9mQz/messages'],
+            'groups->create' => [static fn(Funnelchat $c) => $c->groups->create(['device_id' => 4, 'name' => 'VIP', 'participants' => ['5491100000000']]), 'POST', '/api/v1/groups'],
+            'groups->retrieveAction' => [static fn(Funnelchat $c) => $c->groups->retrieveAction('5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'), 'GET', '/api/v1/groups/actions/5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'],
+            'groups->updateName' => [static fn(Funnelchat $c) => $c->groups->updateName('xK9mQz', ['device_id' => 4, 'name' => 'VIP']), 'PUT', '/api/v1/groups/xK9mQz/name'],
+            'groups->inviteLink' => [static fn(Funnelchat $c) => $c->groups->inviteLink('xK9mQz', ['device_id' => 4]), 'GET', '/api/v1/groups/xK9mQz/invite-link/live'],
+            'groups->approveJoinRequests' => [static fn(Funnelchat $c) => $c->groups->approveJoinRequests('xK9mQz', ['device_id' => 3, 'phones' => ['5491100000000']]), 'POST', '/api/v1/groups/xK9mQz/join-requests/approve'],
+            'messages->get' => [static fn(Funnelchat $c) => $c->messages->get(2001, 9001), 'GET', '/api/v1/contacts/2001/messages/9001'],
+            'forms->retrieve' => [static fn(Funnelchat $c) => $c->forms->retrieve(31), 'GET', '/api/v1/forms/31'],
+            'forms->publish' => [static fn(Funnelchat $c) => $c->forms->publish(31), 'POST', '/api/v1/forms/31/publish'],
+            'forms->removeNumber' => [static fn(Funnelchat $c) => $c->forms->removeNumber(31, 3), 'DELETE', '/api/v1/forms/31/numbers/3'],
+            'forms->listResponses' => [static fn(Funnelchat $c) => $c->forms->listResponses(12)->firstPage(), 'GET', '/api/v1/forms/families/12/responses'],
             'customFields->retrieve' => [static fn(Funnelchat $c) => $c->customFields->retrieve(5), 'GET', '/api/v1/custom-fields/5'],
             'tags->retrieve' => [static fn(Funnelchat $c) => $c->tags->retrieve(8), 'GET', '/api/v1/tags/8'],
             'tags->delete' => [static fn(Funnelchat $c) => $c->tags->delete(['tagIds' => ['8']]), 'POST', '/api/v1/tags/delete'],

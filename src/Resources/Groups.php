@@ -15,8 +15,15 @@ use Funnelchat\Generated\Schemas;
 use Funnelchat\Pagination\Paginator;
 
 /**
- * WhatsApp groups (communities area). Today the public API reads groups; creating and managing them
- * by API (contract 1014, C3) is not in the spec yet.
+ * WhatsApp groups (communities area): read groups, and act on them by API: create, manage
+ * participants and admins, name, description, photo, settings, invite link, send a message, and
+ * join requests.
+ *
+ * Group actions are asynchronous: each one answers `202` with `action_id` and `status: queued`;
+ * follow it with `retrieveAction()` or the `group_action.completed` / `group_action.failed` events.
+ * They are OFF by default: until communities turns them on, they answer `403 route_not_available`
+ * to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422
+ * provider_unsupported` without it).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
@@ -27,6 +34,9 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type GroupResource from Schemas
  * @phpstan-import-type ParticipantEventResource from Schemas
  * @phpstan-import-type ParticipantResource from Schemas
+ * @phpstan-import-type PendingGroupAction from Schemas
+ * @phpstan-import-type PendingGroupActionAccepted from Schemas
+ * @phpstan-import-type PendingGroupJoinRequest from Schemas
  * @phpstan-import-type ScheduledMessageResource from Schemas
  */
 final class Groups extends AbstractResource
@@ -256,6 +266,406 @@ final class Groups extends AbstractResource
     {
         /** @var Paginator<ActionGroupResource> $result */
         $result = $this->client->paginate('/api/v1/groups/{group}/actions', ['path' => ['group' => $group], 'query' => $query] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups`: creates a group (`communities:operate`). On a QR number `participants`
+     * is required (up to 20); on an official one it is not allowed.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param array{
+     *     device_id: int,
+     *     name: string,
+     *     description?: string|null,
+     *     join_approval_required?: bool,
+     *     participants?: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function create(array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups', ['body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `GET /api/v1/groups/actions/{action}`: an action you requested, with its `status` (`queued`,
+     * `running`, `completed`, `failed`), `result` and `reason`.
+     *
+     * Permission: `communities:read`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $action
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: PendingGroupAction,
+     * }
+     */
+    public function retrieveAction(int|string $action, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: PendingGroupAction,
+         * } $result
+         */
+        $result = $this->client->request('GET', '/api/v1/groups/actions/{action}', ['path' => ['action' => $action]] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/participants`: adds participants (an official number invites
+     * them).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function addParticipants(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/participants', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/participants/remove`: removes participants.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function removeParticipants(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/participants/remove', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/admins`: makes participants admins (QR numbers only).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function promoteAdmins(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/admins', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/admins/remove`: removes admins (QR numbers only).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function demoteAdmins(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/admins/remove', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `PUT /api/v1/groups/{group}/name`: changes the name.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     name: string,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function updateName(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('PUT', '/api/v1/groups/{group}/name', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `PUT /api/v1/groups/{group}/description`: changes the description (`null` or empty clears it
+     * on a QR number).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     description: string|null,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function updateDescription(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('PUT', '/api/v1/groups/{group}/description', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `PUT /api/v1/groups/{group}/photo`: changes the photo from a public `https` URL to a `.jpg`,
+     * `.jpeg` or `.png` (QR numbers only).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     photo_url: string,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function updatePhoto(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('PUT', '/api/v1/groups/{group}/photo', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `PUT /api/v1/groups/{group}/settings`: whether members can send messages (QR numbers only).
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     members_can_send_messages: bool,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function updateSettings(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('PUT', '/api/v1/groups/{group}/settings', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/invite-link/renew`: revokes the invite link and creates a new
+     * one.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function renewInviteLink(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/invite-link/renew', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `GET /api/v1/groups/{group}/invite-link/live`: the current invite link, read live through
+     * `device_id` (cached 30 seconds).
+     *
+     * Permission: `communities:read`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     * } $query
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: array{
+     *         invite_link: string,
+     *     },
+     * }
+     */
+    public function inviteLink(int|string $group, array $query, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: array{
+         *         invite_link: string,
+         *     },
+         * } $result
+         */
+        $result = $this->client->request('GET', '/api/v1/groups/{group}/invite-link/live', ['path' => ['group' => $group], 'query' => $query] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/messages`: sends text or a file (`media_url`) to a group
+     * (`communities:send`). A send: never retried automatically.
+     *
+     * Permission: `communities:send`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     type: 'text'|'image'|'video'|'audio'|'document',
+     *     text?: string,
+     *     media_url?: string,
+     *     caption?: string|null,
+     *     file_name?: string|null,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function sendMessage(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/messages', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `GET /api/v1/groups/{group}/join-requests`: the pending join requests (up to 100), read live.
+     * Official numbers and groups only.
+     *
+     * Permission: `communities:read`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     * } $query
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: list<PendingGroupJoinRequest>,
+     * }
+     */
+    public function listJoinRequests(int|string $group, array $query, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: list<PendingGroupJoinRequest>,
+         * } $result
+         */
+        $result = $this->client->request('GET', '/api/v1/groups/{group}/join-requests', ['path' => ['group' => $group], 'query' => $query] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/join-requests/approve`: approves join requests by phone.
+     * Official numbers only, behind an option communities keeps off.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function approveJoinRequests(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/join-requests/approve', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/groups/{group}/join-requests/reject`: rejects join requests by phone. Official
+     * numbers only, behind an option communities keeps off.
+     *
+     * Permission: `communities:operate`.
+     * Pending of the spec (`communities-group-actions` in spec/pending.json).
+     *
+     * @param string $group
+     * @param array{
+     *     device_id: int,
+     *     phones: list<string>,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return PendingGroupActionAccepted
+     */
+    public function rejectJoinRequests(int|string $group, array $body, array $options = []): mixed
+    {
+        /** @var PendingGroupActionAccepted $result */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/join-requests/reject', ['path' => ['group' => $group], 'body' => $body] + $options);
 
         return $result;
     }

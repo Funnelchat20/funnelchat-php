@@ -19,6 +19,8 @@ namespace Funnelchat\Generated;
  * When the spec only has an example, the type is inferred from it: keys in the example are
  * required and `null` values are `mixed`. `WebhookEventType` is every type the spec knows.
  *
+ * @phpstan-import-type PendingMessageError from Schemas
+ *
  * @phpstan-type AccountBlockedData array{
  *     reason: string,
  *     grace_started_at: string,
@@ -447,6 +449,56 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: GroupInviteLinkRenewedData,
  * }
+ * @phpstan-type GroupMessageReceivedData array{
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     },
+ *     message: array{
+ *         uid: string,
+ *         type: 'text'|'image'|'audio'|'video'|'document'|'poll'|'event'|'sticker'|'contact'|'location'|'system'|'unsupported'|'view_once',
+ *         text: string|null,
+ *         caption: string|null,
+ *         media_url: string|null,
+ *         mime_type: string|null,
+ *         file_name: string|null,
+ *         quoted_uid: string|null,
+ *     },
+ *     participant: array{
+ *         identity: string,
+ *         identity_type: 'phone'|'whatsapp_user',
+ *         name: string|null,
+ *     },
+ * }
+ * @phpstan-type GroupMessageReceivedEvent array{
+ *     id: string,
+ *     type: 'group.message_received',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: GroupMessageReceivedData,
+ * }
+ * @phpstan-type GroupReactionAddedData array{
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     },
+ *     message: array{
+ *         uid: string,
+ *     },
+ *     participant: array{
+ *         identity: string,
+ *         identity_type: 'phone'|'whatsapp_user',
+ *         name: string|null,
+ *     },
+ *     reaction: string,
+ * }
+ * @phpstan-type GroupReactionAddedEvent array{
+ *     id: string,
+ *     type: 'group.reaction_added',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: GroupReactionAddedData,
+ * }
  * @phpstan-type GroupRecoveredData array{
  *     group: array{
  *         uid: string,
@@ -463,6 +515,39 @@ namespace Funnelchat\Generated;
  *     version: int,
  *     occurred_at: string,
  *     data: GroupRecoveredData,
+ * }
+ * @phpstan-type GroupActionCompletedData array{
+ *     action: array{
+ *         uuid: string,
+ *         type: string,
+ *     },
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     }|null,
+ *     campaign: array{
+ *         uuid: string,
+ *         name: string|null,
+ *     }|null,
+ *     result: array{
+ *         participants?: list<array{
+ *             identity: string|null,
+ *             identity_type: string|null,
+ *             status: string|null,
+ *             reason: string|null,
+ *         }>,
+ *         invite_link?: string|null,
+ *         message?: array{
+ *             uid: string|null,
+ *         },
+ *     },
+ * }
+ * @phpstan-type GroupActionCompletedEvent array{
+ *     id: string,
+ *     type: 'group_action.completed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: GroupActionCompletedData,
  * }
  * @phpstan-type GroupActionFailedData array{
  *     campaign: array{
@@ -488,6 +573,42 @@ namespace Funnelchat\Generated;
  *     version: int,
  *     occurred_at: string,
  *     data: GroupActionFailedData,
+ * }
+ * @phpstan-type GroupJoinRequestCreatedData array{
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     },
+ *     participant: array{
+ *         identity: string|null,
+ *         identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *         name: string|null,
+ *     },
+ * }
+ * @phpstan-type GroupJoinRequestCreatedEvent array{
+ *     id: string,
+ *     type: 'group_join_request.created',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: GroupJoinRequestCreatedData,
+ * }
+ * @phpstan-type GroupJoinRequestRevokedData array{
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     },
+ *     participant: array{
+ *         identity: string|null,
+ *         identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *         name: string|null,
+ *     },
+ * }
+ * @phpstan-type GroupJoinRequestRevokedEvent array{
+ *     id: string,
+ *     type: 'group_join_request.revoked',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: GroupJoinRequestRevokedData,
  * }
  * @phpstan-type GroupParticipantJoinedData array{
  *     group: array{
@@ -599,10 +720,7 @@ namespace Funnelchat\Generated;
  *     device_id: int|null,
  *     status: 'sent'|'delivered'|'read'|'failed',
  *     previous_status: 'sent'|'delivered'|'read'|'failed'|null,
- *     error?: array{
- *         code: int|null,
- *         title: string|null,
- *     },
+ *     error?: PendingMessageError,
  *     occurred_at: string,
  *     client_reference: string|null,
  * }
@@ -804,7 +922,30 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: WebhookTestData,
  * }
- * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.disconnected'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.recovered'|'group_action.failed'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'
+ * @phpstan-type WhatsappFormCompletedData array{
+ *     form: array{
+ *         id: int,
+ *         name: string,
+ *         version_id: int,
+ *     },
+ *     message_id: int|null,
+ *     contact_id: int|null,
+ *     device_id: int|null,
+ *     answers: list<array{
+ *         key: string,
+ *         label: string,
+ *         value: string|int|float|bool|list<string>|null,
+ *     }>,
+ *     occurred_at: string,
+ * }
+ * @phpstan-type WhatsappFormCompletedEvent array{
+ *     id: string,
+ *     type: 'whatsapp_form.completed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: WhatsappFormCompletedData,
+ * }
+ * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.disconnected'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.completed'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
  * @phpstan-type WebhookEvent array{
  *     id: string,
  *     type: string,
@@ -816,7 +957,7 @@ namespace Funnelchat\Generated;
 final class WebhookEvents
 {
     /**
-     * Every webhook event type known to the spec (48). `status`: `live` is emitted today;
+     * Every webhook event type known to the spec (54). `status`: `live` is emitted today;
      * `planned` can be subscribed to, but nothing is emitted yet. `pending` = taken from
      * spec/pending.json; `pendingFields` = fields of `data` added by spec/pending.json.
      *
@@ -850,15 +991,20 @@ final class WebhookEvents
         'group.full' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un grupo pasó de no estar lleno a estarlo.'],
         'group.invite_link_down' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'El enlace de invitación de un grupo quedó confirmado caído (WhatsApp respondió que no existe y la renovación no consiguió otro); no se publica por errores transitorios ni por grupos prohibidos o suspendidos, y se publica una sola vez por episodio de bloqueo.'],
         'group.invite_link_renewed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'El enlace de invitación de un grupo cambió por una renovación, automática al detectarse inválido o pedida por el usuario; en v0 no se publican los cambios que detecta la sincronización ni el enlace inicial al crear el grupo.'],
+        'group.message_received' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Alguien escribió en un grupo de un número de la cuenta. No llega por los mensajes de tus propios números.'],
+        'group.reaction_added' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Alguien reaccionó a un mensaje de un grupo.'],
         'group.recovered' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un grupo que estaba bloqueado volvió a operar.'],
+        'group_action.completed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Terminó una acción de grupo pedida por API (`action.uuid` es el `action_id` del `202`). Las de teléfonos terminan así aunque fallen todos: mirá `result.participants[].status`.'],
         'group_action.failed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Una acción automática sobre un grupo falló.'],
+        'group_join_request.created' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Alguien pidió unirse a un grupo oficial.'],
+        'group_join_request.revoked' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Alguien retiró su pedido para unirse a un grupo oficial.'],
         'group_participant.joined' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Una persona entró a un grupo de una campaña.'],
         'group_participant.left' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Una persona salió de un grupo de una campaña.'],
         'mac.expiring' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Hay contactos activos mensuales que vencen en los próximos 7 días.'],
         'mac.usage_100' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'La cuenta agotó sus contactos activos mensuales del ciclo; se abre una gracia de 24 horas.'],
         'mac.usage_80' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'La cuenta alcanzó el 80 % de sus contactos activos mensuales del ciclo.'],
         'message.received' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['device_id'], 'typedFrom' => 'example + schema', 'description' => 'Un contacto le escribió a un número de WhatsApp de la cuenta.'],
-        'message.status_changed' => ['domains' => ['conversations'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Cambió el estado de entrega de un mensaje 1:1 enviado. Un aviso por transición, nunca uno que retroceda. Hay que pedirlo de forma explícita en `events`.'],
+        'message.status_changed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Cambió el estado de entrega de un mensaje 1:1 enviado. Un aviso por transición, nunca uno que retroceda; `queued` nunca llega acá. Hay que pedirlo de forma explícita en `events` (`*` no lo incluye).'],
         'pipeline.finished' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Terminó un pipeline de operaciones sobre grupos, con su resultado agregado.'],
         'poll.voted' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un participante votó en una encuesta enviada a un grupo, o cambió su voto.'],
         'scheduled_message.finished' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un envío programado terminó, con su resultado agregado.'],
@@ -871,6 +1017,7 @@ final class WebhookEvents
         'subscription.trial_ending' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'El período de prueba está por terminar.'],
         'template.status_changed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => "Una plantilla cambió de estado de aprobación en Meta.\n\n`template` identifica la plantilla igual que `GET /templates` (`id`, `uid`, `name`, `category`). `previous_status` y `status` son los estados tal como los devuelve la API (por ejemplo `PENDING`, `APPROVED`, `REJECTED`, `PAUSED`); `previous_status` es `null` si la plantilla no tenía estado. `reason` trae la observación de rechazo (traducida como en la API y limitada a 500 caracteres) cuando el cambio es un rechazo informado al crear la plantilla, y es `null` en el resto. No se emite si Meta reenvía el estado que la plantilla ya tenía. Si una misma plantilla de Meta figura en varias cuentas, cada cuenta recibe su propio evento."],
         'webhook.test' => ['domains' => ['conversations', 'communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Evento de prueba enviado desde la ruta de prueba de una suscripción.'],
+        'whatsapp_form.completed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Un contacto completó un formulario de WhatsApp. Puede llegar más de una vez: deduplicá por `id`.'],
     ];
 
     private function __construct() {}

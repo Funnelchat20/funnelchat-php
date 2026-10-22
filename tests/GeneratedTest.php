@@ -172,7 +172,7 @@ final class GeneratedTest extends TestCase
             // The resource method documents the pending answer, not "no body".
             [$property, $name] = explode('->', $route['sdk']);
             $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
-            self::assertStringContainsString('conversations-send-result', $doc, $route['sdk']);
+            self::assertStringContainsString('`conversations-send`', $doc, $route['sdk']);
             self::assertStringContainsString('Pending', $doc, $route['sdk']);
         }
     }
@@ -211,10 +211,22 @@ final class GeneratedTest extends TestCase
         self::assertSame($inSnapshot ? [] : ['device_id'], self::event('message.received')['pendingFields']);
     }
 
-    public function testHasTheSameResourcesAsTheNodeSdk(): void
+    public function testAddsThePendingFieldsOfASchemaOnlyWhileTheSnapshotLacksThem(): void
+    {
+        $properties = self::at(self::readJson('funnelchat.json'), 'components', 'schemas', 'DeviceResource', 'properties');
+        self::assertIsArray($properties);
+        $schemas = (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php');
+        if (!\array_key_exists('capabilities', $properties)) {
+            // The number's capabilities (accounts v1.4.24), typed from spec/pending.json.
+            self::assertMatchesRegularExpression('/@phpstan-type DeviceResource array\{.*?capabilities: PendingDeviceCapabilities,/s', $schemas);
+        }
+        self::assertStringContainsString('@phpstan-type PendingDeviceCapabilities', $schemas);
+    }
+
+    public function testHasEveryResource(): void
     {
         $client = $this->client(new MockHttpClient());
-        foreach (['contacts', 'conversations', 'messages', 'templates', 'tags', 'customFields', 'groups', 'devices', 'webhooks'] as $property) {
+        foreach (['contacts', 'conversations', 'messages', 'templates', 'forms', 'tags', 'customFields', 'groups', 'devices', 'webhooks'] as $property) {
             self::assertTrue(property_exists($client, $property), $property);
         }
         self::assertSame(['verify', 'constructEvent'], array_values(array_intersect(get_class_methods($client->webhooks), ['verify', 'constructEvent'])));

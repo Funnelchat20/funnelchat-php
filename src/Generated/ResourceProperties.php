@@ -13,6 +13,7 @@ use Funnelchat\Resources\Contacts;
 use Funnelchat\Resources\Conversations;
 use Funnelchat\Resources\CustomFields;
 use Funnelchat\Resources\Devices;
+use Funnelchat\Resources\Forms;
 use Funnelchat\Resources\Groups;
 use Funnelchat\Resources\Messages;
 use Funnelchat\Resources\Tags;
@@ -37,8 +38,8 @@ trait ResourceProperties
     public readonly Conversations $conversations;
 
     /**
-     * Messages to one contact (conversations area): send text, files and buttons, read the history,
-     * forward, react.
+     * Messages to one contact (conversations area): send text, files and buttons, read the history
+     * or one message by id, forward, react.
      */
     public readonly Messages $messages;
 
@@ -46,6 +47,12 @@ trait ResourceProperties
      * WhatsApp message templates (conversations area): list, create, edit, send.
      */
     public readonly Templates $templates;
+
+    /**
+     * WhatsApp Forms (conversations area): build them, version and publish them, choose their
+     * numbers, send them to a contact and read the answers.
+     */
+    public readonly Forms $forms;
 
     /**
      * Tags (conversations area).
@@ -59,8 +66,9 @@ trait ResourceProperties
     public readonly CustomFields $customFields;
 
     /**
-     * WhatsApp groups (communities area). Today the public API reads groups; creating and managing
-     * them by API (contract 1014, C3) is not in the spec yet.
+     * WhatsApp groups (communities area): read groups, and act on them by API: create, manage
+     * participants and admins, name, description, photo, settings, invite link, send a message, and
+     * join requests.
      */
     public readonly Groups $groups;
 
@@ -81,6 +89,7 @@ trait ResourceProperties
         $this->conversations = new Conversations($this);
         $this->messages = new Messages($this);
         $this->templates = new Templates($this);
+        $this->forms = new Forms($this);
         $this->tags = new Tags($this);
         $this->customFields = new CustomFields($this);
         $this->groups = new Groups($this);

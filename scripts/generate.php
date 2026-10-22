@@ -10,8 +10,9 @@
  *
  * Steps:
  *   1. (with --spec) copy the spec and write spec/procedencia.json (repository, branch, commit, sha256).
- *   2. Merge spec/pending.json (the "pending of the spec" layer) into the snapshot. Every pending entry
- *      is applied only while the snapshot lacks it; the report lists the entries a new snapshot made
+ *   2. Merge spec/pending.json (the "pending of the spec" layer) into the snapshot: routes, request-body
+ *      fields, schema fields, responses and events. Every pending entry is applied only while the
+ *      snapshot lacks it; the report lists the entries a new snapshot made
  *      obsolete so they can be deleted from spec/pending.json.
  *   3. src/Generated/Routes.php            every operation: method, path, domain, permission, SDK method.
  *   4. src/Generated/Schemas.php           every schema of the spec as a PHPStan type alias (array shape).
@@ -341,6 +342,33 @@ final class Generator
             $op['x-fc-pending-fields'] = array_keys($properties);
             $item[$method] = $op;
             $paths[$path] = $item;
+            $report['applied'][] = $label;
+        }
+
+        foreach (self::arr($pending['schemaPatches'] ?? null) as $patch) {
+            $patch = self::obj($patch);
+            $name = self::str($patch['schema'] ?? null) ?? '';
+            $properties = self::obj($patch['properties'] ?? null);
+            $label = "esquema {$name} (parche: " . implode(', ', array_keys($properties)) . ')';
+            $target = self::obj($schemas[$name] ?? null);
+            if ($target === []) {
+                $report['missing'][] = $label;
+
+                continue;
+            }
+            $missing = array_diff_key($properties, self::obj($target['properties'] ?? null));
+            if ($missing === []) {
+                $report['superseded'][] = $label;
+
+                continue;
+            }
+            $target['properties'] = self::obj($target['properties'] ?? null) + $missing;
+            $required = array_values(array_intersect(self::strings($patch['required'] ?? null), array_keys($missing)));
+            if ($required !== []) {
+                $target['required'] = array_values(array_unique([...self::strings($target['required'] ?? null), ...$required]));
+            }
+            $target['x-fc-pending-fields'] = [...self::strings($target['x-fc-pending-fields'] ?? null), ...array_keys($missing)];
+            $schemas[$name] = $target;
             $report['applied'][] = $label;
         }
 
@@ -926,9 +954,6 @@ final class Generator
         }
         if (!$hasContent && !$paginate) {
             $notes[] = 'The spec documents no body: returns `null`, or the decoded body if the API sends one.';
-        }
-        if (($op['x-portal-v0'] ?? null) === 'send_pending') {
-            $notes[] = 'Portal note (v0, `send_pending`): sending with an API key is not open yet; until it is, this route answers `403 route_not_available`.';
         }
         if ($notes !== []) {
             $lines[] = "     *\n" . Php::docText(implode("\n", $notes), '    ');
