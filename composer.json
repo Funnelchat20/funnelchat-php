@@ -1,8 +1,14 @@
 {
     "name": "funnelchat/funnelchat-php",
-    "description": "SDK oficial de PHP para la API pública de Funnelchat",
+    "description": "SDK oficial de PHP para la API pública de Funnelchat: contactos, mensajes, plantillas, formularios, grupos, números y webhooks.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
+    "homepage": "https://developers-portal.funnelchat.app/docs/",
+    "support": {
+        "docs": "https://developers-portal.funnelchat.app/docs/",
+        "issues": "https://github.com/Funnelchat20/funnelchat-php/issues",
+        "source": "https://github.com/Funnelchat20/funnelchat-php"
+    },
     "keywords": [
         "funnelchat",
         "whatsapp",
@@ -76,7 +82,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-production": "0.1.x-dev"
+            "dev-main": "0.1.x-dev"
         }
     },
     "minimum-stability": "stable",
