@@ -34,6 +34,9 @@ final class SandboxTest extends TestCase
     /** The QR number of the sandbox: no 24-hour window and no pace. */
     private const QR_DEVICE = 4;
 
+    /** The official (WhatsApp Cloud) number of the sandbox: 24-hour window, pace, forms. */
+    private const OFFICIAL_DEVICE = 3;
+
     private static string $url = '';
 
     private Funnelchat $funnelchat;
@@ -166,18 +169,45 @@ final class SandboxTest extends TestCase
         self::assertSame('e2e-php-2', $read['client_reference']);
     }
 
-    public function testAFormIsSentToAContact(): void
+    public function testAFormIsBuiltPublishedSentAndItsAnswersArriveSigned(): void
     {
-        $forms = $this->funnelchat->forms->list()->firstPage();
-        $published = array_values(array_filter($forms->data, static fn(array $form): bool => $form['status'] === 'published'));
-        if ($published === []) {
-            self::markTestIncomplete('El sandbox no trae un formulario publicado.');
+        $hook = $this->startReceiver();
+        $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['whatsapp_form.completed']])['secret'];
+
+        // Forms go only through an official number; its 24-hour window opens with an inbound message.
+        $draft = $this->funnelchat->forms->create(['device_id' => self::OFFICIAL_DEVICE, 'template_key' => 'lead'])['data'];
+        $published = $this->funnelchat->forms->publish($draft['id'])['data'];
+        self::assertSame('published', $published['status']);
+        $this->sandbox('POST', '/_sandbox/inbound/message', ['phone' => self::PHONE, 'device_id' => self::OFFICIAL_DEVICE, 'text' => 'Hola']);
+
+        $message = $this->funnelchat->messages->sendForm(self::CONTACT, [
+            'form_id' => $published['family_id'],
+            'device_id' => self::OFFICIAL_DEVICE,
+            'client_reference' => 'e2e-php-form',
+        ])['message'];
+        self::assertSame('whatsapp_form', $message['type']);
+        self::assertSame('queued', $message['status']);
+
+        $this->sandbox('POST', '/_sandbox/forms/complete', ['message_id' => $message['id']]);
+        [$delivery] = $this->waitForDeliveries(1);
+        $event = Webhook::constructEvent($delivery['body'], $delivery['signature'], $secret);
+        self::assertSame('whatsapp_form.completed', $event['type']);
+        self::assertIsArray($event['data']);
+        $form = $event['data']['form'];
+        self::assertIsArray($form);
+        self::assertSame($published['family_id'], $form['id']);
+        self::assertSame($message['id'], $event['data']['message_id']);
+        self::assertNotSame([], $event['data']['answers']);
+    }
+
+    public function testAFormDoesNotGoThroughAQrNumber(): void
+    {
+        try {
+            $this->funnelchat->forms->create(['device_id' => self::QR_DEVICE, 'template_key' => 'lead']);
+            self::fail('should have thrown');
+        } catch (UnprocessableEntityException $exception) {
+            self::assertSame('NUMBER_NOT_ELIGIBLE', $exception->errorCode);
         }
-
-        $result = $this->funnelchat->messages->sendForm(self::CONTACT, ['form_id' => $published[0]['family_id'], 'device_id' => self::QR_DEVICE]);
-
-        self::assertSame('whatsapp_form', $result['message']['type']);
-        self::assertSame('queued', $result['message']['status']);
     }
 
     public function testARouteThatDoesNotExistIsRouteNotFound(): void
@@ -249,9 +279,19 @@ final class SandboxTest extends TestCase
         self::fail("fewer than {$count} deliveries arrived");
     }
 
-    private function sandbox(string $method, string $path): void
+    /**
+     * A call to the sandbox's own routes (`/_sandbox/...`), which take no key.
+     *
+     * @param array<string, mixed>|null $body
+     */
+    private function sandbox(string $method, string $path, ?array $body = null): void
     {
-        $context = stream_context_create(['http' => ['method' => $method, 'ignore_errors' => true, 'timeout' => 5]]);
+        $http = ['method' => $method, 'ignore_errors' => true, 'timeout' => 5];
+        if ($body !== null) {
+            $http['header'] = 'Content-Type: application/json';
+            $http['content'] = json_encode($body, \JSON_THROW_ON_ERROR);
+        }
+        $context = stream_context_create(['http' => $http]);
         $answer = @file_get_contents(self::$url . $path, false, $context);
         self::assertNotFalse($answer, 'the sandbox does not answer at ' . self::$url);
     }
