@@ -9,10 +9,16 @@
          failOnWarning="true"
          failOnDeprecation="true"
          failOnNotice="true"
-         beStrictAboutOutputDuringTests="true">
+         beStrictAboutOutputDuringTests="true"
+         defaultTestSuite="unit">
     <testsuites>
-        <testsuite name="funnelchat-php">
+        <testsuite name="unit">
             <directory>tests</directory>
+            <exclude>tests/E2E</exclude>
+        </testsuite>
+        <!-- Against funnelchat-sandbox: composer test:e2e, with FUNNELCHAT_SANDBOX_URL. -->
+        <testsuite name="e2e">
+            <directory>tests/E2E</directory>
         </testsuite>
     </testsuites>
     <source>
