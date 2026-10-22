@@ -96,7 +96,7 @@ final class Generator
 
         $specPath = $this->path(self::SPEC_FILE);
         if (!is_file($specPath)) {
-            throw new GeneratorError('Falta spec/funnelchat.json: corré `composer generate -- --spec <archivo>`.');
+            throw new GeneratorError('Falta spec/funnelchat.json: corre `composer generate -- --spec <archivo>`.');
         }
         $bytes = self::read($specPath);
         $this->specHash = hash('sha256', $bytes);
@@ -156,7 +156,7 @@ final class Generator
             }
             $different = [...$different, ...$stale];
             if ($different !== []) {
-                fwrite(\STDERR, "Lo generado está desactualizado: corré `composer generate`.\n  - " . implode("\n  - ", $different) . "\n");
+                fwrite(\STDERR, "Lo generado está desactualizado: corre `composer generate`.\n  - " . implode("\n  - ", $different) . "\n");
 
                 return 1;
             }
@@ -271,7 +271,7 @@ final class Generator
 
         foreach (self::obj(self::obj($pending['components'] ?? null)['schemas'] ?? null) as $name => $schema) {
             if (\array_key_exists($name, $schemas)) {
-                throw new GeneratorError("spec/pending.json: el esquema {$name} ya existe en la instantánea; renombralo.");
+                throw new GeneratorError("spec/pending.json: el esquema {$name} ya existe en la instantánea; renómbralo.");
             }
             $schemas[$name] = $schema;
         }

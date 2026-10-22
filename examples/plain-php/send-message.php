@@ -63,7 +63,7 @@ try {
     }
 } catch (RateLimitException $exception) {
     // A send is never retried by itself: wait retryAfter seconds (mac_lockout_24h has none) and decide.
-    fwrite(\STDERR, "{$exception->errorCode}: {$exception->getMessage()} (esperá {$exception->retryAfter} s; pedido {$exception->requestId})\n");
+    fwrite(\STDERR, "{$exception->errorCode}: {$exception->getMessage()} (espera {$exception->retryAfter} s; pedido {$exception->requestId})\n");
 } catch (ApiException $exception) {
     // window_closed, antiblock_*, recipient_*, device_unavailable… Decide by status and errorCode.
     // Cite requestId (the X-Request-Id) if you report it.

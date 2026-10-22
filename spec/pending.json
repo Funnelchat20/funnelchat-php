@@ -49,7 +49,7 @@
           "id": {
             "type": "string",
             "format": "uuid",
-            "description": "Identificador de la suscripción. Guardalo al crearla: es lo que identifica la tuya."
+            "description": "Identificador de la suscripción. Guárdalo al crearla: es lo que identifica la tuya."
           },
           "url": { "type": "string" },
           "description": { "type": ["string", "null"] },
@@ -82,7 +82,7 @@
           {
             "type": "object",
             "properties": {
-              "secret": { "type": "string", "description": "El secreto completo para verificar la firma. Se muestra una sola vez: guardalo." },
+              "secret": { "type": "string", "description": "El secreto completo para verificar la firma. Se muestra una sola vez: guárdalo." },
               "secret_notice": { "type": "string" }
             },
             "required": ["secret", "secret_notice"]
@@ -133,7 +133,7 @@
       },
       "PendingWebhookSubscriptionTestResult": {
         "type": "object",
-        "description": "Resultado de la entrega de prueba (`webhook.test`). Responde 200 aunque tu servidor falle: mirá `succeeded`.",
+        "description": "Resultado de la entrega de prueba (`webhook.test`). Responde 200 aunque tu servidor falle: mira `succeeded`.",
         "properties": {
           "succeeded": { "type": "boolean" },
           "response_status": { "type": ["integer", "null"] },
@@ -194,7 +194,7 @@
       "PendingMessage": { "type": "object", "properties": { "message": { "type": "string" } }, "required": ["message"] },
       "PendingGroupActionAccepted": {
         "type": "object",
-        "description": "Pendiente de la especificación (communities v2.34.52): la acción quedó en cola. Seguila con `GET /api/v1/groups/actions/{action}` o con `group_action.completed` / `group_action.failed`.",
+        "description": "Pendiente de la especificación (communities v2.34.52): la acción quedó en cola. Síguela con `GET /api/v1/groups/actions/{action}` o con `group_action.completed` / `group_action.failed`.",
         "properties": { "action_id": { "type": "string", "format": "uuid" }, "status": { "const": "queued" } },
         "required": ["action_id", "status"]
       },
@@ -366,7 +366,7 @@
           "updated_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Mandalo como `expected_updated_at` al guardar, para no pisar otro cambio."
+            "description": "Mándalo como `expected_updated_at` al guardar, para no pisar otro cambio."
           },
           "definition": { "type": "object", "description": "Solo en el detalle." },
           "fields": { "type": "array", "items": {} },
@@ -467,7 +467,7 @@
       "get": {
         "operationId": "pendingWebhookSubscription.show",
         "summary": "Ver una suscripción de webhook",
-        "description": "No trae el secreto. Si lo perdiste, rotalo.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "description": "No trae el secreto. Si lo perdiste, rótalo.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -524,7 +524,7 @@
       "post": {
         "operationId": "pendingWebhookSubscription.rotateSecret",
         "summary": "Generar un secreto nuevo",
-        "description": "Devuelve el secreto nuevo una sola vez; el anterior deja de valer de inmediato.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).\n\nNo está abierta a claves de API en accounts v1.4.24: responde `403 route_not_available`. Rotá el secreto desde el panel.",
+        "description": "Devuelve el secreto nuevo una sola vez; el anterior deja de valer de inmediato.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).\n\nNo está abierta a claves de API en accounts v1.4.24: responde `403 route_not_available`. Rota el secreto desde el panel.",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -2442,7 +2442,7 @@
       "dataProperties": {
         "device_id": {
           "type": ["integer", "null"],
-          "description": "El número de tu cuenta que recibió el mensaje: el mismo `device_id` con el que respondés por ese número. `null` si el mensaje no tiene número."
+          "description": "El número de tu cuenta que recibió el mensaje: el mismo `device_id` con el que respondes por ese número. `null` si el mensaje no tiene número."
         }
       }
     }
@@ -2451,7 +2451,7 @@
     "message.status_changed": {
       "post": {
         "summary": "message.status_changed",
-        "description": "Cambió el estado de entrega de un mensaje 1:1 enviado. Un aviso por transición, nunca uno que retroceda; `queued` nunca llega acá. Hay que pedirlo de forma explícita en `events` (`*` no lo incluye).",
+        "description": "Cambió el estado de entrega de un mensaje 1:1 enviado. Un aviso por transición, nunca uno que retroceda; `queued` nunca llega aquí. Hay que pedirlo de forma explícita en `events` (`*` no lo incluye).",
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",
@@ -2955,7 +2955,7 @@
     "group_action.completed": {
       "post": {
         "summary": "group_action.completed",
-        "description": "Terminó una acción de grupo pedida por API (`action.uuid` es el `action_id` del `202`). Las de teléfonos terminan así aunque fallen todos: mirá `result.participants[].status`.",
+        "description": "Terminó una acción de grupo pedida por API (`action.uuid` es el `action_id` del `202`). Las de teléfonos terminan así aunque fallen todos: mira `result.participants[].status`.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -3107,7 +3107,7 @@
     "whatsapp_form.completed": {
       "post": {
         "summary": "whatsapp_form.completed",
-        "description": "Un contacto completó un formulario de WhatsApp. Puede llegar más de una vez: deduplicá por `id`.",
+        "description": "Un contacto completó un formulario de WhatsApp. Puede llegar más de una vez: deduplica por `id`.",
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",

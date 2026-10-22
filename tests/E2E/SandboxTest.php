@@ -52,7 +52,7 @@ final class SandboxTest extends TestCase
     protected function setUp(): void
     {
         if (self::$url === '') {
-            self::markTestSkipped('FUNNELCHAT_SANDBOX_URL no está definida: arrancá funnelchat-sandbox y definila.');
+            self::markTestSkipped('FUNNELCHAT_SANDBOX_URL no está definida: arranca funnelchat-sandbox y defínela.');
         }
         $this->sandbox('POST', '/_sandbox/reset');
         $this->funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 0);

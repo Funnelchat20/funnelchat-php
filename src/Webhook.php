@@ -127,7 +127,7 @@ final class Webhook
         if ($body === null) {
             return new WebhookVerificationException(
                 WebhookVerificationException::INVALID_BODY,
-                'El cuerpo tiene que ser el crudo (un string o un StreamInterface), tal como llegó. En Laravel, leelo con $request->getContent() y no con $request->all() ni $request->json().',
+                'El cuerpo tiene que ser el crudo (un string o un StreamInterface), tal como llegó. En Laravel, léelo con $request->getContent() y no con $request->all() ni $request->json().',
             );
         }
         if ($signatureHeader === null || $signatureHeader === '') {

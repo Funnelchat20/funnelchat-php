@@ -12,7 +12,7 @@
       "methods[].doc": "El comentario del método. Empieza con la operación entre comillas invertidas.",
       "methods[].query": "`false` quita el parámetro `$query` (como en Node); `true` lo pone aunque la especificación no declare query. Si falta: está cuando la operación declara query o cuando pagina.",
       "methods[].bodyOptional": "El cuerpo se puede omitir (como en Node). Si falta, el cuerpo es un argumento obligatorio cuando la operación lo tiene.",
-      "methods[].bodyDefaults": "Campos del cuerpo que, si no los pasás, se completan con un parámetro de ruta (y en el tipo quedan opcionales)."
+      "methods[].bodyDefaults": "Campos del cuerpo que, si no los pasas, se completan con un parámetro de ruta (y en el tipo quedan opcionales)."
     }
   },
   "resources": [

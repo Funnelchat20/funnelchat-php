@@ -95,10 +95,10 @@ final class Funnelchat
     ) {
         $apiKey = self::nonEmpty($apiKey) ?? self::readEnv('FUNNELCHAT_API_KEY');
         if ($apiKey === null) {
-            throw new FunnelchatException('Falta la clave de API: pasala en `apiKey` o en la variable FUNNELCHAT_API_KEY.');
+            throw new FunnelchatException('Falta la clave de API: pásala en `apiKey` o en la variable FUNNELCHAT_API_KEY.');
         }
         if (!\array_key_exists($environment, self::BASE_URLS)) {
-            throw new FunnelchatException("Entorno desconocido: {$environment}. Usá \"production\" o \"staging\".");
+            throw new FunnelchatException("Entorno desconocido: {$environment}. Usa \"production\" o \"staging\".");
         }
         if ($timeout !== null && $timeout <= 0) {
             throw new FunnelchatException('`timeout` tiene que ser mayor que 0.');
@@ -109,7 +109,7 @@ final class Funnelchat
         $isGuzzle = $httpClient instanceof \GuzzleHttp\ClientInterface;
         if ($timeout !== null && !$isGuzzle) {
             throw new FunnelchatException(
-                'El timeout solo se puede aplicar con Guzzle: PSR-18 no tiene timeout. Configuralo en tu cliente HTTP y no pases `timeout`.',
+                'El timeout solo se puede aplicar con Guzzle: PSR-18 no tiene timeout. Configúralo en tu cliente HTTP y no pases `timeout`.',
             );
         }
 

@@ -82,10 +82,10 @@ final class ErrorsTest extends TestCase
 
     public function testExposesRetryAfterOfA429(): void
     {
-        $exception = $this->errorFor(Reply::json(429, ['error' => 'rate_limited', 'message' => 'Esperá.'], ['Retry-After' => '12']));
+        $exception = $this->errorFor(Reply::json(429, ['error' => 'rate_limited', 'message' => 'Espera.'], ['Retry-After' => '12']));
 
         self::assertInstanceOf(RateLimitException::class, $exception);
-        self::assertSame([429, 'rate_limited', 'Esperá.', 12], [$exception->status, $exception->errorCode, $exception->getMessage(), $exception->retryAfter]);
+        self::assertSame([429, 'rate_limited', 'Espera.', 12], [$exception->status, $exception->errorCode, $exception->getMessage(), $exception->retryAfter]);
     }
 
     public function testKeepsTheFieldErrorsOfALaravel422WithoutCode(): void

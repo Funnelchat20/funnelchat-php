@@ -167,7 +167,7 @@ final class Transport
         $timeout = isset($options['timeout']) ? (float) $options['timeout'] : $this->timeout;
         if ($timeout !== null && !$this->httpClient instanceof GuzzleClientInterface) {
             throw new FunnelchatException(
-                'El timeout solo se puede aplicar con Guzzle: PSR-18 no tiene timeout. Configuralo en tu cliente HTTP y no pases `timeout`.',
+                'El timeout solo se puede aplicar con Guzzle: PSR-18 no tiene timeout. Configúralo en tu cliente HTTP y no pases `timeout`.',
             );
         }
 
