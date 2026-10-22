@@ -136,7 +136,7 @@
     {
       "property": "groups",
       "class": "Groups",
-      "doc": "WhatsApp groups (communities area): read groups, and act on them by API: create, manage participants and admins, name, description, photo, settings, invite link, send a message, and join requests.\n\nGroup actions are asynchronous: each one answers `202` with `action_id` and `status: queued`; follow it with `action()` or the `group_action.completed` / `group_action.failed` events. They are OFF by default: until communities turns them on, they answer `403 route_not_available` to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422 provider_unsupported` without it).",
+      "doc": "WhatsApp groups (communities area), read only: the groups, their participants, joins and leaves, messages, scheduled messages and actions.",
       "methods": [
         { "name": "list", "op": "GET /api/v1/groups", "paginate": true, "doc": "`GET /api/v1/groups`, paginated." },
         { "name": "retrieve", "op": "GET /api/v1/groups/{group}", "doc": "`GET /api/v1/groups/{group}`." },
@@ -146,23 +146,7 @@
         { "name": "listParticipantEvents", "op": "GET /api/v1/groups/{group}/participant-events", "paginate": true, "doc": "`GET /api/v1/groups/{group}/participant-events`, paginated: joins and leaves." },
         { "name": "listMessages", "op": "GET /api/v1/groups/{group}/messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/messages`, paginated." },
         { "name": "listScheduledMessages", "op": "GET /api/v1/groups/{group}/scheduled-messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/scheduled-messages`, paginated." },
-        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." },
-        { "name": "create", "op": "POST /api/v1/groups", "doc": "`POST /api/v1/groups`: creates a group (`communities:operate`). On a QR number `participants` is required (up to 20); on an official one it is not allowed." },
-        { "name": "action", "op": "GET /api/v1/groups/actions/{action}", "doc": "`GET /api/v1/groups/actions/{action}`: an action you requested, with its `status` (`queued`, `running`, `completed`, `failed`), `result` and `reason`." },
-        { "name": "addParticipants", "op": "POST /api/v1/groups/{group}/participants", "doc": "`POST /api/v1/groups/{group}/participants`: adds participants (an official number invites them)." },
-        { "name": "removeParticipants", "op": "POST /api/v1/groups/{group}/participants/remove", "doc": "`POST /api/v1/groups/{group}/participants/remove`: removes participants." },
-        { "name": "promoteAdmins", "op": "POST /api/v1/groups/{group}/admins", "doc": "`POST /api/v1/groups/{group}/admins`: makes participants admins (QR numbers only)." },
-        { "name": "demoteAdmins", "op": "POST /api/v1/groups/{group}/admins/remove", "doc": "`POST /api/v1/groups/{group}/admins/remove`: removes admins (QR numbers only)." },
-        { "name": "updateName", "op": "PUT /api/v1/groups/{group}/name", "doc": "`PUT /api/v1/groups/{group}/name`: changes the name." },
-        { "name": "updateDescription", "op": "PUT /api/v1/groups/{group}/description", "doc": "`PUT /api/v1/groups/{group}/description`: changes the description (`null` or empty clears it on a QR number)." },
-        { "name": "updatePhoto", "op": "PUT /api/v1/groups/{group}/photo", "doc": "`PUT /api/v1/groups/{group}/photo`: changes the photo from a public `https` URL to a `.jpg`, `.jpeg` or `.png` (QR numbers only)." },
-        { "name": "updateSettings", "op": "PUT /api/v1/groups/{group}/settings", "doc": "`PUT /api/v1/groups/{group}/settings`: whether members can send messages (QR numbers only)." },
-        { "name": "renewInviteLink", "op": "POST /api/v1/groups/{group}/invite-link/renew", "doc": "`POST /api/v1/groups/{group}/invite-link/renew`: revokes the invite link and creates a new one." },
-        { "name": "inviteLink", "op": "GET /api/v1/groups/{group}/invite-link/live", "doc": "`GET /api/v1/groups/{group}/invite-link/live`: the current invite link, read live through `device_id` (cached 30 seconds)." },
-        { "name": "sendMessage", "op": "POST /api/v1/groups/{group}/messages", "doc": "`POST /api/v1/groups/{group}/messages`: sends text or a file (`media_url`) to a group (`communities:send`). A send: never retried automatically." },
-        { "name": "listJoinRequests", "op": "GET /api/v1/groups/{group}/join-requests", "doc": "`GET /api/v1/groups/{group}/join-requests`: the pending join requests (up to 100), read live. Official numbers and groups only." },
-        { "name": "approveJoinRequests", "op": "POST /api/v1/groups/{group}/join-requests/approve", "doc": "`POST /api/v1/groups/{group}/join-requests/approve`: approves join requests by phone. Official numbers only, behind an option communities keeps off." },
-        { "name": "rejectJoinRequests", "op": "POST /api/v1/groups/{group}/join-requests/reject", "doc": "`POST /api/v1/groups/{group}/join-requests/reject`: rejects join requests by phone. Official numbers only, behind an option communities keeps off." }
+        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." }
       ]
     },
     {

@@ -43,8 +43,8 @@ $funnelchat = new Funnelchat(apiKey: getenv('FUNNELCHAT_API_KEY'));
 // Your WhatsApp numbers (permission accounts:read). The `id` of each one is the `device_id` you send with.
 foreach ($funnelchat->devices->list() as $device) {
     echo $device['id'], ' ', $device['number'], "\n";
-    // What that number can do through the API: messages, groups and the delivery statuses it reports.
-    var_dump($device['capabilities']['messages']['templates'], $device['capabilities']['groups']['send']);
+    // What that number can do through the API: messages and the delivery statuses it reports.
+    var_dump($device['capabilities']['messages']['templates'], $device['capabilities']['statuses']);
 }
 ```
 
@@ -79,7 +79,7 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | Read (`list`, `retrieve`, `listByDevice`, `metadata`, participants, events, messages, actions) and [act on groups](#groups): `create`, participants and admins, name, description, photo, settings, invite link, `sendMessage`, join requests and `action`. |
+| `$funnelchat->groups` | [Read only](#groups): `list`, `retrieve`, `listByDevice`, `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages` and `listActions`. |
 | `$funnelchat->devices` | `list`, `retrieve` (with `capabilities`), `update`, `status`, `health`, `me`, `checkPhone`, connection history. |
 | `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
 
@@ -168,20 +168,16 @@ The full example is in [examples/plain-php/send-message.php](examples/plain-php/
 
 ## Groups
 
-Group actions are asynchronous: each one answers `202` with `action_id` and `status` `queued`, and the result arrives later, in `$funnelchat->groups->action($actionId)` or through the `group_action.completed` and `group_action.failed` events.
+Groups are read only through the API (`communities:read`): the account's groups, their participants, joins and leaves, the messages sent to them and their scheduled messages.
 
 ```php
-$accepted = $funnelchat->groups->create(['device_id' => 4, 'name' => 'VIP customers', 'participants' => ['5491100000000']]);
-$action = $funnelchat->groups->action($accepted['action_id'])['data']; // queued, running, completed or failed
+foreach ($funnelchat->groups->list(['deviceId' => 4]) as $group) {
+    echo $group['name'], "\n";
+}
 
-$funnelchat->groups->sendMessage('120363000000000001@g.us', ['device_id' => 4, 'type' => 'text', 'text' => 'Hello everyone']);
+$participants = $funnelchat->groups->listParticipants(['groupUid' => '120363000000000001@g.us'])->firstPage();
+$metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id' => 4, 'group_uid' => '120363000000000001@g.us']);
 ```
-
-- **They are off by default.** Until Funnelchat turns them on, they answer `403 route_not_available` to any key.
-- They need `communities:operate` (create, participants, admins, name, description, photo, settings, link), `communities:send` (`sendMessage`, which is never retried by itself) or `communities:read` (`action`, `inviteLink`, `listJoinRequests`). `operate` does not include `read`: to request an action and follow it you need both.
-- The `capabilities.groups` of each number (`$funnelchat->devices->retrieve($id)`) says what it can do: a QR number adds participants directly; an official one invites them, needs the `cloud-api-groups` beta (otherwise `422 provider_unsupported`) and does not change admins, photo or settings.
-- Actions with phones (up to 20 per request) end `completed` even if every phone failed: check `result.participants[].status`.
-- Up to 50 open actions per number: more answers `429 too_many_pending_actions`.
 
 ## Receiving webhooks with Laravel
 
@@ -282,7 +278,7 @@ $subscription = $funnelchat->webhooks->create([
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
 - `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
 - `message.status_changed` must be requested by name: `*` does not include it.
-- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs `accounts:read`). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added`, `group_action.completed` and `group_join_request.created`.
+- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs `accounts:read`). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added` and `group_join_request.created`.
 
 ## Pagination
 
@@ -368,7 +364,7 @@ An id you send yourself in `X-Request-Id` is not used: the API sets its own. The
 - A request is retried on a `429`, a `5xx` or a network error (also when the timeout ran out), up to `maxRetries` times (2 by default), with the exceptions below.
 - With `Retry-After`, the SDK waits exactly what it asks for. If it asks for more than 60 seconds, it does not wait: the exception is thrown right away with its `retryAfter` and you decide.
 - Without `Retry-After`, the wait is exponential: 0.5 s, 1 s, 2 s… up to 8 s, with some jitter.
-- **A send is never retried by itself**: the `POST`s with a `…:send` permission (messages, contact cards, forwards, templates, forms and group messages). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
+- **A send is never retried by itself**: the `POST`s with a `…:send` permission (messages, contact cards, forwards, templates and forms). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
 - **A write that may have been applied is not repeated by itself**: a `POST` or a `PATCH` is retried only on a `429` or a `503`, when it was certainly not applied. On a `500`, `502` or `504`, a timeout or a dropped connection, the exception is thrown right away (a `502 origin_unreachable` does not guarantee the area did not get it): read the state before repeating it. `retrySend` does not change this. Reads, `PUT`s and `DELETE`s are retried on any transient failure. It is the same rule as in the Node SDK.
 - `429 mac_lockout_24h` and `429 mac_limit_reached` are never retried.
 - Per call you can change `maxRetries` and the headers, and with Guzzle the `timeout`:
@@ -435,7 +431,7 @@ All of it comes from the code of the domains at the tags running in production o
 | What the API-key sends answer (`200` with the queued message, never `204`), `messages->get`, `client_reference` (also in the history), `file_type` and `file_name` | conversations `v1.18.10` |
 | WhatsApp forms (`/api/v1/forms…`), sending one to a contact and `whatsapp_form.completed` | conversations `v1.18.10` |
 | The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10` |
-| Group actions, join requests and the `group.message_received`, `group.reaction_added`, `group_action.completed` and `group_join_request.*` events | communities `v2.34.52` |
+| The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
 | Webhook subscriptions (`/api/v1/webhooks…`, with `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
 

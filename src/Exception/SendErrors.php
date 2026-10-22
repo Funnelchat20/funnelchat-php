@@ -9,8 +9,8 @@ namespace Funnelchat\Exception;
  * send is refused. When the API answers one of these, nothing went out.
  *
  * Source: conversations v1.18.10 (`ApiSendRejection`, `ApiSendGuard`, `ApiSendRateLimiter`,
- * `ApiKeySendResponse`, `FormSendPreflight` and `lang/en/public_api.php`) and communities v2.34.52
- * (`ApiGroupActionRejected`), in production since 21-10.
+ * `ApiKeySendResponse`, `FormSendPreflight` and `lang/en/public_api.php`), in production since
+ * 21-10.
  */
 final class SendErrors
 {
@@ -28,7 +28,7 @@ final class SendErrors
      * - `recipient_unreachable` (422): the contact cannot receive a form.
      * - `device_unavailable` (422): the number is not connected to WhatsApp.
      * - `not_sent` (422): the message could not be accepted.
-     * - `provider_unsupported` (422): the number's provider cannot do it (group actions, reactions).
+     * - `provider_unsupported` (422): the number's provider cannot do it (reactions).
      * - `template_not_found` (404), `template_unresolved_placeholder` (422, with `placeholders` and `count`).
      * - `form_not_found` (404), `form_not_published`, `form_not_on_number`, `number_not_eligible` (422).
      * - `not_forwardable` (422, with `reason`): the message cannot be forwarded.

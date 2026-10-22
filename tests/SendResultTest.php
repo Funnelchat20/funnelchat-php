@@ -148,16 +148,6 @@ final class SendResultTest extends TestCase
         self::assertSame('/api/v1/contacts/2001/message/form', $http->lastRequest()->getUri()->getPath());
     }
 
-    public function testAGroupMessageIsAnActionInTheQueue(): void
-    {
-        $http = new MockHttpClient(Reply::json(202, ['action_id' => '5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b', 'status' => 'queued']));
-
-        $accepted = $this->client($http)->groups->sendMessage('120363000000000001@g.us', ['device_id' => 4, 'type' => 'text', 'text' => 'Hola a todos']);
-
-        self::assertSame('5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b', $accepted['action_id']);
-        self::assertSame('/api/v1/groups/120363000000000001%40g.us/messages', $http->lastRequest()->getUri()->getPath());
-    }
-
     public function testAMethodWhoseSpecDocumentsNoBodyStillReturnsTheBodyTheApiSends(): void
     {
         $http = new MockHttpClient(Reply::json(202, ['ok' => true]), Reply::text(202, ''), Reply::noContent());

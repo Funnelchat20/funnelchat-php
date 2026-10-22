@@ -66,9 +66,8 @@ trait ResourceProperties
     public readonly CustomFields $customFields;
 
     /**
-     * WhatsApp groups (communities area): read groups, and act on them by API: create, manage
-     * participants and admins, name, description, photo, settings, invite link, send a message, and
-     * join requests.
+     * WhatsApp groups (communities area), read only: the groups, their participants, joins and
+     * leaves, messages, scheduled messages and actions.
      */
     public readonly Groups $groups;
 

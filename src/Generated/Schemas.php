@@ -1632,48 +1632,6 @@ namespace Funnelchat\Generated;
  * @phpstan-type PendingMessage array{
  *     message: string,
  * }
- * @phpstan-type PendingGroupActionAccepted array{
- *     action_id: string,
- *     status: 'queued',
- * }
- * @phpstan-type PendingGroupActionParticipantResult array{
- *     identity: string|null,
- *     identity_type: 'phone'|'whatsapp_user'|'unknown',
- *     status: 'added'|'invited'|'removed'|'promoted'|'demoted'|'approved'|'rejected'|'failed',
- *     reason: string|null,
- * }
- * @phpstan-type PendingGroupRef array{
- *     uid: string,
- *     name: string|null,
- * }
- * @phpstan-type PendingGroupAction array{
- *     action_id: string,
- *     type: 'create_group'|'add_participants'|'remove_participants'|'promote_admins'|'demote_admins'|'update_name'|'update_description'|'update_photo'|'update_settings'|'renew_invite_link'|'send_message'|'approve_join_requests'|'reject_join_requests',
- *     status: 'queued'|'running'|'completed'|'failed',
- *     device_id: int,
- *     group: PendingGroupRef|null,
- *     result: array{
- *         participants?: list<PendingGroupActionParticipantResult>,
- *         group?: PendingGroupRef,
- *         invite_link?: string,
- *         message?: array{
- *             uid: string,
- *         },
- *     }|null,
- *     reason: string|null,
- *     created_at: string|null,
- *     started_at: string|null,
- *     completed_at: string|null,
- *     failed_at: string|null,
- * }
- * @phpstan-type PendingGroupJoinRequest array{
- *     participant: array{
- *         identity: string|null,
- *         identity_type: 'phone'|'whatsapp_user'|'unknown',
- *         name: string|null,
- *     },
- *     requested_at: string|null,
- * }
  * @phpstan-type PendingDeviceCapabilities array{
  *     messages: array{
  *         text: bool,

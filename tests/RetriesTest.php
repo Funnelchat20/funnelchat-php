@@ -327,7 +327,6 @@ final class RetriesTest extends TestCase
         }
         self::assertTrue(Retry::isSendRequest('POST', '/api/v1/contacts/2001/message'));
         self::assertTrue(Retry::isSendRequest('post', '/api/v1/message/send-message'));
-        self::assertTrue(Retry::isSendRequest('POST', '/api/v1/groups/120363000000000001@g.us/messages'));
         self::assertFalse(Retry::isSendRequest('GET', '/api/v1/groups/120363000000000001@g.us/messages'));
         self::assertFalse(Retry::isSendRequest('GET', '/api/v1/contacts/2001/messages'));
         self::assertFalse(Retry::isSendRequest('POST', '/api/v1/contacts/delete'));

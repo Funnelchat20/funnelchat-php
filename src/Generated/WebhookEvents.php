@@ -516,39 +516,6 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: GroupRecoveredData,
  * }
- * @phpstan-type GroupActionCompletedData array{
- *     action: array{
- *         uuid: string,
- *         type: string,
- *     },
- *     group: array{
- *         uid: string,
- *         name: string|null,
- *     }|null,
- *     campaign: array{
- *         uuid: string,
- *         name: string|null,
- *     }|null,
- *     result: array{
- *         participants?: list<array{
- *             identity: string|null,
- *             identity_type: string|null,
- *             status: string|null,
- *             reason: string|null,
- *         }>,
- *         invite_link?: string|null,
- *         message?: array{
- *             uid: string|null,
- *         },
- *     },
- * }
- * @phpstan-type GroupActionCompletedEvent array{
- *     id: string,
- *     type: 'group_action.completed',
- *     version: int,
- *     occurred_at: string,
- *     data: GroupActionCompletedData,
- * }
  * @phpstan-type GroupActionFailedData array{
  *     campaign: array{
  *         uuid: string,
@@ -945,7 +912,7 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: WhatsappFormCompletedData,
  * }
- * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.disconnected'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.completed'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
+ * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.disconnected'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
  * @phpstan-type WebhookEvent array{
  *     id: string,
  *     type: string,
@@ -957,7 +924,7 @@ namespace Funnelchat\Generated;
 final class WebhookEvents
 {
     /**
-     * Every webhook event type known to the spec (54). `status`: `live` is emitted today;
+     * Every webhook event type known to the spec (53). `status`: `live` is emitted today;
      * `planned` can be subscribed to, but nothing is emitted yet. `pending` = taken from
      * spec/pending.json; `pendingFields` = fields of `data` added by spec/pending.json.
      *
@@ -994,7 +961,6 @@ final class WebhookEvents
         'group.message_received' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Someone wrote in a group of one of the account\'s numbers. It does not arrive for messages from your own numbers.'],
         'group.reaction_added' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Someone reacted to a message in a group.'],
         'group.recovered' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un grupo que estaba bloqueado volvió a operar.'],
-        'group_action.completed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'A group action requested through the API finished (`action.uuid` is the `action_id` from the `202`). Phone-based actions finish this way even if all of them fail: check `result.participants[].status`.'],
         'group_action.failed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'An automatic action on a group failed.'],
         'group_join_request.created' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Someone asked to join an official group.'],
         'group_join_request.revoked' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'Someone withdrew their request to join an official group.'],
