@@ -17,19 +17,7 @@ composer require funnelchat/funnelchat-php guzzlehttp/guzzle
 
 Guzzle is not required: any PSR-18 client with PSR-17 factories works (for example `symfony/http-client` with `nyholm/psr7`). The SDK finds them with [php-http/discovery](https://docs.php-http.org/en/latest/discovery.html); if Composer asks about its plugin, you can say no.
 
-Until it is on Packagist, install it from GitHub. In your project's `composer.json`:
-
-```json
-{
-    "repositories": [
-        { "type": "vcs", "url": "https://github.com/Funnelchat20/funnelchat-php" }
-    ]
-}
-```
-
-```bash
-composer require funnelchat/funnelchat-php:^0.1@dev guzzlehttp/guzzle
-```
+The package is published on [Packagist](https://packagist.org/packages/funnelchat/funnelchat-php).
 
 ## First call
 
