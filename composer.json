@@ -5,6 +5,7 @@
     "license": "MIT",
     "homepage": "https://developers-portal.funnelchat.app/docs/",
     "support": {
+        "email": "soporte@funnelchat.com",
         "docs": "https://developers-portal.funnelchat.app/docs/",
         "issues": "https://github.com/Funnelchat20/funnelchat-php/issues",
         "source": "https://github.com/Funnelchat20/funnelchat-php"
@@ -20,6 +21,7 @@
     "authors": [
         {
             "name": "Funnelchat",
+            "email": "soporte@funnelchat.com",
             "homepage": "https://funnelchat.com"
         }
     ],
