@@ -5,8 +5,7 @@
  *
  *   FUNNELCHAT_API_KEY='<id>|fc_live_...' php examples/plain-php/send-message.php 2001 5491100000000
  *
- * Sending with an API key opens with the `conversations:send` permission (conversations PR #2284,
- * not merged yet): until it is deployed, the send routes answer `403 route_not_available`.
+ * Sending needs a key with the `conversations:send` permission.
  */
 
 declare(strict_types=1);
@@ -44,28 +43,29 @@ try {
     $window = $funnelchat->contacts->metaWindow($contactId, ['device_id' => $deviceId]);
 
     if ($window['is_open']) {
-        // Open window: free text. `send` returns the registered message (pending of the spec,
-        // conversations feat/envio-devuelve-id), or null while the API answers 204.
+        // Open window: free text. `send` returns the registered message, `queued`: the next states
+        // arrive by `message.status_changed`, or read them with $funnelchat->messages->get().
         $result = $funnelchat->messages->send($contactId, [
             'device_id' => $deviceId,
             'phone' => $phone,                 // the phone of the same contact, without +
             'text' => '¡Hola! Te paso la info…',
             'client_reference' => 'pedido-8841', // optional: your reference to follow it
         ]);
-        echo 'Enviado: ', $result['message']['id'] ?? 'sin id todavía', ' (', $result['message']['status'] ?? '?', ")\n";
+        echo "En cola: {$result['message']['id']} ({$result['message']['status']})\n";
     } else {
         // Closed window: an approved template (the id comes from $funnelchat->templates->list()).
-        $funnelchat->templates->send($deviceId, '45', [
+        $result = $funnelchat->templates->send($deviceId, '45', [
             'phone' => $phone,
             'contact_id' => $contactId,
             'template_variables' => ['body' => ['Lucía']],
         ]);
-        echo "Plantilla enviada.\n";
+        echo "Plantilla en cola: {$result['message']['id']}\n";
     }
 } catch (RateLimitException $exception) {
-    // A send is never retried by itself: wait retryAfter seconds and decide.
-    fwrite(\STDERR, "Esperá {$exception->retryAfter} s: {$exception->getMessage()}\n");
+    // A send is never retried by itself: wait retryAfter seconds (mac_lockout_24h has none) and decide.
+    fwrite(\STDERR, "{$exception->errorCode}: {$exception->getMessage()} (esperá {$exception->retryAfter} s; pedido {$exception->requestId})\n");
 } catch (ApiException $exception) {
-    // window_closed, antiblock_*, recipient_*, route_not_available… Decide by status and errorCode.
-    fwrite(\STDERR, "{$exception->status} {$exception->errorCode}: {$exception->getMessage()}\n");
+    // window_closed, antiblock_*, recipient_*, device_unavailable… Decide by status and errorCode.
+    // Cite requestId (the X-Request-Id) if you report it.
+    fwrite(\STDERR, "{$exception->status} {$exception->errorCode}: {$exception->getMessage()} (pedido {$exception->requestId})\n");
 }

@@ -63,7 +63,7 @@ final class ProcessFunnelchatEvent implements ShouldQueue
         Log::info('Mensaje de Funnelchat', [
             'phone' => $event['data']['contact']['phone'],
             'text' => $event['data']['message']['text'],
-            'device_id' => $event['data']['device_id'] ?? null, // pending of the spec (conversations PR #2284)
+            'device_id' => $event['data']['device_id'] ?? null, // the number that received it: reply with the same device_id
         ]);
     }
 
