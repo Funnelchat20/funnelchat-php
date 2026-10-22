@@ -16,18 +16,16 @@ use Funnelchat\Pagination\Paginator;
 
 /**
  * WhatsApp Forms (conversations area): build them, version and publish them, choose their numbers,
- * send them to a contact and read the answers.
+ * and read the answers. To send one to a contact, `messages->sendForm()`.
  *
  * A form has versions: the `{id}` routes take a VERSION id, the `families/{familyId}` routes the
  * form's id (`family_id`). Reading needs `conversations:read`, changing `conversations:write` and
  * sending `conversations:send`. The answers also arrive by `whatsapp_form.completed`.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
- * @phpstan-import-type PendingClientReference from Schemas
  * @phpstan-import-type PendingForm from Schemas
  * @phpstan-import-type PendingFormLintIssue from Schemas
  * @phpstan-import-type PendingFormNumber from Schemas
- * @phpstan-import-type PendingPublicMessage from Schemas
  */
 final class Forms extends AbstractResource
 {
@@ -320,7 +318,7 @@ final class Forms extends AbstractResource
      *     numbers: list<PendingFormNumber>,
      * }
      */
-    public function listNumbers(int|string $id, array $options = []): mixed
+    public function numbers(int|string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -479,7 +477,7 @@ final class Forms extends AbstractResource
      *     templates: int,
      * }>
      */
-    public function listVersions(int|string $familyId, array $query = [], array $options = []): Paginator
+    public function versions(int|string $familyId, array $query = [], array $options = []): Paginator
     {
         /**
          * @var Paginator<array{
@@ -688,41 +686,6 @@ final class Forms extends AbstractResource
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/forms/families/{familyId}/metrics', ['path' => ['familyId' => $familyId], 'query' => $query] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `POST /api/v1/contacts/{contact}/message/form`: sends a published form to a contact
-     * (`conversations:send`): a message with a button that opens it. Returns `['message' => …]`,
-     * the registered message (`type` `whatsapp_form`). The answers arrive by
-     * `whatsapp_form.completed`. A send: never retried automatically.
-     *
-     * Permission: `conversations:send`.
-     * Pending of the spec (`conversations-forms` in spec/pending.json).
-     *
-     * @param int $contact
-     * @param array{
-     *     form_id: int,
-     *     device_id: int,
-     *     text?: string,
-     *     button_text?: string,
-     *     client_reference?: PendingClientReference,
-     * } $body
-     * @param RequestOptions $options
-     *
-     * @return array{
-     *     message: PendingPublicMessage,
-     * }
-     */
-    public function send(int|string $contact, array $body, array $options = []): mixed
-    {
-        /**
-         * @var array{
-         *     message: PendingPublicMessage,
-         * } $result
-         */
-        $result = $this->client->request('POST', '/api/v1/contacts/{contact}/message/form', ['path' => ['contact' => $contact], 'body' => $body] + $options);
 
         return $result;
     }

@@ -50,7 +50,7 @@ trait ResourceProperties
 
     /**
      * WhatsApp Forms (conversations area): build them, version and publish them, choose their
-     * numbers, send them to a contact and read the answers.
+     * numbers, and read the answers. To send one to a contact, `messages->sendForm()`.
      */
     public readonly Forms $forms;
 

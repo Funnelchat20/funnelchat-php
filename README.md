@@ -74,12 +74,12 @@ En Laravel, registrá un solo cliente para toda la app: está en [examples/larav
 |---|---|
 | `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, etiquetas y campos de un contacto, `metaWindow` (la ventana de 24 horas), notas. |
 | `$funnelchat->conversations` | `list`, `update`, contadores, marcar todo como leído o no leído. |
-| `$funnelchat->messages` | `send`, `get` (un mensaje por id), `list` (el historial de un contacto), `sendContactCard`, `forward`, `react`, `removeReaction`. |
+| `$funnelchat->messages` | `send`, `sendDirect` (el contacto en el cuerpo), `sendForm` (un formulario), `get` (un mensaje por id), `list` (el historial de un contacto), `sendContactCard`, `forward`, `react`, `removeReaction`. |
 | `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `delete`. |
-| `$funnelchat->forms` | Formularios de WhatsApp: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, números, `definition`, `listVersions`, `listResponses`, `retrieveResponse`, `metrics` y `send` (a un contacto). |
+| `$funnelchat->forms` | Formularios de WhatsApp: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` y `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | Leer (`list`, `retrieve`, `listByDevice`, `metadata`, participantes, eventos, mensajes, acciones) y [actuar sobre grupos](#grupos): `create`, participantes y administradores, nombre, descripción, foto, ajustes, link de invitación, `sendMessage`, solicitudes de unión y `retrieveAction`. |
+| `$funnelchat->groups` | Leer (`list`, `retrieve`, `listByDevice`, `metadata`, participantes, eventos, mensajes, acciones) y [actuar sobre grupos](#grupos): `create`, participantes y administradores, nombre, descripción, foto, ajustes, link de invitación, `sendMessage`, solicitudes de unión y `action`. |
 | `$funnelchat->devices` | `list`, `retrieve` (con `capabilities`), `update`, `status`, `health`, `me`, `checkPhone`, historial de conexión. |
 | `$funnelchat->webhooks` | Suscripciones (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), el catálogo (`events`), `verify` y `constructEvent`. |
 
@@ -109,7 +109,7 @@ if ($window['is_open']) {
 
 - `send` devuelve `['message' => […]]`: el mensaje registrado, con su `id`, `status` `queued` y tu `client_reference`. **En cola no es enviado:** los estados siguientes (`sent`, `delivered`, `read` o `failed`) llegan por el evento `message.status_changed`, con el mismo `id` como `message_id`, o los leés con `$funnelchat->messages->get(2001, $id)`.
 - Si el mensaje no se pudo encolar, llega igual, con `status` `failed` y `error.reason` `not_queued`. Cuando falla, `error` trae `code` y `title` de Meta, o `code` `null`, un `title` y un `reason` de Funnelchat (`device_unavailable`, `insufficient_balance`, `window_closed`, `recipient_unreachable`…).
-- Las tarjetas (`sendContactCard`) devuelven `['messages' => […]]`, uno por tarjeta; el reenvío (`forward`), un ítem por destino con `status` (`queued` o `blocked`), `reason` y su `message`; la plantilla (`templates->send`) y el formulario (`forms->send`), `['message' => […]]`.
+- Las tarjetas (`sendContactCard`) devuelven `['messages' => […]]`, uno por tarjeta; el reenvío (`forward`), un ítem por destino con `status` (`queued` o `blocked`), `reason` y su `message`; la plantilla (`templates->send`) y el formulario (`messages->sendForm`), `['message' => […]]`.
 - `client_reference` (de 1 a 64 caracteres ASCII visibles, sin espacios) vuelve en el mensaje, en el historial del contacto y en `message.status_changed`.
 - `contact_id` va en el cuerpo, pero `send` lo completa con el contacto de la ruta si no lo pasás.
 - Mandá `phone` (o `whatsapp_id`) del mismo contacto: la API lo valida, y si no corresponde al contacto de la ruta responde `422 recipient_mismatch`.
@@ -142,7 +142,7 @@ $funnelchat->templates->send(3, '45', [
 **Un formulario de WhatsApp.** `form_id` es el id del formulario publicado (`family_id`); las respuestas llegan por `whatsapp_form.completed`:
 
 ```php
-$funnelchat->forms->send(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
+$funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
 ```
 
 **Si te frenamos.** Si un envío rompe una regla de WhatsApp, no sale: te llega una excepción.
@@ -168,17 +168,17 @@ El ejemplo completo está en [examples/plain-php/send-message.php](examples/plai
 
 ## Grupos
 
-Las acciones sobre grupos son asincrónicas: cada una responde `202` con `action_id` y `status` `queued`, y el resultado llega después, en `$funnelchat->groups->retrieveAction($actionId)` o por los eventos `group_action.completed` y `group_action.failed`.
+Las acciones sobre grupos son asincrónicas: cada una responde `202` con `action_id` y `status` `queued`, y el resultado llega después, en `$funnelchat->groups->action($actionId)` o por los eventos `group_action.completed` y `group_action.failed`.
 
 ```php
 $accepted = $funnelchat->groups->create(['device_id' => 4, 'name' => 'Clientes VIP', 'participants' => ['5491100000000']]);
-$action = $funnelchat->groups->retrieveAction($accepted['action_id'])['data']; // queued, running, completed o failed
+$action = $funnelchat->groups->action($accepted['action_id'])['data']; // queued, running, completed o failed
 
 $funnelchat->groups->sendMessage('120363000000000001@g.us', ['device_id' => 4, 'type' => 'text', 'text' => 'Hola a todos']);
 ```
 
 - **Están apagadas por defecto.** Hasta que Funnelchat las habilite, responden `403 route_not_available` a cualquier clave.
-- Piden `communities:operate` (crear, participantes, administradores, nombre, descripción, foto, ajustes, link), `communities:send` (`sendMessage`, que nunca se reintenta solo) o `communities:read` (`retrieveAction`, `inviteLink`, `listJoinRequests`). `operate` no incluye `read`: para pedir una acción y seguirla necesitás los dos.
+- Piden `communities:operate` (crear, participantes, administradores, nombre, descripción, foto, ajustes, link), `communities:send` (`sendMessage`, que nunca se reintenta solo) o `communities:read` (`action`, `inviteLink`, `listJoinRequests`). `operate` no incluye `read`: para pedir una acción y seguirla necesitás los dos.
 - `capabilities.groups` de cada número (`$funnelchat->devices->retrieve($id)`) dice qué puede hacer: un número por QR suma participantes directo; uno oficial los invita, necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`) y no cambia administradores, foto ni ajustes.
 - Las acciones con teléfonos (hasta 20 por pedido) terminan `completed` aunque fallen todos: mirá `result.participants[].status`.
 - Hasta 50 acciones abiertas por número: más responde `429 too_many_pending_actions`.
@@ -365,11 +365,11 @@ Un id que mandes vos en `X-Request-Id` no se usa: la API pone el suyo. No hay un
 
 ## Reintentos
 
-- Se reintenta ante un `429`, un `5xx` o un error de red (también si se pasó el timeout), hasta `maxRetries` veces (2 por defecto).
+- Se reintenta ante un `429`, un `5xx` o un error de red (también si se pasó el timeout), hasta `maxRetries` veces (2 por defecto), con las excepciones de abajo.
 - Con `Retry-After`, se espera exactamente lo que pide. Si pide más de 60 segundos, no se espera: la excepción sale enseguida con su `retryAfter` y decidís vos.
 - Sin `Retry-After`, la espera es exponencial: 0,5 s, 1 s, 2 s… hasta 8 s, con un poco de azar.
 - **Un envío nunca se reintenta solo**: los `POST` con un permiso `…:send` (mensajes, tarjetas de contacto, reenvíos, plantillas, formularios y mensajes a grupos). Se reintentan solo si pasás `'retrySend' => true` en ese llamado. Las reacciones (`PUT` y `DELETE`) sí, porque repetirlas da lo mismo.
-- **Una escritura que pudo haberse aplicado no se repite sola**: un `POST` o `PATCH` que terminó en timeout o en `502` (la API no garantiza que el área no la haya recibido). Leé el estado antes de repetirla, o pasá `'retrySend' => true` si repetirla es seguro. Las lecturas, los `PUT` y los `DELETE` sí se reintentan.
+- **Una escritura que pudo haberse aplicado no se repite sola**: un `POST` o un `PATCH` se reintenta solo ante un `429` o un `503`, cuando seguro no se aplicó. Ante un `500`, `502` o `504`, un timeout o una conexión cortada, la excepción sale enseguida (un `502 origin_unreachable` no garantiza que el área no la haya recibido): leé el estado antes de repetirla. `retrySend` no cambia esto. Las lecturas, los `PUT` y los `DELETE` sí se reintentan ante cualquier falla pasajera. Es la misma regla que el SDK de Node.
 - `429 mac_lockout_24h` y `429 mac_limit_reached` no se reintentan nunca.
 - Por llamado podés cambiar `maxRetries` y las cabeceras, y con Guzzle el `timeout`:
 

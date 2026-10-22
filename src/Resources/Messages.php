@@ -100,6 +100,81 @@ final class Messages extends AbstractResource
     }
 
     /**
+     * `POST /api/v1/message/send-message`: the same send with the contact in the body
+     * (`contact_id`, required). Returns `['message' => …]`, as `send()`. It is a send: same rules
+     * as `send()`.
+     *
+     * Permission: `conversations:send`.
+     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`,
+     * `file_type`, `file_name`.
+     * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
+     *
+     * @param array{
+     *     device_id: int,
+     *     text?: string,
+     *     contact_id: int,
+     *     file?: string,
+     *     temporal_uuid?: string,
+     *     local_id?: string|null,
+     *     note?: bool,
+     *     client_reference?: PendingClientReference,
+     *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
+     *     file_name?: string|null,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     message: PendingPublicMessage,
+     * }
+     */
+    public function sendDirect(array $body, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     message: PendingPublicMessage,
+         * } $result
+         */
+        $result = $this->client->request('POST', '/api/v1/message/send-message', ['body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/contacts/{contact}/message/form`: sends a published WhatsApp form (`form_id` is
+     * the form's `family_id`) as a message with a button that opens it. Returns `['message' =>
+     * …]` with `type` `whatsapp_form`; the answers arrive by `whatsapp_form.completed`. It is a
+     * send: same rules as `send()`.
+     *
+     * Permission: `conversations:send`.
+     * Pending of the spec (`conversations-forms` in spec/pending.json).
+     *
+     * @param int $contact
+     * @param array{
+     *     form_id: int,
+     *     device_id: int,
+     *     text?: string,
+     *     button_text?: string,
+     *     client_reference?: PendingClientReference,
+     * } $body
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     message: PendingPublicMessage,
+     * }
+     */
+    public function sendForm(int|string $contact, array $body, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     message: PendingPublicMessage,
+         * } $result
+         */
+        $result = $this->client->request('POST', '/api/v1/contacts/{contact}/message/form', ['path' => ['contact' => $contact], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
      * `GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact,
      * with the `client_reference` of each send.
      *

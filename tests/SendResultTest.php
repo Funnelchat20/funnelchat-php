@@ -138,11 +138,11 @@ final class SendResultTest extends TestCase
         self::assertSame('pedido-8841', self::jsonBody($http->lastRequest())['client_reference'] ?? null);
     }
 
-    public function testFormsSendReturnsTheMessage(): void
+    public function testSendFormReturnsTheMessage(): void
     {
         $http = new MockHttpClient(Reply::ok(['message' => self::message(9008, 'whatsapp_form')]));
 
-        $result = $this->client($http)->forms->send(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
+        $result = $this->client($http)->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
 
         self::assertSame('whatsapp_form', $result['message']['type']);
         self::assertSame('/api/v1/contacts/2001/message/form', $http->lastRequest()->getUri()->getPath());

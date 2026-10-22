@@ -59,6 +59,8 @@
       "doc": "Messages to one contact (conversations area): send text, files and buttons, read the history or one message by id, forward, react.\n\nSending with an API key needs the `conversations:send` permission and is subject to the WhatsApp rules: `422 window_closed`, `422 antiblock_*`, `422 recipient_*`, `422 device_unavailable`, `429 rate_limited` (with `retryAfter`) and `429 mac_lockout_24h`. A rejected send goes nowhere (see `Funnelchat\\Exception\\SendErrors`). Send operations are never retried automatically unless you pass `retrySend: true`.",
       "methods": [
         { "name": "send", "op": "POST /api/v1/contacts/{contact}/message", "bodyDefaults": { "contact_id": "contact" }, "doc": "`POST /api/v1/contacts/{contact}/message`: text, a file (`file` with a URL) or buttons and lists (`options`). Returns `['message' => …]`: the registered message, with its `id` and `status` `queued`. Queued is not sent: the next states arrive by `message.status_changed`, or read them with `get()`.\n\nSend `phone` (or `whatsapp_id`) of the same contact: the API validates it. `contact_id` is optional: it defaults to the contact of the route. A file from a URL that does not show its format (signed, or without extension) needs `file_type`; a document like that, `file_name` with its extension. `client_reference` comes back in the message, the history and `message.status_changed`." },
+        { "name": "sendDirect", "op": "POST /api/v1/message/send-message", "doc": "`POST /api/v1/message/send-message`: the same send with the contact in the body (`contact_id`, required). Returns `['message' => …]`, as `send()`. It is a send: same rules as `send()`." },
+        { "name": "sendForm", "op": "POST /api/v1/contacts/{contact}/message/form", "doc": "`POST /api/v1/contacts/{contact}/message/form`: sends a published WhatsApp form (`form_id` is the form's `family_id`) as a message with a button that opens it. Returns `['message' => …]` with `type` `whatsapp_form`; the answers arrive by `whatsapp_form.completed`. It is a send: same rules as `send()`." },
         { "name": "list", "op": "GET /api/v1/contacts/{contactId}/messages", "paginate": true, "doc": "`GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact, with the `client_reference` of each send." },
         { "name": "get", "op": "GET /api/v1/contacts/{contact}/messages/{message}", "doc": "`GET /api/v1/contacts/{contact}/messages/{message}`: one message by the id a send or a webhook gave you (`message_id` of `message.status_changed`), with its current `status` and `error`. Any refusal is a `404`." },
         { "name": "sendContactCard", "op": "POST /api/v1/contacts/{contact}/message/contact-card", "doc": "`POST /api/v1/contacts/{contact}/message/contact-card`: sends up to 5 contact cards. Returns `['messages' => […]]`, one registered message per card, in order." },
@@ -84,7 +86,7 @@
     {
       "property": "forms",
       "class": "Forms",
-      "doc": "WhatsApp Forms (conversations area): build them, version and publish them, choose their numbers, send them to a contact and read the answers.\n\nA form has versions: the `{id}` routes take a VERSION id, the `families/{familyId}` routes the form's id (`family_id`). Reading needs `conversations:read`, changing `conversations:write` and sending `conversations:send`. The answers also arrive by `whatsapp_form.completed`.",
+      "doc": "WhatsApp Forms (conversations area): build them, version and publish them, choose their numbers, and read the answers. To send one to a contact, `messages->sendForm()`.\n\nA form has versions: the `{id}` routes take a VERSION id, the `families/{familyId}` routes the form's id (`family_id`). Reading needs `conversations:read`, changing `conversations:write` and sending `conversations:send`. The answers also arrive by `whatsapp_form.completed`.",
       "methods": [
         { "name": "list", "op": "GET /api/v1/forms", "paginate": true, "doc": "`GET /api/v1/forms`, paginated: one row per form, with its current version." },
         { "name": "templates", "op": "GET /api/v1/forms/templates", "doc": "`GET /api/v1/forms/templates`: the templates to start a form from (`blank` is an empty one)." },
@@ -95,16 +97,15 @@
         { "name": "createVersion", "op": "POST /api/v1/forms/{id}/versions", "doc": "`POST /api/v1/forms/{id}/versions`: a new draft from this version, or the draft that already existed (`created: false`)." },
         { "name": "sync", "op": "POST /api/v1/forms/{id}/sync", "doc": "`POST /api/v1/forms/{id}/sync`: validates the version in Meta (`502 META` when Meta rejects it)." },
         { "name": "publish", "op": "POST /api/v1/forms/{id}/publish", "doc": "`POST /api/v1/forms/{id}/publish`: publishes the version (`422 LINT` with errors)." },
-        { "name": "listNumbers", "op": "GET /api/v1/forms/{id}/numbers", "doc": "`GET /api/v1/forms/{id}/numbers`: the numbers of the form and their state." },
+        { "name": "numbers", "op": "GET /api/v1/forms/{id}/numbers", "doc": "`GET /api/v1/forms/{id}/numbers`: the numbers of the form and their state." },
         { "name": "addNumber", "op": "POST /api/v1/forms/{id}/numbers", "doc": "`POST /api/v1/forms/{id}/numbers`: adds a number." },
         { "name": "removeNumber", "op": "DELETE /api/v1/forms/{id}/numbers/{deviceId}", "doc": "`DELETE /api/v1/forms/{id}/numbers/{deviceId}`: removes a number (not the primary one)." },
         { "name": "retryNumbers", "op": "POST /api/v1/forms/{id}/numbers/retry", "doc": "`POST /api/v1/forms/{id}/numbers/retry`: retries the numbers that failed." },
         { "name": "definition", "op": "GET /api/v1/forms/families/{familyId}/definition", "doc": "`GET /api/v1/forms/families/{familyId}/definition`: the published definition of a form (`familyId`), or `data: null`." },
-        { "name": "listVersions", "op": "GET /api/v1/forms/families/{familyId}/versions", "paginate": true, "doc": "`GET /api/v1/forms/families/{familyId}/versions`, paginated: the versions of a form." },
+        { "name": "versions", "op": "GET /api/v1/forms/families/{familyId}/versions", "paginate": true, "doc": "`GET /api/v1/forms/families/{familyId}/versions`, paginated: the versions of a form." },
         { "name": "listResponses", "op": "GET /api/v1/forms/families/{familyId}/responses", "paginate": true, "doc": "`GET /api/v1/forms/families/{familyId}/responses`, paginated: the answers to a form, with `columns`." },
         { "name": "retrieveResponse", "op": "GET /api/v1/forms/families/{familyId}/responses/{runId}", "doc": "`GET /api/v1/forms/families/{familyId}/responses/{runId}`: one answer in detail." },
-        { "name": "metrics", "op": "GET /api/v1/forms/families/{familyId}/metrics", "doc": "`GET /api/v1/forms/families/{familyId}/metrics`: the funnel: sent, delivered, read, completed and the rates." },
-        { "name": "send", "op": "POST /api/v1/contacts/{contact}/message/form", "doc": "`POST /api/v1/contacts/{contact}/message/form`: sends a published form to a contact (`conversations:send`): a message with a button that opens it. Returns `['message' => …]`, the registered message (`type` `whatsapp_form`). The answers arrive by `whatsapp_form.completed`. A send: never retried automatically." }
+        { "name": "metrics", "op": "GET /api/v1/forms/families/{familyId}/metrics", "doc": "`GET /api/v1/forms/families/{familyId}/metrics`: the funnel: sent, delivered, read, completed and the rates." }
       ]
     },
     {
@@ -135,7 +136,7 @@
     {
       "property": "groups",
       "class": "Groups",
-      "doc": "WhatsApp groups (communities area): read groups, and act on them by API: create, manage participants and admins, name, description, photo, settings, invite link, send a message, and join requests.\n\nGroup actions are asynchronous: each one answers `202` with `action_id` and `status: queued`; follow it with `retrieveAction()` or the `group_action.completed` / `group_action.failed` events. They are OFF by default: until communities turns them on, they answer `403 route_not_available` to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422 provider_unsupported` without it).",
+      "doc": "WhatsApp groups (communities area): read groups, and act on them by API: create, manage participants and admins, name, description, photo, settings, invite link, send a message, and join requests.\n\nGroup actions are asynchronous: each one answers `202` with `action_id` and `status: queued`; follow it with `action()` or the `group_action.completed` / `group_action.failed` events. They are OFF by default: until communities turns them on, they answer `403 route_not_available` to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422 provider_unsupported` without it).",
       "methods": [
         { "name": "list", "op": "GET /api/v1/groups", "paginate": true, "doc": "`GET /api/v1/groups`, paginated." },
         { "name": "retrieve", "op": "GET /api/v1/groups/{group}", "doc": "`GET /api/v1/groups/{group}`." },
@@ -147,7 +148,7 @@
         { "name": "listScheduledMessages", "op": "GET /api/v1/groups/{group}/scheduled-messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/scheduled-messages`, paginated." },
         { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." },
         { "name": "create", "op": "POST /api/v1/groups", "doc": "`POST /api/v1/groups`: creates a group (`communities:operate`). On a QR number `participants` is required (up to 20); on an official one it is not allowed." },
-        { "name": "retrieveAction", "op": "GET /api/v1/groups/actions/{action}", "doc": "`GET /api/v1/groups/actions/{action}`: an action you requested, with its `status` (`queued`, `running`, `completed`, `failed`), `result` and `reason`." },
+        { "name": "action", "op": "GET /api/v1/groups/actions/{action}", "doc": "`GET /api/v1/groups/actions/{action}`: an action you requested, with its `status` (`queued`, `running`, `completed`, `failed`), `result` and `reason`." },
         { "name": "addParticipants", "op": "POST /api/v1/groups/{group}/participants", "doc": "`POST /api/v1/groups/{group}/participants`: adds participants (an official number invites them)." },
         { "name": "removeParticipants", "op": "POST /api/v1/groups/{group}/participants/remove", "doc": "`POST /api/v1/groups/{group}/participants/remove`: removes participants." },
         { "name": "promoteAdmins", "op": "POST /api/v1/groups/{group}/admins", "doc": "`POST /api/v1/groups/{group}/admins`: makes participants admins (QR numbers only)." },

@@ -174,7 +174,7 @@ final class SandboxTest extends TestCase
             self::markTestIncomplete('El sandbox no trae un formulario publicado.');
         }
 
-        $result = $this->funnelchat->forms->send(self::CONTACT, ['form_id' => $published[0]['family_id'], 'device_id' => self::QR_DEVICE]);
+        $result = $this->funnelchat->messages->sendForm(self::CONTACT, ['form_id' => $published[0]['family_id'], 'device_id' => self::QR_DEVICE]);
 
         self::assertSame('whatsapp_form', $result['message']['type']);
         self::assertSame('queued', $result['message']['status']);

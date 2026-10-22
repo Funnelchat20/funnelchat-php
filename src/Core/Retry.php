@@ -35,14 +35,30 @@ final class Retry
         return $status === 429 || $status >= 500;
     }
 
-    /**
-     * Whether repeating the request gives the same result: `GET`, `HEAD`, `PUT`, `DELETE` and
-     * `OPTIONS`. A `POST` or `PATCH` that timed out or got a `502` may have been applied: it is not
-     * retried automatically.
-     */
+    /** Whether repeating the request gives the same result: `GET`, `HEAD`, `PUT`, `DELETE` and `OPTIONS`. */
     public static function isIdempotent(string $method): bool
     {
         return \in_array(strtoupper($method), ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'], true);
+    }
+
+    /**
+     * Whether a failed attempt may be repeated automatically (the same rule as the Node SDK).
+     *
+     * - `GET`, `PUT`, `DELETE`…: on `429`, `5xx` and network errors (timeouts included).
+     * - `POST` and `PATCH` (writes): only when the call was certainly not applied, `429` and `503`.
+     *   A `500`, `502` or `504`, a timeout or a dropped connection can come after the write was
+     *   applied (a `502 origin_unreachable` does not guarantee the area did not get it), so the
+     *   exception is thrown: read the state before repeating the write.
+     *
+     * @param int|null $status the HTTP status of the error, or `null` when no response arrived
+     */
+    public static function isRetryable(string $method, ?int $status): bool
+    {
+        if (self::isIdempotent($method)) {
+            return $status === null || self::isRetryableStatus($status);
+        }
+
+        return $status === 429 || $status === 503;
     }
 
     /**

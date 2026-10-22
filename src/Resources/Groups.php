@@ -20,10 +20,10 @@ use Funnelchat\Pagination\Paginator;
  * join requests.
  *
  * Group actions are asynchronous: each one answers `202` with `action_id` and `status: queued`;
- * follow it with `retrieveAction()` or the `group_action.completed` / `group_action.failed` events.
- * They are OFF by default: until communities turns them on, they answer `403 route_not_available`
- * to any key. An official (Meta) number needs the `cloud-api-groups` beta (`422
- * provider_unsupported` without it).
+ * follow it with `action()` or the `group_action.completed` / `group_action.failed` events. They
+ * are OFF by default: until communities turns them on, they answer `403 route_not_available` to any
+ * key. An official (Meta) number needs the `cloud-api-groups` beta (`422 provider_unsupported`
+ * without it).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
@@ -310,7 +310,7 @@ final class Groups extends AbstractResource
      *     data: PendingGroupAction,
      * }
      */
-    public function retrieveAction(int|string $action, array $options = []): mixed
+    public function action(int|string $action, array $options = []): mixed
     {
         /**
          * @var array{

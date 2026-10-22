@@ -69,11 +69,7 @@ final class Transport
         $url = Url::join($this->baseUrl, $pathname, Url::serializeQuery($options['query'] ?? []));
         $errorUrl = Url::join($this->baseUrl, explode('?', $pathname, 2)[0], '');
         $maxRetries = max(0, $options['maxRetries'] ?? $this->maxRetries);
-        $retryAsked = ($options['retrySend'] ?? false) === true;
-        $retriesAllowed = $retryAsked || !Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
-        // A write that is not idempotent may have been applied when the answer is a timeout or a
-        // `502`: it is not repeated unless asked (read the state first).
-        $mayBeApplied = !$retryAsked && !Retry::isIdempotent($verb);
+        $retriesAllowed = ($options['retrySend'] ?? false) === true || !Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
         $onResponse = $options['onResponse'] ?? null;
         $timeout = $this->timeoutFor($options);
         [$body, $contentType] = $this->encodeBody(\array_key_exists('body', $options) ? $options['body'] : null);
@@ -103,7 +99,7 @@ final class Transport
 
             if ($failure !== null || $response === null) {
                 $error = self::connectionError($failure, $timeout);
-                if ($canRetry && !($mayBeApplied && $error instanceof ApiConnectionTimeoutException)) {
+                if ($canRetry && Retry::isRetryable($verb, null)) {
                     ($this->sleep)(Retry::delayMs($attempt, null) ?? 0);
 
                     continue;
@@ -127,7 +123,7 @@ final class Transport
             }
 
             $error = ApiException::from($status, $parsed, $responseHeaders, $verb, $errorUrl);
-            if ($canRetry && Retry::isRetryableStatus($status) && !($mayBeApplied && $status === 502) && !\in_array($error->errorCode, SendErrors::NOT_RETRYABLE, true)) {
+            if ($canRetry && Retry::isRetryable($verb, $status) && !\in_array($error->errorCode, SendErrors::NOT_RETRYABLE, true)) {
                 $delay = Retry::delayMs($attempt, $error->retryAfter);
                 if ($delay !== null) {
                     ($this->sleep)($delay);

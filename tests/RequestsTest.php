@@ -394,7 +394,7 @@ final class RequestsTest extends TestCase
             'groups->retrieve' => [static fn(Funnelchat $c) => $c->groups->retrieve('xK9mQz'), 'GET', '/api/v1/groups/xK9mQz'],
             'groups->listMessages' => [static fn(Funnelchat $c) => $c->groups->listMessages('xK9mQz')->firstPage(), 'GET', '/api/v1/groups/xK9mQz/messages'],
             'groups->create' => [static fn(Funnelchat $c) => $c->groups->create(['device_id' => 4, 'name' => 'VIP', 'participants' => ['5491100000000']]), 'POST', '/api/v1/groups'],
-            'groups->retrieveAction' => [static fn(Funnelchat $c) => $c->groups->retrieveAction('5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'), 'GET', '/api/v1/groups/actions/5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'],
+            'groups->action' => [static fn(Funnelchat $c) => $c->groups->action('5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'), 'GET', '/api/v1/groups/actions/5b1f3c2e-7d4a-4f8e-9a6b-1c2d3e4f5a6b'],
             'groups->updateName' => [static fn(Funnelchat $c) => $c->groups->updateName('xK9mQz', ['device_id' => 4, 'name' => 'VIP']), 'PUT', '/api/v1/groups/xK9mQz/name'],
             'groups->inviteLink' => [static fn(Funnelchat $c) => $c->groups->inviteLink('xK9mQz', ['device_id' => 4]), 'GET', '/api/v1/groups/xK9mQz/invite-link/live'],
             'groups->approveJoinRequests' => [static fn(Funnelchat $c) => $c->groups->approveJoinRequests('xK9mQz', ['device_id' => 3, 'phones' => ['5491100000000']]), 'POST', '/api/v1/groups/xK9mQz/join-requests/approve'],

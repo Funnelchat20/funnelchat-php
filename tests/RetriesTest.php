@@ -247,8 +247,11 @@ final class RetriesTest extends TestCase
     public static function answersAfterWhichAWriteMayHaveBeenApplied(): array
     {
         return [
+            'HTTP 500' => [Reply::json(500, ['message' => 'Server Error'])],
             '502 origin_unreachable' => [Reply::json(502, ['error' => 'origin_unreachable', 'message' => 'La API no está disponible en este momento.'])],
+            'HTTP 504' => [Reply::json(504, ['message' => 'Gateway Timeout'])],
             'timeout' => [new FakeTimeoutException()],
+            'dropped connection' => [new FakeNetworkException()],
         ];
     }
 
@@ -260,7 +263,7 @@ final class RetriesTest extends TestCase
         try {
             $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP']);
             self::fail('should have thrown');
-        } catch (InternalServerException|ApiConnectionTimeoutException) {
+        } catch (InternalServerException|ApiConnectionException) {
         }
         self::assertCount(1, $http->requests);
         self::assertSame([], $this->sleeps);
@@ -270,7 +273,7 @@ final class RetriesTest extends TestCase
     public function testRepeatsAnIdempotentWriteOrAReadAfterThem(ResponseInterface|\Throwable $reply): void
     {
         // A PSR-7 response is immutable and can be answered twice; an exception is thrown anew.
-        $again = $reply instanceof \Throwable ? new FakeTimeoutException() : $reply;
+        $again = $reply instanceof \Throwable ? new ($reply::class)() : $reply;
         $http = new MockHttpClient($reply, Reply::ok(['id' => 7]), $again, Reply::ok(['data' => []]));
         $client = $this->client($http, maxRetries: 2);
 
@@ -293,12 +296,26 @@ final class RetriesTest extends TestCase
         self::assertCount(1, $http->requests);
     }
 
-    public function testRepeatsAPostAfterA502WhenTheCallerAsks(): void
+    public function testRetrySendDoesNotRepeatASendThatMayHaveBeenApplied(): void
     {
-        $http = new MockHttpClient(Reply::json(502, ['error' => 'origin_unreachable']), Reply::json(201, ['id' => 1]));
+        $http = new MockHttpClient(Reply::json(502, ['error' => 'origin_unreachable']), Reply::ok(['message' => []]));
 
-        self::assertSame(1, $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP'], ['retrySend' => true])['id']);
+        try {
+            self::send($this->client($http, maxRetries: 2), retrySend: true);
+            self::fail('should have thrown');
+        } catch (InternalServerException $exception) {
+            self::assertSame('origin_unreachable', $exception->errorCode);
+        }
+        self::assertCount(1, $http->requests);
+    }
+
+    public function testRepeatsAPostThatWasCertainlyNotApplied(): void
+    {
+        $http = new MockHttpClient(Reply::json(503, ['error' => 'gate_unavailable'], ['Retry-After' => '1']), Reply::json(201, ['id' => 1, 'name' => 'VIP']));
+
+        self::assertSame(1, $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP'])['id']);
         self::assertCount(2, $http->requests);
+        self::assertSame([1000], $this->sleeps);
     }
 
     public function testDetectsEveryPostWithASendPermissionInTheSpecAndNothingElse(): void
