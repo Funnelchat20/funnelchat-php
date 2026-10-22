@@ -30,6 +30,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  *     timeout?: float|int,
  *     maxRetries?: int,
  *     retrySend?: bool,
+ *     onResponse?: callable(ResponseInfo): void,
  * }
  * @phpstan-type RawRequestOptions array{
  *     path?: array<string, mixed>,
@@ -39,6 +40,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  *     timeout?: float|int,
  *     maxRetries?: int,
  *     retrySend?: bool,
+ *     onResponse?: callable(ResponseInfo): void,
  * }
  */
 final class Funnelchat
@@ -175,6 +177,18 @@ final class Funnelchat
             static fn(array $pageQuery): mixed => $transport->send('GET', $path, ['query' => $pageQuery] + $options),
             $firstQuery,
         );
+    }
+
+    /**
+     * The last answer of the API through this client, success or error: its status, its headers and
+     * its `requestId` (the `X-Request-Id` to cite when you report a problem). `null` before the
+     * first answer. For one call in particular, pass `onResponse` in its options.
+     *
+     * @phpstan-impure
+     */
+    public function lastResponse(): ?ResponseInfo
+    {
+        return $this->transport->lastResponse();
     }
 
     /**

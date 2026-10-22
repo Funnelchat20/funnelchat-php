@@ -8,7 +8,9 @@ use Funnelchat\Exception\ApiConnectionException;
 use Funnelchat\Exception\ApiConnectionTimeoutException;
 use Funnelchat\Exception\ApiException;
 use Funnelchat\Exception\FunnelchatException;
+use Funnelchat\Exception\SendErrors;
 use Funnelchat\Funnelchat;
+use Funnelchat\ResponseInfo;
 use GuzzleHttp\ClientInterface as GuzzleClientInterface;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
@@ -33,6 +35,8 @@ final class Transport
 {
     /** @var \WeakMap<self, string>|null */
     private static ?\WeakMap $keys = null;
+
+    private ?ResponseInfo $lastResponse = null;
 
     /**
      * @param array<string, string>  $defaultHeaders
@@ -65,7 +69,12 @@ final class Transport
         $url = Url::join($this->baseUrl, $pathname, Url::serializeQuery($options['query'] ?? []));
         $errorUrl = Url::join($this->baseUrl, explode('?', $pathname, 2)[0], '');
         $maxRetries = max(0, $options['maxRetries'] ?? $this->maxRetries);
-        $retriesAllowed = ($options['retrySend'] ?? false) === true || !Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
+        $retryAsked = ($options['retrySend'] ?? false) === true;
+        $retriesAllowed = $retryAsked || !Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
+        // A write that is not idempotent may have been applied when the answer is a timeout or a
+        // `502`: it is not repeated unless asked (read the state first).
+        $mayBeApplied = !$retryAsked && !Retry::isIdempotent($verb);
+        $onResponse = $options['onResponse'] ?? null;
         $timeout = $this->timeoutFor($options);
         [$body, $contentType] = $this->encodeBody(\array_key_exists('body', $options) ? $options['body'] : null);
 
@@ -94,7 +103,7 @@ final class Transport
 
             if ($failure !== null || $response === null) {
                 $error = self::connectionError($failure, $timeout);
-                if ($canRetry) {
+                if ($canRetry && !($mayBeApplied && $error instanceof ApiConnectionTimeoutException)) {
                     ($this->sleep)(Retry::delayMs($attempt, null) ?? 0);
 
                     continue;
@@ -105,14 +114,20 @@ final class Transport
 
             $status = $response->getStatusCode();
             $parsed = self::parseBody($response, $text);
+            /** @var array<string, list<string>> $responseHeaders */
+            $responseHeaders = $response->getHeaders();
+            $info = ResponseInfo::fromHeaders($status, $responseHeaders, $verb, $errorUrl);
+            $this->lastResponse = $info;
             if ($status >= 200 && $status < 300) {
+                if ($onResponse !== null) {
+                    $onResponse($info);
+                }
+
                 return $parsed;
             }
 
-            /** @var array<string, list<string>> $responseHeaders */
-            $responseHeaders = $response->getHeaders();
             $error = ApiException::from($status, $parsed, $responseHeaders, $verb, $errorUrl);
-            if ($canRetry && Retry::isRetryableStatus($status)) {
+            if ($canRetry && Retry::isRetryableStatus($status) && !($mayBeApplied && $status === 502) && !\in_array($error->errorCode, SendErrors::NOT_RETRYABLE, true)) {
                 $delay = Retry::delayMs($attempt, $error->retryAfter);
                 if ($delay !== null) {
                     ($this->sleep)($delay);
@@ -120,9 +135,18 @@ final class Transport
                     continue;
                 }
             }
+            if ($onResponse !== null) {
+                $onResponse($info);
+            }
 
             throw $error;
         }
+    }
+
+    /** The last answer of the API through this client (also an error), or `null` before the first one. */
+    public function lastResponse(): ?ResponseInfo
+    {
+        return $this->lastResponse;
     }
 
     /** @return array{} */

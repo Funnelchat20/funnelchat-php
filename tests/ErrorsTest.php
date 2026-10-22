@@ -8,12 +8,16 @@ use Funnelchat\Exception\ApiException;
 use Funnelchat\Exception\AuthenticationException;
 use Funnelchat\Exception\BadRequestException;
 use Funnelchat\Exception\ConflictException;
+use Funnelchat\Exception\EdgeMisconfiguredException;
 use Funnelchat\Exception\InternalServerException;
 use Funnelchat\Exception\NotFoundException;
+use Funnelchat\Exception\OriginUnreachableException;
 use Funnelchat\Exception\PermissionDeniedException;
 use Funnelchat\Exception\RateLimitException;
+use Funnelchat\Exception\RouteNotFoundException;
+use Funnelchat\Exception\SendErrors;
 use Funnelchat\Exception\UnprocessableEntityException;
-use Funnelchat\Pending\SendErrors;
+use Funnelchat\Exception\UnsupportedMediaTypeException;
 use Funnelchat\Tests\Support\MockHttpClient;
 use Funnelchat\Tests\Support\Reply;
 use Funnelchat\Tests\Support\TestCase;
@@ -43,6 +47,7 @@ final class ErrorsTest extends TestCase
             'HTTP 403' => [403, PermissionDeniedException::class],
             'HTTP 404' => [404, NotFoundException::class],
             'HTTP 409' => [409, ConflictException::class],
+            'HTTP 415' => [415, UnsupportedMediaTypeException::class],
             'HTTP 422' => [422, UnprocessableEntityException::class],
             'HTTP 429' => [429, RateLimitException::class],
             'HTTP 500' => [500, InternalServerException::class],
@@ -101,6 +106,84 @@ final class ErrorsTest extends TestCase
 
         self::assertInstanceOf(PermissionDeniedException::class, $exception);
         self::assertSame('route_not_available', $exception->errorCode);
+    }
+
+    /**
+     * @return array<string, array{int, string, class-string<ApiException>, class-string<ApiException>}>
+     */
+    public static function edgeErrors(): array
+    {
+        return [
+            '404 route_not_found' => [404, 'route_not_found', RouteNotFoundException::class, NotFoundException::class],
+            '500 edge_misconfigured' => [500, 'edge_misconfigured', EdgeMisconfiguredException::class, InternalServerException::class],
+            '502 origin_unreachable' => [502, 'origin_unreachable', OriginUnreachableException::class, InternalServerException::class],
+        ];
+    }
+
+    /**
+     * The API entrypoint's own errors (api-edge v0.3.0): `{error, message}` and `X-Request-Id`.
+     *
+     * @param class-string<ApiException> $class
+     * @param class-string<ApiException> $parent
+     */
+    #[DataProvider('edgeErrors')]
+    public function testTheEntrypointErrorsHaveTheirClass(int $status, string $code, string $class, string $parent): void
+    {
+        $id = '3f2b8c1e-9a4d-4e7b-8c21-5d6f0a9b1c3e';
+        $exception = $this->errorFor(Reply::json($status, ['error' => $code, 'message' => 'La API no está disponible en este momento.'], ['X-Request-Id' => $id]));
+
+        self::assertSame($class, $exception::class);
+        self::assertInstanceOf($parent, $exception);
+        self::assertSame($code, $exception->errorCode);
+        self::assertSame($id, $exception->requestId);
+    }
+
+    public function testA502FromTheOriginWithAnotherBodyIsAPlainServerError(): void
+    {
+        $exception = $this->errorFor(Reply::json(502, ['message' => 'Internal server error']));
+
+        self::assertSame(InternalServerException::class, $exception::class);
+    }
+
+    public function testA415HasNoCodeAndListsTheSupportedTypes(): void
+    {
+        $exception = $this->errorFor(Reply::json(415, ['error' => 'Unsupported file type: heic', 'supported_file_types' => ['jpg', 'pdf']]));
+
+        self::assertInstanceOf(UnsupportedMediaTypeException::class, $exception);
+        self::assertNull($exception->errorCode);
+        self::assertSame('Unsupported file type: heic', $exception->getMessage());
+        self::assertSame(['jpg', 'pdf'], $exception->supportedFileTypes);
+
+        $plain = $this->errorFor(Reply::json(415, ['status' => 'error', 'error' => 'Unsupported file type: heic']));
+        self::assertInstanceOf(UnsupportedMediaTypeException::class, $plain);
+        self::assertSame([], $plain->supportedFileTypes);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>, string|null, string}>
+     */
+    public static function bodiesWithoutAPlainCode(): array
+    {
+        return [
+            'a sentence in error' => [['status' => 'error', 'error' => 'Contact not found.'], null, 'Contact not found.'],
+            'one word in error' => [['status' => 'error', 'error' => 'Unauthorized'], null, 'Unauthorized'],
+            'error_code next to a sentence' => [['error' => 'La plantilla no pertenece al número actual', 'error_code' => 'template_waba_mismatch'], 'template_waba_mismatch', 'La plantilla no pertenece al número actual'],
+            'reason without error' => [['reason' => 'provider_unsupported'], 'provider_unsupported', 'provider_unsupported'],
+            'error and reason' => [['error' => 'not_forwardable', 'reason' => 'no_provider_uid'], 'not_forwardable', 'not_forwardable'],
+            'an upper-case code of forms' => [['error' => 'NUMBER_NOT_ELIGIBLE', 'message' => 'El número no puede usar formularios.'], 'NUMBER_NOT_ELIGIBLE', 'El número no puede usar formularios.'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    #[DataProvider('bodiesWithoutAPlainCode')]
+    public function testReadsTheCodeAndTheMessageOfEveryShape(array $body, ?string $code, string $message): void
+    {
+        $exception = $this->errorFor(Reply::json(422, $body));
+
+        self::assertSame($code, $exception->errorCode);
+        self::assertSame($message, $exception->getMessage());
     }
 
     public function testWorksWithABodyThatIsNotJson(): void
@@ -173,6 +256,11 @@ final class ErrorsTest extends TestCase
             'antiblock_unanswered_limit' => ['antiblock_unanswered_limit', true],
             'recipient_mismatch' => ['recipient_mismatch', true],
             'recipient_unsupported' => ['recipient_unsupported', true],
+            'mac_lockout_24h' => ['mac_lockout_24h', true],
+            'device_unavailable' => ['device_unavailable', true],
+            'provider_unsupported' => ['provider_unsupported', true],
+            'form_not_published' => ['form_not_published', true],
+            'not_forwardable' => ['not_forwardable', true],
             'route_not_available' => ['route_not_available', false],
             'no code' => [null, false],
         ];

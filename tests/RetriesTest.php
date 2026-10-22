@@ -241,15 +241,77 @@ final class RetriesTest extends TestCase
         self::assertCount(2, $http->requests);
     }
 
-    public function testDetectsEveryPostWithConversationsSendInTheSpecAndNothingElse(): void
+    /**
+     * @return array<string, array{ResponseInterface|\Throwable}>
+     */
+    public static function answersAfterWhichAWriteMayHaveBeenApplied(): array
     {
-        $sendPosts = array_filter(Routes::ALL, static fn(array $route): bool => $route['method'] === 'POST' && $route['permission'] === 'conversations:send');
-        self::assertGreaterThanOrEqual(5, \count($sendPosts));
+        return [
+            '502 origin_unreachable' => [Reply::json(502, ['error' => 'origin_unreachable', 'message' => 'La API no está disponible en este momento.'])],
+            'timeout' => [new FakeTimeoutException()],
+        ];
+    }
+
+    #[DataProvider('answersAfterWhichAWriteMayHaveBeenApplied')]
+    public function testDoesNotRepeatAPostThatMayHaveBeenApplied(ResponseInterface|\Throwable $reply): void
+    {
+        $http = new MockHttpClient($reply, Reply::json(201, ['id' => 1, 'name' => 'VIP']));
+
+        try {
+            $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP']);
+            self::fail('should have thrown');
+        } catch (InternalServerException|ApiConnectionTimeoutException) {
+        }
+        self::assertCount(1, $http->requests);
+        self::assertSame([], $this->sleeps);
+    }
+
+    #[DataProvider('answersAfterWhichAWriteMayHaveBeenApplied')]
+    public function testRepeatsAnIdempotentWriteOrAReadAfterThem(ResponseInterface|\Throwable $reply): void
+    {
+        // A PSR-7 response is immutable and can be answered twice; an exception is thrown anew.
+        $again = $reply instanceof \Throwable ? new FakeTimeoutException() : $reply;
+        $http = new MockHttpClient($reply, Reply::ok(['id' => 7]), $again, Reply::ok(['data' => []]));
+        $client = $this->client($http, maxRetries: 2);
+
+        self::assertSame(['id' => 7], $client->tags->update(7, ['name' => 'VIP']));
+        self::assertSame(['data' => []], $client->request('GET', '/api/v1/tags'));
+        self::assertCount(4, $http->requests);
+    }
+
+    public function testNeverRepeatsAMacLockoutNotEvenWhenAsked(): void
+    {
+        $http = new MockHttpClient(Reply::json(429, ['error' => 'mac_lockout_24h', 'message' => 'Tu cuenta está en bloqueo de 24h por agotamiento de MACs.']), Reply::ok());
+
+        try {
+            $this->client($http, maxRetries: 2)->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], ['retrySend' => true]);
+            self::fail('should have thrown');
+        } catch (RateLimitException $exception) {
+            self::assertSame('mac_lockout_24h', $exception->errorCode);
+            self::assertNull($exception->retryAfter);
+        }
+        self::assertCount(1, $http->requests);
+    }
+
+    public function testRepeatsAPostAfterA502WhenTheCallerAsks(): void
+    {
+        $http = new MockHttpClient(Reply::json(502, ['error' => 'origin_unreachable']), Reply::json(201, ['id' => 1]));
+
+        self::assertSame(1, $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP'], ['retrySend' => true])['id']);
+        self::assertCount(2, $http->requests);
+    }
+
+    public function testDetectsEveryPostWithASendPermissionInTheSpecAndNothingElse(): void
+    {
+        $sendPosts = array_filter(Routes::ALL, static fn(array $route): bool => $route['method'] === 'POST' && Retry::isSendPermission($route['permission']));
+        self::assertGreaterThanOrEqual(6, \count($sendPosts));
         foreach ($sendPosts as $route) {
             self::assertTrue(Retry::isSendRequest('POST', (string) preg_replace('/\{[^}]+\}/', '123', $route['path'])), $route['path']);
         }
         self::assertTrue(Retry::isSendRequest('POST', '/api/v1/contacts/2001/message'));
         self::assertTrue(Retry::isSendRequest('post', '/api/v1/message/send-message'));
+        self::assertTrue(Retry::isSendRequest('POST', '/api/v1/groups/120363000000000001@g.us/messages'));
+        self::assertFalse(Retry::isSendRequest('GET', '/api/v1/groups/120363000000000001@g.us/messages'));
         self::assertFalse(Retry::isSendRequest('GET', '/api/v1/contacts/2001/messages'));
         self::assertFalse(Retry::isSendRequest('POST', '/api/v1/contacts/delete'));
         self::assertFalse(Retry::isSendRequest('POST', '/api/v1/contacts'));

@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Funnelchat\Exception;
 
-use Funnelchat\Pending\SendErrors;
+use Funnelchat\ResponseInfo;
 
 /**
  * The API answered with a non-2xx status.
  *
  * - `status`: the HTTP status (also `getCode()`).
- * - `errorCode`: the stable `error` code of the body (`window_closed`, `rate_limited`,
- *   `route_not_available`…), or `null` when the body has none (for example a Laravel validation
- *   `422`, which carries `errors` instead). In the Node SDK it is `code`; in PHP `getCode()` is
- *   final and returns an int, so it is `errorCode`.
- * - `getMessage()`: the `message` of the body, meant for people. Decide by `status` and `errorCode`.
+ * - `errorCode`: the stable code of the body (`window_closed`, `rate_limited`,
+ *   `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when the body has none (for example a
+ *   Laravel validation `422`, which carries `errors` instead, or a `415`). It is `error` when that
+ *   is a code; else `error_code`; else `reason` (a reaction's `422 provider_unsupported`). Some
+ *   routes put a sentence in `error` (`"Contact not found."`): that is the message, not a code. In
+ *   the Node SDK it is `code`; in PHP `getCode()` is final and returns an int, so it is `errorCode`.
+ * - `getMessage()`: the `message` of the body (or that sentence), meant for people. Decide by
+ *   `status` and `errorCode`.
  * - `retryAfter`: seconds from the `Retry-After` header (rounded up), when present.
+ * - `requestId`: the `X-Request-Id` of the answer. Cite it when you report a problem.
  */
 class ApiException extends FunnelchatException
 {
@@ -24,6 +28,9 @@ class ApiException extends FunnelchatException
     public readonly ?string $errorCode;
 
     public readonly ?int $retryAfter;
+
+    /** The `X-Request-Id` of the answer: cite it, with the time of the call, when you report a problem. */
+    public readonly ?string $requestId;
 
     /**
      * Per-field validation messages of a `422`, when the API sends them.
@@ -53,8 +60,16 @@ class ApiException extends FunnelchatException
     public function __construct(int $status, mixed $body, array $headers, string $method, string $url, ?int $now = null)
     {
         $record = \is_array($body) && !array_is_list($body) ? $body : null;
-        $code = isset($record['error']) && \is_string($record['error']) && $record['error'] !== '' ? $record['error'] : null;
-        $apiMessage = isset($record['message']) && \is_string($record['message']) && $record['message'] !== '' ? $record['message'] : null;
+        $error = self::text($record['error'] ?? null);
+        $errorCode = self::text($record['error_code'] ?? null);
+        $reason = self::text($record['reason'] ?? null);
+        $code = match (true) {
+            self::isCode($error) => $error,
+            self::isCode($errorCode) => $errorCode,
+            $error === null && self::isCode($reason) => $reason,
+            default => null,
+        };
+        $apiMessage = self::text($record['message'] ?? null) ?? ($code !== $error ? $error : null);
         $fallback = \is_string($body) && trim($body) !== '' && \strlen($body) <= 300 ? trim($body) : null;
 
         parent::__construct($apiMessage ?? $code ?? $fallback ?? "La API respondió {$status}.", $status);
@@ -62,6 +77,7 @@ class ApiException extends FunnelchatException
         $this->status = $status;
         $this->errorCode = $code;
         $this->retryAfter = self::parseRetryAfter(self::header($headers, 'retry-after'), $now);
+        $this->requestId = ResponseInfo::requestIdOf($headers);
         $this->errors = self::fieldErrors($record['errors'] ?? null);
         $this->body = $body;
         $this->headers = $headers;
@@ -70,7 +86,11 @@ class ApiException extends FunnelchatException
     }
 
     /**
-     * Builds the subclass that matches the status.
+     * Builds the subclass that matches the status (and, for the API's own errors, the code).
+     * - `404 route_not_found` → {@see RouteNotFoundException}
+     * - `415` → {@see UnsupportedMediaTypeException}
+     * - `500 edge_misconfigured` → {@see EdgeMisconfiguredException}
+     * - `502 origin_unreachable` → {@see OriginUnreachableException}
      *
      * @param array<string, list<string>> $headers
      */
@@ -80,18 +100,23 @@ class ApiException extends FunnelchatException
             $status === 400 => new BadRequestException($status, $body, $headers, $method, $url, $now),
             $status === 401 => new AuthenticationException($status, $body, $headers, $method, $url, $now),
             $status === 403 => new PermissionDeniedException($status, $body, $headers, $method, $url, $now),
+            $status === 404 && self::codeOf($body) === 'route_not_found' => new RouteNotFoundException($status, $body, $headers, $method, $url, $now),
             $status === 404 => new NotFoundException($status, $body, $headers, $method, $url, $now),
             $status === 409 => new ConflictException($status, $body, $headers, $method, $url, $now),
+            $status === 415 => new UnsupportedMediaTypeException($status, $body, $headers, $method, $url, $now),
             $status === 422 => new UnprocessableEntityException($status, $body, $headers, $method, $url, $now),
             $status === 429 => new RateLimitException($status, $body, $headers, $method, $url, $now),
+            $status === 500 && self::codeOf($body) === 'edge_misconfigured' => new EdgeMisconfiguredException($status, $body, $headers, $method, $url, $now),
+            $status === 502 && self::codeOf($body) === 'origin_unreachable' => new OriginUnreachableException($status, $body, $headers, $method, $url, $now),
             $status >= 500 => new InternalServerException($status, $body, $headers, $method, $url, $now),
             default => new self($status, $body, $headers, $method, $url, $now),
         };
     }
 
     /**
-     * Whether `errorCode` is one of the WhatsApp send rules (`window_closed`, `antiblock_*`,
-     * `recipient_*`, `rate_limited`): nothing was sent and nothing was stored.
+     * Whether `errorCode` is one of the send rules or refusals of {@see SendErrors}
+     * (`window_closed`, `antiblock_*`, `recipient_*`, `rate_limited`, `mac_lockout_24h`,
+     * `device_unavailable`…): nothing went out.
      */
     public function isSendRuleError(): bool
     {
@@ -123,6 +148,27 @@ class ApiException extends FunnelchatException
         }
 
         return max(0, $date - ($now ?? time()));
+    }
+
+    private static function codeOf(mixed $body): ?string
+    {
+        $error = \is_array($body) ? self::text($body['error'] ?? null) : null;
+
+        return self::isCode($error) ? $error : null;
+    }
+
+    /**
+     * A stable code: `snake_case` (`window_closed`) or `UPPER_SNAKE` (`NUMBER_NOT_ELIGIBLE`), never
+     * a sentence.
+     */
+    private static function isCode(?string $value): bool
+    {
+        return $value !== null && preg_match('/^(?:[a-z][a-z0-9]*(?:_[a-z0-9]+)*|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*)$/', $value) === 1;
+    }
+
+    private static function text(mixed $value): ?string
+    {
+        return \is_string($value) && trim($value) !== '' ? $value : null;
     }
 
     /**

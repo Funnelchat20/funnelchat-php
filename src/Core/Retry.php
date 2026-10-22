@@ -36,6 +36,16 @@ final class Retry
     }
 
     /**
+     * Whether repeating the request gives the same result: `GET`, `HEAD`, `PUT`, `DELETE` and
+     * `OPTIONS`. A `POST` or `PATCH` that timed out or got a `502` may have been applied: it is not
+     * retried automatically.
+     */
+    public static function isIdempotent(string $method): bool
+    {
+        return \in_array(strtoupper($method), ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS'], true);
+    }
+
+    /**
      * Milliseconds to wait before retry number `$attempt` (0 = first retry), or `null` when the
      * server asked for a wait longer than {@see self::MAX_RETRY_AFTER_SECONDS}.
      *
@@ -61,9 +71,9 @@ final class Retry
 
     /**
      * Whether `$method` + `$pathname` (already interpolated, without query) is a non-idempotent
-     * send: a `POST` with the `conversations:send` permission in the spec. It delivers a WhatsApp
-     * message, so it is never retried automatically. Built from the generated route table, so a
-     * regeneration keeps the list current.
+     * send: a `POST` with a `…:send` permission in the spec (`conversations:send`,
+     * `communities:send`). It delivers a WhatsApp message, so it is never retried automatically.
+     * Built from the generated route table, so a regeneration keeps the list current.
      */
     public static function isSendRequest(string $method, string $pathname): bool
     {
@@ -79,6 +89,12 @@ final class Retry
         return false;
     }
 
+    /** `conversations:send`, `communities:send`…: the permission of a route that delivers a message. */
+    public static function isSendPermission(?string $permission): bool
+    {
+        return $permission !== null && str_ends_with($permission, ':send');
+    }
+
     /**
      * @return list<string>
      */
@@ -87,7 +103,7 @@ final class Retry
         if (self::$sendPatterns === null) {
             self::$sendPatterns = [];
             foreach (Routes::ALL as $route) {
-                if ($route['method'] !== 'POST' || $route['permission'] !== 'conversations:send') {
+                if ($route['method'] !== 'POST' || !self::isSendPermission($route['permission'])) {
                     continue;
                 }
                 $parts = preg_split('/\{[^}]+\}/', $route['path']);
