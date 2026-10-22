@@ -1,6 +1,6 @@
 {
     "name": "funnelchat/funnelchat-php",
-    "description": "SDK oficial de PHP para la API pública de Funnelchat: contactos, mensajes, plantillas, formularios, grupos, números y webhooks.",
+    "description": "Official PHP SDK for the Funnelchat public API: contacts, messages, templates, forms, groups, numbers and webhooks.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://developers-portal.funnelchat.app/docs/",
@@ -41,7 +41,7 @@
         "phpunit/phpunit": "^10.5 || ^11.5 || ^12.0"
     },
     "suggest": {
-        "guzzlehttp/guzzle": "El cliente HTTP que el SDK arma solo, con el timeout aplicado (Guzzle 7 u 8; cualquier cliente PSR-18 sirve)."
+        "guzzlehttp/guzzle": "The HTTP client the SDK builds by itself, with the timeout applied (Guzzle 7 or 8; any PSR-18 client works)."
     },
     "autoload": {
         "psr-4": {
@@ -69,14 +69,14 @@
         ]
     },
     "scripts-descriptions": {
-        "generate": "Regenera src/Generated y src/Resources desde spec/ (con --spec <archivo>, importa una especificación nueva).",
-        "generate:check": "Falla si lo generado no está al día con spec/.",
-        "test": "PHPUnit, sin red ni claves.",
-        "test:e2e": "Los e2e contra funnelchat-sandbox (FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010).",
-        "analyse": "PHPStan en el nivel máximo.",
-        "cs": "PHP-CS-Fixer en modo verificación.",
-        "cs:fix": "PHP-CS-Fixer: aplica el formato.",
-        "check": "Todo lo de arriba, en orden."
+        "generate": "Regenerates src/Generated and src/Resources from spec/ (with --spec <file>, imports a new spec).",
+        "generate:check": "Fails if the generated code is not up to date with spec/.",
+        "test": "PHPUnit, with no network and no keys.",
+        "test:e2e": "The end-to-end tests against funnelchat-sandbox (FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010).",
+        "analyse": "PHPStan at the max level.",
+        "cs": "PHP-CS-Fixer in check mode.",
+        "cs:fix": "PHP-CS-Fixer: applies the format.",
+        "check": "All of the above, in order."
     },
     "config": {
         "sort-packages": true,

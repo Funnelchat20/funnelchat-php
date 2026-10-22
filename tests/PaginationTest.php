@@ -97,7 +97,7 @@ final class PaginationTest extends TestCase
         self::assertCount(2, $http->requests);
 
         $this->expectException(FunnelchatException::class);
-        $this->expectExceptionMessage('No hay más páginas.');
+        $this->expectExceptionMessage('There are no more pages.');
         $second->getNextPage();
     }
 

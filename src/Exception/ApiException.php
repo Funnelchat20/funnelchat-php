@@ -72,7 +72,7 @@ class ApiException extends FunnelchatException
         $apiMessage = self::text($record['message'] ?? null) ?? ($code !== $error ? $error : null);
         $fallback = \is_string($body) && trim($body) !== '' && \strlen($body) <= 300 ? trim($body) : null;
 
-        parent::__construct($apiMessage ?? $code ?? $fallback ?? "La API respondió {$status}.", $status);
+        parent::__construct($apiMessage ?? $code ?? $fallback ?? "The API answered {$status}.", $status);
 
         $this->status = $status;
         $this->errorCode = $code;

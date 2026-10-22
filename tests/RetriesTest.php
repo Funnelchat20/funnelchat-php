@@ -94,7 +94,7 @@ final class RetriesTest extends TestCase
         } catch (ApiConnectionException $exception) {
             self::assertNotInstanceOf(ApiConnectionTimeoutException::class, $exception);
             self::assertSame($cause, $exception->getPrevious());
-            self::assertSame('No se pudo conectar con la API de Funnelchat.', $exception->getMessage());
+            self::assertSame('Could not connect to the Funnelchat API.', $exception->getMessage());
         }
     }
 

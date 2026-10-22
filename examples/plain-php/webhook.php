@@ -58,7 +58,7 @@ final class FunnelchatEvents
      */
     private static function messageReceived(array $event): void
     {
-        error_log(sprintf('%s escribió: %s', $event['data']['contact']['phone'], $event['data']['message']['text']));
+        error_log(sprintf('%s wrote: %s', $event['data']['contact']['phone'], $event['data']['message']['text']));
     }
 
     /**
@@ -66,7 +66,7 @@ final class FunnelchatEvents
      */
     private static function statusChanged(array $event): void
     {
-        error_log(sprintf('mensaje %d: %s (%s)', $event['data']['message_id'], $event['data']['status'], $event['data']['client_reference'] ?? 'sin referencia'));
+        error_log(sprintf('message %d: %s (%s)', $event['data']['message_id'], $event['data']['status'], $event['data']['client_reference'] ?? 'no reference'));
     }
 
     private static function alreadySeen(string $eventId): bool
@@ -91,7 +91,7 @@ try {
     $event = Webhook::constructEvent($rawBody, $signature, $secret === false ? null : $secret);
 } catch (WebhookVerificationException $exception) {
     // $exception->reason says why: missing_header, signature_mismatch, timestamp_out_of_tolerance…
-    error_log('Webhook de Funnelchat rechazado: ' . $exception->reason);
+    error_log('Funnelchat webhook rejected: ' . $exception->reason);
     http_response_code(400);
 
     exit;

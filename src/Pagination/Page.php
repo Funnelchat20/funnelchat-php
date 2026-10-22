@@ -85,7 +85,7 @@ final class Page implements \IteratorAggregate, \Countable
     {
         $next = $this->nextPageQuery();
         if ($next === null) {
-            throw new FunnelchatException('No hay más páginas.');
+            throw new FunnelchatException('There are no more pages.');
         }
         $query = array_merge($this->query, $next);
         if (\array_key_exists('cursor', $next)) {

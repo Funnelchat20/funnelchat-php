@@ -19,7 +19,7 @@ require __DIR__ . '/../../vendor/autoload.php'; // in your project: vendor/autol
 $contactId = (int) ($argv[1] ?? 0);
 $phone = (string) ($argv[2] ?? '');
 if ($contactId <= 0 || $phone === '') {
-    fwrite(\STDERR, "Uso: php send-message.php <contact_id> <teléfono sin +>\n");
+    fwrite(\STDERR, "Usage: php send-message.php <contact_id> <phone without +>\n");
 
     exit(1);
 }
@@ -30,11 +30,11 @@ $funnelchat = new Funnelchat();
 // Your WhatsApp numbers (permission accounts:read). The `id` of each one is the `device_id` you send with.
 $deviceId = null;
 foreach ($funnelchat->devices->list() as $device) {
-    echo "número {$device['id']}: {$device['number']}\n";
+    echo "number {$device['id']}: {$device['number']}\n";
     $deviceId ??= $device['id'];
 }
 if ($deviceId === null) {
-    fwrite(\STDERR, "La cuenta no tiene números.\n");
+    fwrite(\STDERR, "The account has no numbers.\n");
 
     exit(1);
 }
@@ -48,10 +48,10 @@ try {
         $result = $funnelchat->messages->send($contactId, [
             'device_id' => $deviceId,
             'phone' => $phone,                 // the phone of the same contact, without +
-            'text' => '¡Hola! Te paso la info…',
+            'text' => 'Hi! Here is the info you asked for.',
             'client_reference' => 'pedido-8841', // optional: your reference to follow it
         ]);
-        echo "En cola: {$result['message']['id']} ({$result['message']['status']})\n";
+        echo "Queued: {$result['message']['id']} ({$result['message']['status']})\n";
     } else {
         // Closed window: an approved template (the id comes from $funnelchat->templates->list()).
         $result = $funnelchat->templates->send($deviceId, '45', [
@@ -59,13 +59,13 @@ try {
             'contact_id' => $contactId,
             'template_variables' => ['body' => ['Lucía']],
         ]);
-        echo "Plantilla en cola: {$result['message']['id']}\n";
+        echo "Template queued: {$result['message']['id']}\n";
     }
 } catch (RateLimitException $exception) {
     // A send is never retried by itself: wait retryAfter seconds (mac_lockout_24h has none) and decide.
-    fwrite(\STDERR, "{$exception->errorCode}: {$exception->getMessage()} (espera {$exception->retryAfter} s; pedido {$exception->requestId})\n");
+    fwrite(\STDERR, "{$exception->errorCode}: {$exception->getMessage()} (wait {$exception->retryAfter} s; request {$exception->requestId})\n");
 } catch (ApiException $exception) {
     // window_closed, antiblock_*, recipient_*, device_unavailable… Decide by status and errorCode.
     // Cite requestId (the X-Request-Id) if you report it.
-    fwrite(\STDERR, "{$exception->status} {$exception->errorCode}: {$exception->getMessage()} (pedido {$exception->requestId})\n");
+    fwrite(\STDERR, "{$exception->status} {$exception->errorCode}: {$exception->getMessage()} (request {$exception->requestId})\n");
 }

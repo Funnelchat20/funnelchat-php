@@ -55,7 +55,7 @@ final class SandboxTest extends TestCase
     protected function setUp(): void
     {
         if (self::$url === '') {
-            self::markTestSkipped('FUNNELCHAT_SANDBOX_URL no está definida: arranca funnelchat-sandbox y defínela.');
+            self::markTestSkipped('FUNNELCHAT_SANDBOX_URL is not set: start funnelchat-sandbox and set it.');
         }
         $this->sandbox('POST', '/_sandbox/reset');
         $this->funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 0);
@@ -82,7 +82,7 @@ final class SandboxTest extends TestCase
         $result = $this->funnelchat->messages->send(self::CONTACT, [
             'device_id' => self::QR_DEVICE,
             'phone' => self::PHONE,
-            'text' => 'Hola desde el SDK de PHP',
+            'text' => 'Hello from the PHP SDK',
             'client_reference' => 'e2e-php-1',
         ]);
         $message = $result['message'];

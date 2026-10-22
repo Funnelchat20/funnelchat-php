@@ -1,25 +1,25 @@
 {
   "x-fc-pending": {
-    "title": "Pendiente de la especificación",
-    "description": "Rutas, campos, esquemas, respuestas y eventos que la API en producción ya tiene pero que la instantánea de spec/funnelchat.json (13-10) todavía no trae. El generador (`composer generate`, scripts/generate.php) los suma a la especificación antes de generar los recursos y los tipos, solo mientras la instantánea no los tenga: cuando una instantánea nueva los trae, la generación usa la de la instantánea y avisa qué entradas de este archivo ya se pueden borrar.",
+    "title": "Pending of the spec",
+    "description": "Routes, fields, schemas, responses and events that the production API already has but the spec/funnelchat.json snapshot (13-10) does not include yet. The generator (`composer generate`, scripts/generate.php) adds them to the spec before generating the resources and types, only while the snapshot lacks them: when a new snapshot includes them, generation uses the snapshot's version and reports which entries in this file can be deleted.",
     "rules": {
-      "paths": "Una operación (método + ruta) se agrega solo si la instantánea no la tiene.",
-      "operationPatches": "Un parche agrega propiedades al cuerpo de una operación de la instantánea solo mientras esa operación cumple la condición de `while`.",
-      "webhooks": "Un evento se agrega si la instantánea no lo tiene, o lo reemplaza mientras cumple la condición de `x-fc-replace-while`.",
-      "responsePatches": "Un parche reemplaza las respuestas de una operación de la instantánea (todas las 2xx, y las otras que traiga por código) solo mientras esa operación cumple la condición de `while`.",
-      "webhookPatches": "Un parche agrega propiedades a `data` de un evento de la instantánea solo mientras el evento no las trae (ni en su esquema ni en su ejemplo).",
-      "components.schemas": "Los esquemas de esta capa empiezan con `Pending` para no chocar con los de la instantánea.",
-      "schemaPatches": "Un parche agrega propiedades a un esquema de la instantánea solo mientras el esquema no las trae."
+      "paths": "An operation (method + route) is added only if the snapshot does not have it.",
+      "operationPatches": "A patch adds properties to the body of a snapshot operation only while that operation meets the `while` condition.",
+      "webhooks": "An event is added if the snapshot does not have it, or replaces the snapshot's while it meets the `x-fc-replace-while` condition.",
+      "responsePatches": "A patch replaces the responses of a snapshot operation (all the 2xx ones, and any others it includes by code) only while that operation meets the `while` condition.",
+      "webhookPatches": "A patch adds properties to the `data` of a snapshot event only while the event does not include them (neither in its schema nor in its example).",
+      "components.schemas": "The schemas in this layer start with `Pending` so they do not clash with the snapshot's.",
+      "schemaPatches": "A patch adds properties to a snapshot schema only while the schema does not include them."
     },
-    "origin": "Revisada el 22-10 contra el código de los tags que corren en producción, leído con `git show <tag>:<archivo>` (solo lectura): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 y api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). Partió de la capa de funnelchat-node (spec/pending.json en feat/inicial @ 88557ce); las entradas de webhooks de accounts del 16-10 se revisaron contra v1.4.24.",
+    "origin": "Reviewed on 22-10 against the code of the tags running in production, read with `git show <tag>:<archivo>` (read-only): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 and api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). It started from the funnelchat-node layer (spec/pending.json on feat/inicial @ 88557ce); the accounts webhook entries from 16-10 were reviewed against v1.4.24.",
     "sources": {
-      "accounts-webhooks": "accounts v1.4.24 @ 300cc843 (en producción): back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. Con clave: permisos `webhooks:read` / `webhooks:write` (el catálogo `GET /api/v1/webhooks/events` pide `accounts:read`); la lista y el historial paginan; `rotate-secret` NO está abierto a claves (403 route_not_available).",
-      "communities-group-actions": "communities v2.34.52 @ 6f32f0b4 (en producción desde el 21-10): back/app/Modules/GroupManagement/routes.php L314-350, Controllers/Api/V2/ApiGroupActionController.php, Requests/ApiGroupActions/*.php, Resources/ApiGroupAction*Resource.php, Resources/ApiGroupJoinRequestResource.php, Shared/Catalog/ApiRouteCatalog.php L99-116 y L399-414. APAGADAS POR DEFECTO: con API_GROUP_ACTIONS_ENABLED=false (config/api_group_actions.php) las rutas responden 403 route_not_available a cualquier clave y no salen en la especificación del dominio.",
-      "accounts-devices": "accounts v1.4.24 @ 300cc843: back/app/Modules/Device/Http/Resources/DeviceResource.php L63-123 y Support/DeviceCapabilities.php L82-194.",
-      "communities-events": "communities v2.34.52 @ 6f32f0b4: Services/GroupMessageReceivedEventPublisher.php L63-85, Services/ApiGroupActionEventPublisher.php L71-156, Shared/Support/PlatformEvents/PlatformEventCatalog.php L250-309; los entrega accounts (catálogo unificado v1.4.24, Catalogs/Areas/CommunitiesEvents.php, todos `active`).",
-      "conversations-send": "conversations v1.18.10 @ a580a3d0 (en producción): back/routes/api/messages.php, config/platform-gate.php L57-66 y L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php y Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Los envíos con clave responden 200 con el mensaje en cola; la instantánea del 13-10 todavía dice 204.",
-      "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 y L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php y Webhook/Payloads/WhatsappFormCompletedPayload.php.",
-      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (los 15 tipos `live`), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 y WhatsappFormCompletedPayload.php L118-136."
+      "accounts-webhooks": "accounts v1.4.24 @ 300cc843 (in production): back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is NOT open to API keys (403 route_not_available).",
+      "communities-group-actions": "communities v2.34.52 @ 6f32f0b4 (in production since 21-10): back/app/Modules/GroupManagement/routes.php L314-350, Controllers/Api/V2/ApiGroupActionController.php, Requests/ApiGroupActions/*.php, Resources/ApiGroupAction*Resource.php, Resources/ApiGroupJoinRequestResource.php, Shared/Catalog/ApiRouteCatalog.php L99-116 and L399-414. OFF BY DEFAULT: with API_GROUP_ACTIONS_ENABLED=false (config/api_group_actions.php) the routes respond 403 route_not_available to any API key and do not appear in the domain's spec.",
+      "accounts-devices": "accounts v1.4.24 @ 300cc843: back/app/Modules/Device/Http/Resources/DeviceResource.php L63-123 and Support/DeviceCapabilities.php L82-194.",
+      "communities-events": "communities v2.34.52 @ 6f32f0b4: Services/GroupMessageReceivedEventPublisher.php L63-85, Services/ApiGroupActionEventPublisher.php L71-156, Shared/Support/PlatformEvents/PlatformEventCatalog.php L250-309; accounts delivers them (unified catalog v1.4.24, Catalogs/Areas/CommunitiesEvents.php, all `active`).",
+      "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still says 204.",
+      "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 and L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php and Webhook/Payloads/WhatsappFormCompletedPayload.php.",
+      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136."
     }
   },
   "components": {
@@ -29,7 +29,7 @@
         "minLength": 1,
         "maxLength": 64,
         "pattern": "^[\\x21-\\x7E]{1,64}$",
-        "description": "Tu referencia para correlacionar el envío con el historial y con `message.status_changed`: de 1 a 64 caracteres ASCII visibles, sin espacios. No es única ni está autenticada; no pongas datos personales."
+        "description": "Your reference to correlate the send with the history and with `message.status_changed`: 1 to 64 visible ASCII characters, no spaces. It is neither unique nor authenticated; do not put personal data in it."
       },
       "PendingWebhookSubscriptionFilters": {
         "type": "object",
@@ -38,18 +38,18 @@
             "type": "array",
             "maxItems": 100,
             "items": { "type": "string", "minLength": 6, "maxLength": 64, "pattern": "^[A-Za-z0-9_-]+$" },
-            "description": "Solo entrega los eventos de estas campañas. Un evento sin campaña no pasa el filtro."
+            "description": "Delivers only the events of these campaigns. An event without a campaign does not pass the filter."
           }
         }
       },
       "PendingWebhookSubscription": {
         "type": "object",
-        "description": "Una suscripción de webhook unificada. Nunca trae el secreto.",
+        "description": "A unified webhook subscription. It never includes the secret.",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid",
-            "description": "Identificador de la suscripción. Guárdalo al crearla: es lo que identifica la tuya."
+            "description": "Subscription ID. Save it when you create the subscription: it is what identifies yours."
           },
           "url": { "type": "string" },
           "description": { "type": ["string", "null"] },
@@ -82,7 +82,7 @@
           {
             "type": "object",
             "properties": {
-              "secret": { "type": "string", "description": "El secreto completo para verificar la firma. Se muestra una sola vez: guárdalo." },
+              "secret": { "type": "string", "description": "The full secret for verifying the signature. It is shown only once: save it." },
               "secret_notice": { "type": "string" }
             },
             "required": ["secret", "secret_notice"]
@@ -92,14 +92,14 @@
       "PendingWebhookSubscriptionCreate": {
         "type": "object",
         "properties": {
-          "url": { "type": "string", "maxLength": 2048, "description": "`https`, pública y sin usuario ni contraseña." },
+          "url": { "type": "string", "maxLength": 2048, "description": "`https`, public, and without a username or password." },
           "description": { "type": ["string", "null"], "maxLength": 160 },
           "events": {
             "type": "array",
             "minItems": 1,
             "maxItems": 50,
             "items": { "type": "string" },
-            "description": "Tipos del catálogo (`GET /api/v1/webhooks/events`). La clave necesita el permiso `{área}:read` del área de cada tipo."
+            "description": "Types from the catalog (`GET /api/v1/webhooks/events`). The API key needs the `{area}:read` permission for each type's area."
           },
           "filters": { "anyOf": [{ "$ref": "#/components/schemas/PendingWebhookSubscriptionFilters" }, { "type": "null" }] }
         },
@@ -110,13 +110,13 @@
           { "$ref": "#/components/schemas/PendingWebhookSubscriptionCreate" },
           {
             "type": "object",
-            "properties": { "status": { "type": "string", "enum": ["active", "paused"], "description": "Opcional. `disabled` no se puede pedir." } }
+            "properties": { "status": { "type": "string", "enum": ["active", "paused"], "description": "Optional. You cannot request `disabled`." } }
           }
         ]
       },
       "PendingWebhookSubscriptionDelivery": {
         "type": "object",
-        "description": "Un intento de entrega. Los intentos de un mismo evento comparten `event_id`.",
+        "description": "A delivery attempt. Attempts for the same event share `event_id`.",
         "properties": {
           "id": { "type": "integer" },
           "event_id": { "type": "string" },
@@ -133,7 +133,7 @@
       },
       "PendingWebhookSubscriptionTestResult": {
         "type": "object",
-        "description": "Resultado de la entrega de prueba (`webhook.test`). Responde 200 aunque tu servidor falle: mira `succeeded`.",
+        "description": "Result of the test delivery (`webhook.test`). It responds 200 even if your server fails: check `succeeded`.",
         "properties": {
           "succeeded": { "type": "boolean" },
           "response_status": { "type": ["integer", "null"] },
@@ -145,11 +145,11 @@
       },
       "PendingPublicMessage": {
         "type": "object",
-        "description": "Un mensaje como lo ve una clave: siempre estas diez claves.",
+        "description": "A message as an API key sees it: always these ten fields.",
         "properties": {
           "id": {
             "type": "integer",
-            "description": "El id del mensaje en el historial del contacto: el mismo `message_id` de `message.status_changed`."
+            "description": "The message ID in the contact's history: the same `message_id` as in `message.status_changed`."
           },
           "contact_id": { "type": ["integer", "null"] },
           "device_id": { "type": ["integer", "null"] },
@@ -161,11 +161,11 @@
           "status": {
             "type": ["string", "null"],
             "enum": ["queued", "sent", "delivered", "read", "failed", null],
-            "description": "Un envío recién aceptado está `queued`; en cola no es enviado. `null` en un mensaje recibido, una nota, o cuando no se sabe."
+            "description": "A newly accepted send is `queued`; queued does not mean sent. `null` on a received message, on a note, or when it is unknown."
           },
           "error": {
             "anyOf": [{ "$ref": "#/components/schemas/PendingMessageError" }, { "type": "null" }],
-            "description": "Solo cuando `status` es `failed`."
+            "description": "Only when `status` is `failed`."
           },
           "client_reference": { "type": ["string", "null"] },
           "created_at": { "type": ["string", "null"], "format": "date-time" },
@@ -175,7 +175,7 @@
       },
       "PendingForwardResult": {
         "type": "object",
-        "description": "Un destino del reenvío, en el orden pedido.",
+        "description": "A forward destination, in the requested order.",
         "properties": {
           "contact_id": { "type": "integer" },
           "mode": { "type": "string", "enum": ["internal", "native"] },
@@ -186,7 +186,7 @@
           },
           "message": {
             "anyOf": [{ "$ref": "#/components/schemas/PendingPublicMessage" }, { "type": "null" }],
-            "description": "`null` si no se registró nada para ese destino."
+            "description": "`null` if nothing was recorded for that destination."
           }
         },
         "required": ["contact_id", "mode", "status", "reason", "message"]
@@ -194,7 +194,7 @@
       "PendingMessage": { "type": "object", "properties": { "message": { "type": "string" } }, "required": ["message"] },
       "PendingGroupActionAccepted": {
         "type": "object",
-        "description": "Pendiente de la especificación (communities v2.34.52): la acción quedó en cola. Síguela con `GET /api/v1/groups/actions/{action}` o con `group_action.completed` / `group_action.failed`.",
+        "description": "Pending of the spec (communities v2.34.52): the action was queued. Track it with `GET /api/v1/groups/actions/{action}` or with `group_action.completed` / `group_action.failed`.",
         "properties": { "action_id": { "type": "string", "format": "uuid" }, "status": { "const": "queued" } },
         "required": ["action_id", "status"]
       },
@@ -215,7 +215,7 @@
       },
       "PendingGroupAction": {
         "type": "object",
-        "description": "Una acción de grupo pedida por API. Pendiente de la especificación (communities v2.34.52).",
+        "description": "A group action requested through the API. Pending of the spec (communities v2.34.52).",
         "properties": {
           "action_id": { "type": "string", "format": "uuid" },
           "type": {
@@ -226,7 +226,7 @@
           "device_id": { "type": "integer" },
           "group": { "anyOf": [{ "$ref": "#/components/schemas/PendingGroupRef" }, { "type": "null" }] },
           "result": {
-            "description": "Con `failed`, `null`. Las de teléfonos: `participants`, uno por teléfono (terminan `completed` aunque fallen todos). `create_group`: `group` e `invite_link`. `renew_invite_link`: `invite_link`. `send_message`: `message.uid`. Las demás: `{}`.",
+            "description": "With `failed`, `null`. Phone-based actions: `participants`, one per phone (they end `completed` even if all of them fail). `create_group`: `group` and `invite_link`. `renew_invite_link`: `invite_link`. `send_message`: `message.uid`. All others: `{}`.",
             "anyOf": [
               {
                 "type": "object",
@@ -242,7 +242,7 @@
           },
           "reason": {
             "type": ["string", "null"],
-            "description": "Con `failed`: un motivo de un vocabulario cerrado (`disabled`, `provider_unsupported`, `group_not_found`, `device_not_connected`…; uno desconocido llega como `internal_error`)."
+            "description": "With `failed`: a reason from a closed vocabulary (`disabled`, `provider_unsupported`, `group_not_found`, `device_not_connected`…; an unknown one arrives as `internal_error`)."
           },
           "created_at": { "type": ["string", "null"], "format": "date-time" },
           "started_at": { "type": ["string", "null"], "format": "date-time" },
@@ -269,7 +269,7 @@
       },
       "PendingDeviceCapabilities": {
         "type": "object",
-        "description": "Qué puede hacer el número por la API. Pendiente de la especificación (accounts v1.4.24).",
+        "description": "What the number can do through the API. Pending of the spec (accounts v1.4.24).",
         "properties": {
           "messages": {
             "type": "object",
@@ -290,10 +290,10 @@
           },
           "groups": {
             "type": "object",
-            "description": "Todo `false` en un número oficial sin la beta de grupos o en coexistencia.",
+            "description": "All `false` on an official number without the groups beta or in coexistence.",
             "properties": {
               "create": { "type": "boolean" },
-              "add_participants": { "enum": ["direct", "invite", false], "description": "`direct` por QR, `invite` en un número oficial." },
+              "add_participants": { "enum": ["direct", "invite", false], "description": "`direct` on a QR number, `invite` on an official number." },
               "remove_participants": { "type": "boolean" },
               "admins": { "type": "boolean" },
               "photo": { "type": "boolean" },
@@ -307,14 +307,14 @@
           "statuses": {
             "type": "array",
             "items": { "type": "string", "enum": ["sent", "delivered", "read", "failed"] },
-            "description": "Los estados de entrega que el número informa."
+            "description": "The delivery statuses the number reports."
           }
         },
         "required": ["messages", "groups", "statuses"]
       },
       "PendingMessageError": {
         "type": "object",
-        "description": "Por qué falló. Si lo decidió Funnelchat, `code` es `null`, `title` es un texto y `reason` dice el motivo; si lo informó WhatsApp, `code` y `title` son los de Meta y `reason` es `null`.",
+        "description": "Why it failed. If Funnelchat decided it, `code` is `null`, `title` is a text and `reason` gives the reason; if WhatsApp reported it, `code` and `title` are Meta's and `reason` is `null`.",
         "properties": {
           "code": { "type": ["integer", "null"] },
           "title": { "type": ["string", "null"], "maxLength": 128 },
@@ -348,7 +348,7 @@
       },
       "PendingForm": {
         "type": "object",
-        "description": "Una versión de un formulario de WhatsApp. `id` es el de la versión; `family_id`, el del formulario.",
+        "description": "A version of a WhatsApp form. `id` is the version's ID; `family_id` is the form's.",
         "properties": {
           "id": { "type": "integer" },
           "family_id": { "type": "integer" },
@@ -366,16 +366,16 @@
           "updated_at": {
             "type": "string",
             "format": "date-time",
-            "description": "Mándalo como `expected_updated_at` al guardar, para no pisar otro cambio."
+            "description": "Send it as `expected_updated_at` when you save, so you do not overwrite another change."
           },
-          "definition": { "type": "object", "description": "Solo en el detalle." },
+          "definition": { "type": "object", "description": "Only in the detail view." },
           "fields": { "type": "array", "items": {} },
           "mapping": {},
           "tag_rules": {},
           "flow_json": {},
           "validation_errors": {},
-          "sends": { "type": "integer", "description": "Solo en la lista." },
-          "responses": { "type": "integer", "description": "Solo en la lista." },
+          "sends": { "type": "integer", "description": "Only in the list." },
+          "responses": { "type": "integer", "description": "Only in the list." },
           "draft_id": { "type": "integer" },
           "draft_version": { "type": "integer" }
         },
@@ -387,15 +387,15 @@
     "/api/v1/webhooks": {
       "get": {
         "operationId": "pendingWebhookSubscription.index",
-        "summary": "Listar las suscripciones de webhook",
-        "description": "Todas las suscripciones de la cuenta (como máximo 50), también las que crearon otras integraciones. Solo el titular de la cuenta.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).\n\nCon una clave, la lista pagina (`data`, `links`, `meta`) y deja afuera las suscripciones con eventos de un área que la clave no puede leer.",
+        "summary": "List webhook subscriptions",
+        "description": "All the account's subscriptions (50 at most), including those created by other integrations. Account owner only.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).\n\nWith an API key, the list is paginated (`data`, `links`, `meta`) and leaves out subscriptions with events from an area the key cannot read.",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
         "x-fc-pending": "accounts-webhooks",
         "responses": {
           "200": {
-            "description": "Las suscripciones de la cuenta, de a páginas.",
+            "description": "The account's subscriptions, page by page.",
             "content": {
               "application/json": {
                 "schema": {
@@ -434,15 +434,15 @@
             "in": "query",
             "required": false,
             "schema": { "type": "integer", "minimum": 1, "maximum": 100 },
-            "description": "De 1 a 100; 25 por defecto."
+            "description": "From 1 to 100; 25 by default."
           },
           { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } }
         ]
       },
       "post": {
         "operationId": "pendingWebhookSubscription.store",
-        "summary": "Crear una suscripción de webhook",
-        "description": "Devuelve el `secret` una sola vez. Tope: 50 suscripciones por cuenta (la siguiente responde 422).\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "Create a webhook subscription",
+        "description": "Returns the `secret` only once. Limit: 50 subscriptions per account (the next one responds 422).\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -457,7 +457,7 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionWithSecret" } } }
           },
           "422": {
-            "description": "URL rechazada, tipos de evento inválidos o tope alcanzado",
+            "description": "URL rejected, invalid event types, or limit reached",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingMessage" } } }
           }
         }
@@ -466,8 +466,8 @@
     "/api/v1/webhooks/{id}": {
       "get": {
         "operationId": "pendingWebhookSubscription.show",
-        "summary": "Ver una suscripción de webhook",
-        "description": "No trae el secreto. Si lo perdiste, rótalo.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "Retrieve a webhook subscription",
+        "description": "It does not include the secret. If you lost it, rotate it.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -478,13 +478,13 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscription" } } }
           },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       },
       "put": {
         "operationId": "pendingWebhookSubscription.update",
-        "summary": "Cambiar una suscripción de webhook",
-        "description": "Reemplaza `url`, `events`, `description` y `filters`; `status` es opcional (`active` o `paused`). El secreto no cambia.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "Update a webhook subscription",
+        "description": "Replaces `url`, `events`, `description` and `filters`; `status` is optional (`active` or `paused`). The secret does not change.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -500,15 +500,15 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscription" } } }
           },
           "422": {
-            "description": "Validación. Si un tipo de `events` es de un área que la clave no puede leer, el error viene en `errors.events`, sin código `error`."
+            "description": "Validation. If a type in `events` belongs to an area the API key cannot read, the error comes in `errors.events`, with no `error` code."
           },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       },
       "delete": {
         "operationId": "pendingWebhookSubscription.destroy",
-        "summary": "Eliminar una suscripción de webhook",
-        "description": "Borra la suscripción con su historial de entregas.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "Delete a webhook subscription",
+        "description": "Deletes the subscription along with its delivery history.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -516,15 +516,15 @@
         "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "responses": {
           "204": { "description": "No Content" },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       }
     },
     "/api/v1/webhooks/{id}/rotate-secret": {
       "post": {
         "operationId": "pendingWebhookSubscription.rotateSecret",
-        "summary": "Generar un secreto nuevo",
-        "description": "Devuelve el secreto nuevo una sola vez; el anterior deja de valer de inmediato.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).\n\nNo está abierta a claves de API en accounts v1.4.24: responde `403 route_not_available`. Rota el secreto desde el panel.",
+        "summary": "Generate a new secret",
+        "description": "Returns the new secret only once; the previous one stops working immediately.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).\n\nNot open to API keys in accounts v1.4.24: it responds `403 route_not_available`. Rotate the secret from the dashboard.",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -535,15 +535,15 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionWithSecret" } } }
           },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       }
     },
     "/api/v1/webhooks/{id}/test": {
       "post": {
         "operationId": "pendingWebhookSubscription.test",
-        "summary": "Enviar ahora un evento de prueba",
-        "description": "Una entrega firmada de `webhook.test`, sin reintentos. Queda en el historial.\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "Send a test event now",
+        "description": "A signed delivery of `webhook.test`, with no retries. It is recorded in the history.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -554,15 +554,15 @@
             "description": "OK",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionTestResult" } } }
           },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       }
     },
     "/api/v1/webhooks/{id}/deliveries": {
       "get": {
         "operationId": "pendingWebhookSubscription.deliveries",
-        "summary": "Ver el historial de entregas",
-        "description": "Un registro por intento, lo más reciente primero. Pagina con `page` y `per_page` (25 por defecto, 100 como máximo).\n\n**Pendiente de la especificación** (accounts origin/main @ c34cba2c).",
+        "summary": "List the delivery history",
+        "description": "One record per attempt, most recent first. Paginate with `page` and `per_page` (25 by default, 100 at most).\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -608,16 +608,16 @@
               }
             }
           },
-          "403": { "description": "`permission_denied` si la suscripción tiene eventos de un área que la clave no puede leer." }
+          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
       }
     },
     "/api/v1/groups/actions/{action}": {
       "get": {
         "operationId": "apiGroupAction.show",
-        "summary": "Ver una acción de grupo",
-        "description": "**Permiso requerido:** `communities:read`\n\n`running` se deduce: una acción en cola que ya arrancó se lee `running`.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
+        "summary": "Retrieve a group action",
+        "description": "**Required permission:** `communities:read`\n\n`running` is inferred: a queued action that has already started reads as `running`.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
         "parameters": [{ "name": "action", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
         "responses": {
           "200": {
@@ -638,20 +638,20 @@
     "/api/v1/groups": {
       "post": {
         "operationId": "apiGroupAction.createGroup",
-        "summary": "Crear un grupo",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
+        "summary": "Create a group",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
         "parameters": [],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -666,13 +666,13 @@
                   "device_id": { "type": "integer" },
                   "name": { "type": "string", "minLength": 1, "maxLength": 100 },
                   "description": { "type": ["string", "null"], "maxLength": 2048 },
-                  "join_approval_required": { "type": "boolean", "description": "Solo en un número oficial." },
+                  "join_approval_required": { "type": "boolean", "description": "Only on an official number." },
                   "participants": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Obligatorio en un número por QR (hasta 20, sin el número que crea); prohibido en uno oficial."
+                    "description": "Required on a QR number (up to 20, not counting the number that creates the group); not allowed on an official one."
                   }
                 },
                 "required": ["device_id", "name"]
@@ -686,27 +686,19 @@
       "post": {
         "operationId": "apiGroupAction.addParticipants",
         "summary": "Sumar participantes",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -718,13 +710,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -738,27 +730,19 @@
       "post": {
         "operationId": "apiGroupAction.removeParticipants",
         "summary": "Sacar participantes",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -770,13 +754,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -790,27 +774,19 @@
       "post": {
         "operationId": "apiGroupAction.promoteAdmins",
         "summary": "Hacer administradores",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -822,13 +798,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -842,27 +818,19 @@
       "post": {
         "operationId": "apiGroupAction.demoteAdmins",
         "summary": "Quitar administradores",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -874,13 +842,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -893,28 +861,20 @@
     "/api/v1/groups/{group}/join-requests/approve": {
       "post": {
         "operationId": "apiGroupAction.approveJoinRequests",
-        "summary": "Aprobar solicitudes de unión",
-        "description": "**Permiso requerido:** `communities:operate`\n\nAprobar o rechazar solo en un número oficial y detrás de una opción que communities trae apagada.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Approve join requests",
+        "description": "**Required permission:** `communities:operate`\n\nApproving or rejecting works only on an official number and behind an option that communities ships turned off.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -926,13 +886,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -945,28 +905,20 @@
     "/api/v1/groups/{group}/join-requests/reject": {
       "post": {
         "operationId": "apiGroupAction.rejectJoinRequests",
-        "summary": "Rechazar solicitudes de unión",
-        "description": "**Permiso requerido:** `communities:operate`\n\nAprobar o rechazar solo en un número oficial y detrás de una opción que communities trae apagada.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Reject join requests",
+        "description": "**Required permission:** `communities:operate`\n\nApproving or rejecting works only on an official number and behind an option that communities ships turned off.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -978,13 +930,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "description": "El número que ejecuta la acción." },
+                  "device_id": { "type": "integer", "description": "The number that runs the action." },
                   "phones": {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 100,
                     "items": { "type": "string", "maxLength": 32 },
-                    "description": "Teléfonos de 8 a 15 dígitos; después de normalizar y sacar repetidos, hasta 20."
+                    "description": "Phones of 8 to 15 digits; up to 20 after normalizing and removing duplicates."
                   }
                 },
                 "required": ["device_id", "phones"]
@@ -997,28 +949,20 @@
     "/api/v1/groups/{group}/name": {
       "put": {
         "operationId": "apiGroupAction.updateName",
-        "summary": "Cambiar el nombre",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Change the name",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -1040,28 +984,20 @@
     "/api/v1/groups/{group}/description": {
       "put": {
         "operationId": "apiGroupAction.updateDescription",
-        "summary": "Cambiar la descripción",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Change the description",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -1077,7 +1013,7 @@
                   "description": {
                     "type": ["string", "null"],
                     "maxLength": 2048,
-                    "description": "Vacía o `null` la borra (en un número oficial, no puede quedar vacía)."
+                    "description": "Empty or `null` clears it (on an official number, it cannot be empty)."
                   }
                 },
                 "required": ["device_id", "description"]
@@ -1090,28 +1026,20 @@
     "/api/v1/groups/{group}/photo": {
       "put": {
         "operationId": "apiGroupAction.updatePhoto",
-        "summary": "Cambiar la foto",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Change the photo",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -1124,7 +1052,7 @@
                 "type": "object",
                 "properties": {
                   "device_id": { "type": "integer" },
-                  "photo_url": { "type": "string", "maxLength": 2048, "description": "Una URL `https` pública a un `.jpg`, `.jpeg` o `.png`." }
+                  "photo_url": { "type": "string", "maxLength": 2048, "description": "A public `https` URL to a `.jpg`, `.jpeg` or `.png` file." }
                 },
                 "required": ["device_id", "photo_url"]
               }
@@ -1136,28 +1064,20 @@
     "/api/v1/groups/{group}/settings": {
       "put": {
         "operationId": "apiGroupAction.updateSettings",
-        "summary": "Quién puede escribir",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Who can send messages",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -1179,28 +1099,20 @@
     "/api/v1/groups/{group}/invite-link/renew": {
       "post": {
         "operationId": "apiGroupAction.renewInviteLink",
-        "summary": "Renovar el link de invitación",
-        "description": "**Permiso requerido:** `communities:operate`\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Renew the invite link",
+        "description": "**Required permission:** `communities:operate`\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:operate",
@@ -1216,17 +1128,11 @@
     "/api/v1/groups/{group}/invite-link/live": {
       "get": {
         "operationId": "apiGroupAction.liveInviteLink",
-        "summary": "Leer el link de invitación en vivo",
-        "description": "**Permiso requerido:** `communities:read`\n\nSe guarda 30 segundos.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
+        "summary": "Read the live invite link",
+        "description": "**Required permission:** `communities:read`\n\nCached for 30 seconds.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
         "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          },
+          { "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } },
           { "name": "device_id", "in": "query", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
@@ -1251,28 +1157,20 @@
     "/api/v1/groups/{group}/messages": {
       "post": {
         "operationId": "apiGroupAction.sendMessage",
-        "summary": "Enviar un mensaje a un grupo",
-        "description": "**Permiso requerido:** `communities:send`\n\nUn envío: el SDK nunca lo reintenta solo.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
-        "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Send a message to a group",
+        "description": "**Required permission:** `communities:send`\n\nThis is a send: the SDK never retries it on its own.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
+        "parameters": [{ "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } }],
         "responses": {
           "202": {
-            "description": "La acción quedó en cola.",
+            "description": "The action was queued.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
           },
-          "403": { "description": "`route_not_available` mientras las acciones de grupo están apagadas; `permission_denied` sin el permiso." },
+          "403": { "description": "`route_not_available` while group actions are off; `permission_denied` without the permission." },
           "422": {
-            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… o un error de validación."
+            "description": "`provider_unsupported`, `device_not_connected`, `device_not_group_admin`, `not_a_participant`, `capacity_full`, `max_phones`… or a validation error."
           },
-          "429": { "description": "`too_many_pending_actions`: 50 acciones abiertas por número." }
+          "429": { "description": "`too_many_pending_actions`: 50 open actions per number." }
         },
         "x-fc-domain": "communities",
         "x-fc-permission": "communities:send",
@@ -1290,14 +1188,14 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 4096,
-                    "description": "Obligatorio con `type: text`; prohibido en los demás."
+                    "description": "Required with `type: text`; not allowed with any other type."
                   },
                   "media_url": {
                     "type": "string",
                     "maxLength": 255,
-                    "description": "Obligatorio con un archivo: una URL `https` pública con extensión (imagen jpg/jpeg/png, video mp4/mov/gif, audio aac/oga/ogg/mp3/m4a/opus/wav, documento pdf/doc/docx)."
+                    "description": "Required with a file: a public `https` URL with an extension (image jpg/jpeg/png, video mp4/mov/gif, audio aac/oga/ogg/mp3/m4a/opus/wav, document pdf/doc/docx)."
                   },
-                  "caption": { "type": ["string", "null"], "maxLength": 1024, "description": "Solo imagen y video." },
+                  "caption": { "type": ["string", "null"], "maxLength": 1024, "description": "Image and video only." },
                   "file_name": { "type": ["string", "null"], "maxLength": 255, "description": "Solo documento." }
                 },
                 "required": ["device_id", "type"]
@@ -1310,22 +1208,16 @@
     "/api/v1/groups/{group}/join-requests": {
       "get": {
         "operationId": "apiGroupAction.listJoinRequests",
-        "summary": "Listar solicitudes de unión",
-        "description": "**Permiso requerido:** `communities:read`\n\nSolo en un número oficial (el número del grupo) y un grupo oficial.\n\nApagada por defecto: mientras communities no la habilite, responde `403 route_not_available` a cualquier clave. Un número oficial necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`).",
-        "tags": ["Acciones de grupo"],
+        "summary": "List join requests",
+        "description": "**Required permission:** `communities:read`\n\nOnly on an official number (the group's number) and an official group.\n\nOff by default: until communities enables it, it responds `403 route_not_available` to any API key. An official number needs the `cloud-api-groups` beta (otherwise, `422 provider_unsupported`).",
+        "tags": ["Group actions"],
         "parameters": [
-          {
-            "name": "group",
-            "in": "path",
-            "required": true,
-            "description": "El uid del grupo en WhatsApp.",
-            "schema": { "type": "string" }
-          },
+          { "name": "group", "in": "path", "required": true, "description": "The group's uid in WhatsApp.", "schema": { "type": "string" } },
           { "name": "device_id", "in": "query", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
           "200": {
-            "description": "Hasta 100, en vivo desde WhatsApp.",
+            "description": "Up to 100, live from WhatsApp.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1336,7 +1228,7 @@
               }
             }
           },
-          "422": { "description": "`provider_unsupported` (número por QR), `unsupported_group_type`, `device_not_group_number`." },
+          "422": { "description": "`provider_unsupported` (QR number), `unsupported_group_type`, `device_not_group_number`." },
           "502": { "description": "`provider_error`." }
         },
         "x-fc-domain": "communities",
@@ -1347,8 +1239,8 @@
     "/api/v1/contacts/{contact}/messages/{message}": {
       "get": {
         "operationId": "message.showPublic",
-        "summary": "Ver un mensaje",
-        "description": "**Permiso requerido:** `conversations:read`\n\nUn mensaje por el id que te dio un envío o un aviso (`message_id` de `message.status_changed`). Cualquier rechazo es `404`.",
+        "summary": "Retrieve a message",
+        "description": "**Required permission:** `conversations:read`\n\nA message by the ID you got from a send or a notice (`message_id` in `message.status_changed`). Any rejection is a `404`.",
         "tags": ["Conversation"],
         "parameters": [
           { "name": "contact", "in": "path", "required": true, "schema": { "type": "integer" } },
@@ -1356,7 +1248,7 @@
         ],
         "responses": {
           "200": {
-            "description": "El mensaje, sin envoltorio.",
+            "description": "The message, with no wrapper.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingPublicMessage" } } }
           },
           "404": { "description": "`Object not found.`" }
@@ -1369,8 +1261,8 @@
     "/api/v1/contacts/{contact}/message/form": {
       "post": {
         "operationId": "whatsappForm.send",
-        "summary": "Enviar un formulario a un contacto",
-        "description": "**Permiso requerido:** `conversations:send`\n\nManda un formulario de WhatsApp publicado, como un mensaje con un botón que lo abre. Las respuestas llegan por `whatsapp_form.completed`.",
+        "summary": "Send a form to a contact",
+        "description": "**Required permission:** `conversations:send`\n\nSends a published WhatsApp form as a message with a button that opens it. Responses arrive through `whatsapp_form.completed`.",
         "tags": ["Formularios"],
         "parameters": [{ "name": "contact", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "requestBody": {
@@ -1380,19 +1272,14 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "form_id": { "type": "integer", "minimum": 1, "description": "El id del formulario (la familia, `family_id`)." },
+                  "form_id": { "type": "integer", "minimum": 1, "description": "The form ID (the family, `family_id`)." },
                   "device_id": { "type": "integer", "minimum": 1 },
-                  "text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 1024,
-                    "description": "El texto del mensaje; por defecto, el del formulario."
-                  },
+                  "text": { "type": "string", "minLength": 1, "maxLength": 1024, "description": "The message text; defaults to the form's." },
                   "button_text": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 30,
-                    "description": "El texto del botón, sin emojis; por defecto «Abrir»."
+                    "description": "The button text, without emojis; defaults to \"Abrir\" (\"Open\" for an account in English)."
                   },
                   "client_reference": { "$ref": "#/components/schemas/PendingClientReference" }
                 },
@@ -1403,7 +1290,7 @@
         },
         "responses": {
           "200": {
-            "description": "El formulario quedó registrado como mensaje (`type: whatsapp_form`).",
+            "description": "The form was recorded as a message (`type: whatsapp_form`).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1414,11 +1301,11 @@
               }
             }
           },
-          "404": { "description": "`form_not_found`, o un contacto que no es tuyo." },
+          "404": { "description": "`form_not_found`, or a contact that is not yours." },
           "422": {
             "description": "`number_not_eligible`, `form_not_published`, `form_not_on_number`, `recipient_unreachable`, `window_closed`, `antiblock_*`, `device_unavailable`, `not_sent`."
           },
-          "429": { "description": "`rate_limited` (con `Retry-After`) o `mac_lockout_24h`." }
+          "429": { "description": "`rate_limited` (with `Retry-After`) or `mac_lockout_24h`." }
         },
         "x-fc-domain": "conversations",
         "x-fc-permission": "conversations:send",
@@ -1429,7 +1316,7 @@
       "get": {
         "operationId": "whatsappForm.index",
         "summary": "Listar formularios",
-        "description": "**Permiso requerido:** `conversations:read`\n\nUna fila por formulario (su versión actual).",
+        "description": "**Required permission:** `conversations:read`\n\nOne row per form (its current version).",
         "tags": ["Formularios"],
         "parameters": [
           { "name": "q", "in": "query", "schema": { "type": "string", "maxLength": 191 } },
@@ -1479,8 +1366,8 @@
       },
       "post": {
         "operationId": "whatsappForm.store",
-        "summary": "Crear un formulario",
-        "description": "**Permiso requerido:** `conversations:write`\n\nDesde una plantilla (`GET /api/v1/forms/templates`; `blank` es uno vacío).",
+        "summary": "Create a form",
+        "description": "**Required permission:** `conversations:write`\n\nFrom a template (`GET /api/v1/forms/templates`; `blank` is an empty one).",
         "tags": ["Formularios"],
         "parameters": [],
         "responses": {
@@ -1500,7 +1387,7 @@
               }
             }
           },
-          "422": { "description": "Validación, o `NUMBER_NOT_ELIGIBLE`." }
+          "422": { "description": "Validation, or `NUMBER_NOT_ELIGIBLE`." }
         },
         "x-fc-domain": "conversations",
         "x-fc-permission": "conversations:write",
@@ -1512,7 +1399,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "device_id": { "type": "integer", "minimum": 1, "description": "El número principal." },
+                  "device_id": { "type": "integer", "minimum": 1, "description": "The primary number." },
                   "device_ids": { "type": "array", "maxItems": 50, "items": { "type": "integer", "minimum": 1 } },
                   "template_key": { "type": "string" }
                 },
@@ -1526,7 +1413,7 @@
     "/api/v1/forms/templates": {
       "get": {
         "operationId": "whatsappForm.templates",
-        "summary": "Plantillas de formularios",
+        "summary": "Form templates",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
         "parameters": [],
@@ -1566,10 +1453,10 @@
     "/api/v1/forms/{id}": {
       "get": {
         "operationId": "whatsappForm.show",
-        "summary": "Ver una versión",
+        "summary": "Retrieve a version",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1608,10 +1495,10 @@
       },
       "put": {
         "operationId": "whatsappForm.update",
-        "summary": "Guardar un borrador",
-        "description": "**Permiso requerido:** `conversations:write`\n\nSolo un borrador: uno publicado responde `409 PUBLISHED`. Con `expected_updated_at`, un cambio de otro responde `409 STALE`.",
+        "summary": "Save a draft",
+        "description": "**Required permission:** `conversations:write`\n\nDrafts only: a published version responds `409 PUBLISHED`. With `expected_updated_at`, a change made by someone else responds `409 STALE`.",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1628,7 +1515,7 @@
               }
             }
           },
-          "409": { "description": "`PUBLISHED` o `STALE`." }
+          "409": { "description": "`PUBLISHED` or `STALE`." }
         },
         "x-fc-domain": "conversations",
         "x-fc-permission": "conversations:write",
@@ -1641,7 +1528,7 @@
                 "type": "object",
                 "properties": {
                   "name": { "type": "string", "maxLength": 120 },
-                  "definition": { "type": "object", "description": "Las pantallas (`screens`, hasta 20) y sus campos." },
+                  "definition": { "type": "object", "description": "The screens (`screens`, up to 20) and their fields." },
                   "expected_updated_at": { "type": ["string", "null"] }
                 },
                 "required": ["definition"]
@@ -1652,10 +1539,10 @@
       },
       "delete": {
         "operationId": "whatsappForm.destroy",
-        "summary": "Borrar un borrador",
-        "description": "**Permiso requerido:** `conversations:write`\n\nUn formulario publicado no se borra (`409 PUBLISHED`).",
+        "summary": "Delete a draft",
+        "description": "**Required permission:** `conversations:write`\n\nA published form cannot be deleted (`409 PUBLISHED`).",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": { "204": { "description": "Borrado." }, "409": { "description": "`PUBLISHED`." } },
         "x-fc-domain": "conversations",
         "x-fc-permission": "conversations:write",
@@ -1665,10 +1552,10 @@
     "/api/v1/forms/{id}/versions": {
       "post": {
         "operationId": "whatsappForm.newVersion",
-        "summary": "Nueva versión",
-        "description": "**Permiso requerido:** `conversations:write`\n\nCrea un borrador desde esta versión (`201`), o devuelve el borrador que ya había (`200`, `created: false`).",
+        "summary": "New version",
+        "description": "**Required permission:** `conversations:write`\n\nCreates a draft from this version (`201`), or returns the draft that already existed (`200`, `created: false`).",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "201": {
             "description": "Creada.",
@@ -1688,7 +1575,7 @@
             }
           },
           "200": {
-            "description": "Ya había un borrador.",
+            "description": "A draft already existed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1713,10 +1600,10 @@
     "/api/v1/forms/{id}/sync": {
       "post": {
         "operationId": "whatsappForm.sync",
-        "summary": "Validar en Meta",
+        "summary": "Validate with Meta",
         "description": "**Permiso requerido:** `conversations:write`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1734,7 +1621,7 @@
               }
             }
           },
-          "502": { "description": "`META`: Meta lo rechazó (`meta_code`, `lint`)." }
+          "502": { "description": "`META`: Meta rejected it (`meta_code`, `lint`)." }
         },
         "x-fc-domain": "conversations",
         "x-fc-permission": "conversations:write",
@@ -1747,7 +1634,7 @@
         "summary": "Publicar",
         "description": "**Permiso requerido:** `conversations:write`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1776,10 +1663,10 @@
     "/api/v1/forms/{id}/numbers": {
       "get": {
         "operationId": "whatsappForm.numbers",
-        "summary": "Números del formulario",
+        "summary": "Form numbers",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1800,10 +1687,10 @@
       },
       "post": {
         "operationId": "whatsappForm.addNumber",
-        "summary": "Sumar un número",
+        "summary": "Add a number",
         "description": "**Permiso requerido:** `conversations:write`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1835,11 +1722,11 @@
     "/api/v1/forms/{id}/numbers/{deviceId}": {
       "delete": {
         "operationId": "whatsappForm.removeNumber",
-        "summary": "Quitar un número",
-        "description": "**Permiso requerido:** `conversations:write`\n\nEl principal no se quita (`422 PRIMARY_NUMBER`).",
+        "summary": "Remove a number",
+        "description": "**Required permission:** `conversations:write`\n\nThe primary number cannot be removed (`422 PRIMARY_NUMBER`).",
         "tags": ["Formularios"],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } },
+          { "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } },
           { "name": "deviceId", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
         "responses": {
@@ -1865,10 +1752,10 @@
     "/api/v1/forms/{id}/numbers/retry": {
       "post": {
         "operationId": "whatsappForm.retryNumbers",
-        "summary": "Reintentar los números que fallaron",
+        "summary": "Retry the numbers that failed",
         "description": "**Permiso requerido:** `conversations:write`",
         "tags": ["Formularios"],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "El id de la versión.", "schema": { "type": "integer" } }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "description": "The version ID.", "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1891,15 +1778,15 @@
     "/api/v1/forms/families/{familyId}/definition": {
       "get": {
         "operationId": "whatsappForm.familyDefinition",
-        "summary": "Definición publicada",
-        "description": "**Permiso requerido:** `conversations:read`\n\nLa versión que se envía hoy, o `data: null` si no hay una publicada.",
+        "summary": "Published definition",
+        "description": "**Required permission:** `conversations:read`\n\nThe version being sent today, or `data: null` if there is no published one.",
         "tags": ["Formularios"],
         "parameters": [
           {
             "name": "familyId",
             "in": "path",
             "required": true,
-            "description": "El id del formulario (`family_id`).",
+            "description": "The form ID (`family_id`).",
             "schema": { "type": "integer" }
           }
         ],
@@ -1943,7 +1830,7 @@
     "/api/v1/forms/families/{familyId}/versions": {
       "get": {
         "operationId": "whatsappForm.familyVersions",
-        "summary": "Versiones de un formulario",
+        "summary": "Form versions",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
         "parameters": [
@@ -1951,7 +1838,7 @@
             "name": "familyId",
             "in": "path",
             "required": true,
-            "description": "El id del formulario (`family_id`).",
+            "description": "The form ID (`family_id`).",
             "schema": { "type": "integer" }
           },
           { "name": "perPage", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
@@ -2019,7 +1906,7 @@
     "/api/v1/forms/families/{familyId}/responses": {
       "get": {
         "operationId": "whatsappForm.responses",
-        "summary": "Respuestas de un formulario",
+        "summary": "Form responses",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
         "parameters": [
@@ -2027,7 +1914,7 @@
             "name": "familyId",
             "in": "path",
             "required": true,
-            "description": "El id del formulario (`family_id`).",
+            "description": "The form ID (`family_id`).",
             "schema": { "type": "integer" }
           },
           { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
@@ -2124,15 +2011,15 @@
     "/api/v1/forms/families/{familyId}/responses/{runId}": {
       "get": {
         "operationId": "whatsappForm.response",
-        "summary": "Ver una respuesta",
-        "description": "**Permiso requerido:** `conversations:read`\n\nEl detalle: contacto, estado, fechas, `answers` y lo que disparó.",
+        "summary": "Retrieve a response",
+        "description": "**Required permission:** `conversations:read`\n\nThe detail: contact, status, dates, `answers` and what it triggered.",
         "tags": ["Formularios"],
         "parameters": [
           {
             "name": "familyId",
             "in": "path",
             "required": true,
-            "description": "El id del formulario (`family_id`).",
+            "description": "The form ID (`family_id`).",
             "schema": { "type": "integer" }
           },
           { "name": "runId", "in": "path", "required": true, "schema": { "type": "integer" } }
@@ -2170,7 +2057,7 @@
                         "sent_at": { "type": ["string", "null"] },
                         "responded_at": { "type": ["string", "null"] }
                       },
-                      "description": "Además: `flow_token`, `contact`, `origin`, `version`, `version_id`, `reason`, `partial`, `delivered_at`, `read_at`, `expires_at`, `effects`, `response_json`…"
+                      "description": "Also: `flow_token`, `contact`, `origin`, `version`, `version_id`, `reason`, `partial`, `delivered_at`, `read_at`, `expires_at`, `effects`, `response_json`…"
                     }
                   },
                   "required": ["data"]
@@ -2188,7 +2075,7 @@
     "/api/v1/forms/families/{familyId}/metrics": {
       "get": {
         "operationId": "whatsappForm.metrics",
-        "summary": "Embudo de un formulario",
+        "summary": "Form funnel",
         "description": "**Permiso requerido:** `conversations:read`",
         "tags": ["Formularios"],
         "parameters": [
@@ -2196,7 +2083,7 @@
             "name": "familyId",
             "in": "path",
             "required": true,
-            "description": "El id del formulario (`family_id`).",
+            "description": "The form ID (`family_id`).",
             "schema": { "type": "integer" }
           },
           { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
@@ -2264,13 +2151,13 @@
         "file_type": {
           "type": ["string", "null"],
           "enum": ["image", "video", "audio", "document", "sticker", null],
-          "description": "El tipo del archivo de `file`. Obligatorio si la URL no deja ver el formato (una URL firmada o sin extensión): si falta, `422` en `errors.file_type`."
+          "description": "The file type of `file`. Required if the format cannot be told from the URL (a signed URL or one without an extension): if it is missing, `422` in `errors.file_type`."
         },
         "file_name": {
           "type": ["string", "null"],
           "minLength": 1,
           "maxLength": 255,
-          "description": "El nombre con el que llega un documento, con su extensión (`factura.pdf`). Obligatorio para un documento cuya URL no termina en una extensión soportada (`422` en `errors.file_name`)."
+          "description": "The name a document arrives with, including its extension (`factura.pdf`). Required for a document whose URL does not end in a supported extension (`422` in `errors.file_name`)."
         }
       }
     },
@@ -2284,13 +2171,13 @@
         "file_type": {
           "type": ["string", "null"],
           "enum": ["image", "video", "audio", "document", "sticker", null],
-          "description": "El tipo del archivo de `file`. Obligatorio si la URL no deja ver el formato (una URL firmada o sin extensión): si falta, `422` en `errors.file_type`."
+          "description": "The file type of `file`. Required if the format cannot be told from the URL (a signed URL or one without an extension): if it is missing, `422` in `errors.file_type`."
         },
         "file_name": {
           "type": ["string", "null"],
           "minLength": 1,
           "maxLength": 255,
-          "description": "El nombre con el que llega un documento, con su extensión (`factura.pdf`). Obligatorio para un documento cuya URL no termina en una extensión soportada (`422` en `errors.file_name`)."
+          "description": "The name a document arrives with, including its extension (`factura.pdf`). Required for a document whose URL does not end in a supported extension (`422` in `errors.file_name`)."
         }
       }
     },
@@ -2337,7 +2224,7 @@
     {
       "schema": "ConversationsMessageResource",
       "x-fc-pending": "conversations-send",
-      "properties": { "client_reference": { "type": ["string", "null"], "description": "La `client_reference` del envío, o `null`." } },
+      "properties": { "client_reference": { "type": ["string", "null"], "description": "The send's `client_reference`, or `null`." } },
       "required": ["client_reference"]
     }
   ],
@@ -2349,7 +2236,7 @@
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "El mensaje quedó registrado (`status: queued`) y sale desde la cola; si no se pudo encolar, llega `failed` con `error.reason` `not_queued`. Una nota llega con `type: note` y `status: null`.",
+          "description": "The message was recorded (`status: queued`) and goes out from the queue; if it could not be queued, it arrives as `failed` with `error.reason` `not_queued`. A note arrives with `type: note` and `status: null`.",
           "content": {
             "application/json": {
               "schema": {
@@ -2369,7 +2256,7 @@
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "El mensaje registrado, como en `POST /api/v1/contacts/{contact}/message`.",
+          "description": "The recorded message, as in `POST /api/v1/contacts/{contact}/message`.",
           "content": {
             "application/json": {
               "schema": {
@@ -2389,7 +2276,7 @@
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "La plantilla quedó registrada como mensaje (`type: template`).",
+          "description": "The template was recorded as a message (`type: template`).",
           "content": {
             "application/json": {
               "schema": {
@@ -2409,7 +2296,7 @@
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "Un mensaje por tarjeta, en el orden de `contact_card_ids`.",
+          "description": "One message per card, in the order of `contact_card_ids`.",
           "content": {
             "application/json": {
               "schema": {
@@ -2429,7 +2316,7 @@
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "Un ítem por destino, en el orden pedido.",
+          "description": "One item per destination, in the requested order.",
           "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PendingForwardResult" } } } }
         }
       }
@@ -2442,7 +2329,7 @@
       "dataProperties": {
         "device_id": {
           "type": ["integer", "null"],
-          "description": "El número de tu cuenta que recibió el mensaje: el mismo `device_id` con el que respondes por ese número. `null` si el mensaje no tiene número."
+          "description": "The number on your account that received the message: the same `device_id` you use to reply from that number. `null` if the message has no number."
         }
       }
     }
@@ -2451,7 +2338,7 @@
     "message.status_changed": {
       "post": {
         "summary": "message.status_changed",
-        "description": "Cambió el estado de entrega de un mensaje 1:1 enviado. Un aviso por transición, nunca uno que retroceda; `queued` nunca llega aquí. Hay que pedirlo de forma explícita en `events` (`*` no lo incluye).",
+        "description": "The delivery status of a sent 1:1 message changed. One notice per transition, never one that goes backward; `queued` never arrives here. You must request it explicitly in `events` (`*` does not include it).",
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",
@@ -2465,14 +2352,14 @@
                   "data": {
                     "type": "object",
                     "properties": {
-                      "message_id": { "type": "integer", "description": "El `id` del mensaje en el historial del contacto." },
+                      "message_id": { "type": "integer", "description": "The message's `id` in the contact's history." },
                       "contact_id": { "type": "integer" },
-                      "device_id": { "type": ["integer", "null"], "description": "El número de tu cuenta que envió el mensaje." },
+                      "device_id": { "type": ["integer", "null"], "description": "The number on your account that sent the message." },
                       "status": { "type": "string", "enum": ["sent", "delivered", "read", "failed"] },
                       "previous_status": { "type": ["string", "null"], "enum": ["sent", "delivered", "read", "failed", null] },
-                      "error": { "$ref": "#/components/schemas/PendingMessageError", "description": "Solo cuando `status` es `failed`." },
+                      "error": { "$ref": "#/components/schemas/PendingMessageError", "description": "Only when `status` is `failed`." },
                       "occurred_at": { "type": "string", "format": "date-time" },
-                      "client_reference": { "type": ["string", "null"], "description": "La `client_reference` que mandaste en el envío, o `null`." }
+                      "client_reference": { "type": ["string", "null"], "description": "The `client_reference` you included in the send, or `null`." }
                     },
                     "required": ["message_id", "contact_id", "device_id", "status", "previous_status", "occurred_at", "client_reference"]
                   }
@@ -2486,7 +2373,7 @@
     "device.connected": {
       "post": {
         "summary": "device.connected",
-        "description": "Uno de los números de la cuenta quedó conectado: al escanear el código QR o al terminar el alta de un número de WhatsApp Cloud.",
+        "description": "One of the account's numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2504,7 +2391,7 @@
                         "properties": {
                           "id": { "type": "integer" },
                           "name": { "type": ["string", "null"] },
-                          "number": { "type": ["string", "null"], "description": "Solo dígitos, sin `+`." }
+                          "number": { "type": ["string", "null"], "description": "Digits only, without `+`." }
                         },
                         "required": ["id", "name", "number"]
                       },
@@ -2522,7 +2409,7 @@
     "device.disconnected": {
       "post": {
         "summary": "device.disconnected",
-        "description": "Uno de los números de la cuenta se desconectó y dejó de poder enviar o recibir.",
+        "description": "One of the account's numbers disconnected and can no longer send or receive.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2540,7 +2427,7 @@
                         "properties": {
                           "id": { "type": "integer" },
                           "name": { "type": ["string", "null"] },
-                          "number": { "type": ["string", "null"], "description": "Solo dígitos, sin `+`." }
+                          "number": { "type": ["string", "null"], "description": "Digits only, without `+`." }
                         },
                         "required": ["id", "name", "number"]
                       },
@@ -2558,7 +2445,7 @@
     "billing.payment_failed": {
       "post": {
         "summary": "billing.payment_failed",
-        "description": "Un cobro de la suscripción no pudo procesarse (solo suscripciones de Stripe).",
+        "description": "A subscription charge could not be processed (Stripe subscriptions only).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2570,7 +2457,7 @@
     "billing.plan_blocked": {
       "post": {
         "summary": "billing.plan_blocked",
-        "description": "El plan quedó bloqueado por un cobro no procesado. Planificado: todavía no se emite.",
+        "description": "The plan was blocked because of an unprocessed charge. Planned: not emitted yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2580,7 +2467,7 @@
     "billing.upcoming_charge": {
       "post": {
         "summary": "billing.upcoming_charge",
-        "description": "Se acerca el próximo cobro de la suscripción (solo suscripciones de Stripe).",
+        "description": "The next subscription charge is approaching (Stripe subscriptions only).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2597,7 +2484,7 @@
     "subscription.expiring": {
       "post": {
         "summary": "subscription.expiring",
-        "description": "La suscripción está próxima a vencer. Planificado: todavía no se emite.",
+        "description": "The subscription is about to expire. Planned: not emitted yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2607,7 +2494,7 @@
     "subscription.trial_ending": {
       "post": {
         "summary": "subscription.trial_ending",
-        "description": "El período de prueba está por terminar.",
+        "description": "The trial period is about to end.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2619,7 +2506,7 @@
     "subscription.reactivated": {
       "post": {
         "summary": "subscription.reactivated",
-        "description": "Se revirtió la cancelación programada de la suscripción (solo suscripciones de Stripe).",
+        "description": "The scheduled cancellation of the subscription was reverted (Stripe subscriptions only).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2631,7 +2518,7 @@
     "subscription.cancellation_confirmed": {
       "post": {
         "summary": "subscription.cancellation_confirmed",
-        "description": "Quedó confirmada la cancelación de la suscripción (solo suscripciones de Stripe).",
+        "description": "The subscription cancellation was confirmed (Stripe subscriptions only).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2643,7 +2530,7 @@
     "subscription.dormant_ending": {
       "post": {
         "summary": "subscription.dormant_ending",
-        "description": "El período de cuenta en reposo está por terminar.",
+        "description": "The dormant account period is about to end.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2660,7 +2547,7 @@
     "ai_quota.low_balance": {
       "post": {
         "summary": "ai_quota.low_balance",
-        "description": "La cuota de mensajes de IA está por agotarse. Planificado: todavía no se emite.",
+        "description": "The AI message quota is about to run out. Planned: not emitted yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2670,7 +2557,7 @@
     "ai_quota.topup_succeeded": {
       "post": {
         "summary": "ai_quota.topup_succeeded",
-        "description": "Una recarga de cuota de IA se acreditó. Planificado: todavía no se emite.",
+        "description": "An AI quota top-up was credited. Planned: not emitted yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2680,7 +2567,7 @@
     "ai_quota.topup_failed": {
       "post": {
         "summary": "ai_quota.topup_failed",
-        "description": "Una recarga de cuota de IA no pudo procesarse. Planificado: todavía no se emite.",
+        "description": "An AI quota top-up could not be processed. Planned: not emitted yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2690,7 +2577,7 @@
     "mac.usage_80": {
       "post": {
         "summary": "mac.usage_80",
-        "description": "La cuenta alcanzó el 80 % de sus contactos activos mensuales del ciclo.",
+        "description": "The account reached 80 % of its monthly active contacts for the cycle.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2707,7 +2594,7 @@
     "mac.usage_100": {
       "post": {
         "summary": "mac.usage_100",
-        "description": "La cuenta agotó sus contactos activos mensuales del ciclo; se abre una gracia de 24 horas.",
+        "description": "The account used up its monthly active contacts for the cycle; a 24-hour grace period starts.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2732,7 +2619,7 @@
     "mac.expiring": {
       "post": {
         "summary": "mac.expiring",
-        "description": "Hay contactos activos mensuales que vencen en los próximos 7 días.",
+        "description": "Some monthly active contacts expire in the next 7 days.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2746,7 +2633,7 @@
     "account.blocked": {
       "post": {
         "summary": "account.blocked",
-        "description": "La cuenta quedó bloqueada por consumo: terminó la gracia de 24 horas tras agotar los contactos activos mensuales.",
+        "description": "The account was blocked for usage: the 24-hour grace period after using up its monthly active contacts ended.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-webhooks",
@@ -2765,7 +2652,7 @@
     "group_action.failed": {
       "post": {
         "summary": "group_action.failed",
-        "description": "Una acción automática sobre un grupo falló.",
+        "description": "An automatic action on a group failed.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "accounts-webhooks",
@@ -2790,7 +2677,7 @@
     "daily_report.generated": {
       "post": {
         "summary": "daily_report.generated",
-        "description": "Se generó el reporte diario de la cuenta (clics, ingresos y salidas).",
+        "description": "The account's daily report was generated (clicks, joins and exits).",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "accounts-webhooks",
@@ -2815,7 +2702,7 @@
     "campaign.no_groups_available": {
       "post": {
         "summary": "campaign.no_groups_available",
-        "description": "Una campaña no tiene grupos a los que dirigir a las personas que entran por su link.",
+        "description": "A campaign has no groups to send the people who come in through its link to.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "accounts-webhooks",
@@ -2832,7 +2719,7 @@
     "group.full": {
       "post": {
         "summary": "group.full",
-        "description": "Un grupo pasó de no estar lleno a estarlo.",
+        "description": "A group went from not full to full.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "accounts-webhooks",
@@ -2856,7 +2743,7 @@
     "group.message_received": {
       "post": {
         "summary": "group.message_received",
-        "description": "Alguien escribió en un grupo de un número de la cuenta. No llega por los mensajes de tus propios números.",
+        "description": "Someone wrote in a group of one of the account's numbers. It does not arrive for messages from your own numbers.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -2882,9 +2769,9 @@
                             "type": "string",
                             "enum": ["text", "image", "audio", "video", "document", "poll", "event", "sticker", "contact", "location", "system", "unsupported", "view_once"]
                           },
-                          "text": { "type": ["string", "null"], "description": "Solo con `type: text`." },
+                          "text": { "type": ["string", "null"], "description": "Only with `type: text`." },
                           "caption": { "type": ["string", "null"] },
-                          "media_url": { "type": ["string", "null"], "description": "Solo en archivos; puede ser `null` o una URL temporal." },
+                          "media_url": { "type": ["string", "null"], "description": "Files only; it can be `null` or a temporary URL." },
                           "mime_type": { "type": ["string", "null"] },
                           "file_name": { "type": ["string", "null"] },
                           "quoted_uid": { "type": ["string", "null"] }
@@ -2894,7 +2781,7 @@
                       "participant": {
                         "type": "object",
                         "properties": {
-                          "identity": { "type": "string", "description": "El teléfono, o el id de WhatsApp (`…@lid` o un BSUID) si no hay teléfono." },
+                          "identity": { "type": "string", "description": "The phone, or the WhatsApp ID (`…@lid` or a BSUID) if there is no phone." },
                           "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
                           "name": { "type": ["string", "null"] }
                         },
@@ -2913,7 +2800,7 @@
     "group.reaction_added": {
       "post": {
         "summary": "group.reaction_added",
-        "description": "Alguien reaccionó a un mensaje de un grupo.",
+        "description": "Someone reacted to a message in a group.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -2935,7 +2822,7 @@
                       "participant": {
                         "type": "object",
                         "properties": {
-                          "identity": { "type": "string", "description": "El teléfono, o el id de WhatsApp (`…@lid` o un BSUID) si no hay teléfono." },
+                          "identity": { "type": "string", "description": "The phone, or the WhatsApp ID (`…@lid` or a BSUID) if there is no phone." },
                           "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
                           "name": { "type": ["string", "null"] }
                         },
@@ -2955,7 +2842,7 @@
     "group_action.completed": {
       "post": {
         "summary": "group_action.completed",
-        "description": "Terminó una acción de grupo pedida por API (`action.uuid` es el `action_id` del `202`). Las de teléfonos terminan así aunque fallen todos: mira `result.participants[].status`.",
+        "description": "A group action requested through the API finished (`action.uuid` is the `action_id` from the `202`). Phone-based actions finish this way even if all of them fail: check `result.participants[].status`.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -2995,7 +2882,7 @@
                       },
                       "result": {
                         "type": "object",
-                        "description": "Las de teléfonos: `participants`. `create_group` y `renew_invite_link`: `invite_link`. `send_message`: `message.uid`. Las demás: `{}`.",
+                        "description": "Phone-based actions: `participants`. `create_group` and `renew_invite_link`: `invite_link`. `send_message`: `message.uid`. All others: `{}`.",
                         "properties": {
                           "participants": {
                             "type": "array",
@@ -3027,7 +2914,7 @@
     "group_join_request.created": {
       "post": {
         "summary": "group_join_request.created",
-        "description": "Alguien pidió unirse a un grupo oficial.",
+        "description": "Someone asked to join an official group.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -3067,7 +2954,7 @@
     "group_join_request.revoked": {
       "post": {
         "summary": "group_join_request.revoked",
-        "description": "Alguien retiró su pedido para unirse a un grupo oficial.",
+        "description": "Someone withdrew their request to join an official group.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
@@ -3107,7 +2994,7 @@
     "whatsapp_form.completed": {
       "post": {
         "summary": "whatsapp_form.completed",
-        "description": "Un contacto completó un formulario de WhatsApp. Puede llegar más de una vez: deduplica por `id`.",
+        "description": "A contact completed a WhatsApp form. It can arrive more than once: deduplicate by `id`.",
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",
@@ -3123,7 +3010,7 @@
                       "form": {
                         "type": "object",
                         "properties": {
-                          "id": { "type": "integer", "description": "El id del formulario (`family_id`)." },
+                          "id": { "type": "integer", "description": "The form ID (`family_id`)." },
                           "name": { "type": "string" },
                           "version_id": { "type": "integer" }
                         },
@@ -3148,7 +3035,7 @@
                                 { "type": "array", "items": { "type": "string" } },
                                 { "type": "null" }
                               ],
-                              "description": "Las fechas, como texto ISO; los textos, hasta 600 caracteres."
+                              "description": "Dates as ISO strings; texts up to 600 characters."
                             }
                           },
                           "required": ["key", "label", "value"]

@@ -80,23 +80,23 @@ final class Generator
             if ($arg === '--check') {
                 $check = true;
             } elseif ($arg === '--spec') {
-                $spec = $args[++$i] ?? throw new GeneratorError('--spec necesita la ruta del archivo');
+                $spec = $args[++$i] ?? throw new GeneratorError('--spec needs the path of the file');
             } elseif (str_starts_with($arg, '--spec=')) {
                 $spec = substr($arg, \strlen('--spec='));
             } else {
-                throw new GeneratorError("Argumento desconocido: {$arg}");
+                throw new GeneratorError("Unknown argument: {$arg}");
             }
         }
         if ($spec !== null) {
             if ($check) {
-                throw new GeneratorError('--check y --spec no se combinan');
+                throw new GeneratorError('--check and --spec do not go together');
             }
             $this->importSpec($spec);
         }
 
         $specPath = $this->path(self::SPEC_FILE);
         if (!is_file($specPath)) {
-            throw new GeneratorError('Falta spec/funnelchat.json: corre `composer generate -- --spec <archivo>`.');
+            throw new GeneratorError('Missing spec/funnelchat.json: run `composer generate -- --spec <file>`.');
         }
         $bytes = self::read($specPath);
         $this->specHash = hash('sha256', $bytes);
@@ -104,7 +104,7 @@ final class Generator
         if (is_file($provenancePath)) {
             $provenance = self::decode(self::read($provenancePath), self::PROVENANCE_FILE);
             if (($provenance['sha256'] ?? null) !== $this->specHash) {
-                fwrite(\STDERR, "aviso: spec/funnelchat.json no coincide con el sha256 de spec/procedencia.json (¿la editaron a mano?).\n");
+                fwrite(\STDERR, "warning: spec/funnelchat.json does not match the sha256 of spec/procedencia.json (was it edited by hand?).\n");
             }
         }
 
@@ -118,7 +118,7 @@ final class Generator
 
         [$resourceFiles, $sdkMethods, $mapErrors] = $this->generateResources($merged, $resources, $types);
         if ($mapErrors !== []) {
-            throw new GeneratorError("spec/resources.json no coincide con la especificación:\n  - " . implode("\n  - ", $mapErrors));
+            throw new GeneratorError("spec/resources.json does not match the spec:\n  - " . implode("\n  - ", $mapErrors));
         }
 
         $files = [
@@ -129,21 +129,21 @@ final class Generator
         ] + $resourceFiles;
         ksort($files);
 
-        echo 'pendiente de la especificación: ' . \count($report['applied']) . " entradas aplicadas.\n";
+        echo 'pending of the spec: ' . \count($report['applied']) . " entries applied.\n";
         if ($report['superseded'] !== []) {
-            echo 'la instantánea ya trae ' . \count($report['superseded']) . " entradas de spec/pending.json; se pueden borrar de ahí:\n";
+            echo 'the snapshot already brings ' . \count($report['superseded']) . " entries of spec/pending.json; they can be deleted from there:\n";
             foreach ($report['superseded'] as $label) {
                 echo "  - {$label}\n";
             }
         }
         if ($report['missing'] !== []) {
-            fwrite(\STDERR, 'aviso: ' . \count($report['missing']) . " parches no encontraron su operación o su evento en la instantánea:\n");
+            fwrite(\STDERR, 'warning: ' . \count($report['missing']) . " patches did not find their operation or event in the snapshot:\n");
             foreach ($report['missing'] as $label) {
                 fwrite(\STDERR, "  - {$label}\n");
             }
         }
         $operations = self::countOperations($merged);
-        echo 'recursos: ' . \count($sdkMethods) . " de {$operations} operaciones tienen un método; el resto se llama con request().\n";
+        echo 'resources: ' . \count($sdkMethods) . " of {$operations} operations have a method; the rest are called with request().\n";
 
         $stale = $this->staleFiles($files);
         if ($check) {
@@ -156,11 +156,11 @@ final class Generator
             }
             $different = [...$different, ...$stale];
             if ($different !== []) {
-                fwrite(\STDERR, "Lo generado está desactualizado: corre `composer generate`.\n  - " . implode("\n  - ", $different) . "\n");
+                fwrite(\STDERR, "The generated code is out of date: run `composer generate`.\n  - " . implode("\n  - ", $different) . "\n");
 
                 return 1;
             }
-            echo "src/Generated y src/Resources están al día.\n";
+            echo "src/Generated and src/Resources are up to date.\n";
 
             return 0;
         }
@@ -175,7 +175,7 @@ final class Generator
         foreach ($stale as $relative) {
             unlink($this->path($relative));
         }
-        echo 'generado: ' . \count($files) . ' archivos en ' . implode(' y ', self::GENERATED_DIRS) . ($stale === [] ? '' : '; borrados: ' . implode(', ', $stale)) . ".\n";
+        echo 'generated: ' . \count($files) . ' files in ' . implode(' and ', self::GENERATED_DIRS) . ($stale === [] ? '' : '; deleted: ' . implode(', ', $stale)) . ".\n";
 
         return 0;
     }
@@ -186,7 +186,7 @@ final class Generator
     {
         $sourcePath = realpath($source);
         if ($sourcePath === false || !is_file($sourcePath)) {
-            throw new GeneratorError("No existe el archivo {$source}");
+            throw new GeneratorError("The file {$source} does not exist");
         }
         $bytes = self::read($sourcePath);
         $spec = self::decode($bytes, $source);
@@ -210,7 +210,7 @@ final class Generator
         }
 
         $provenance = [
-            'description' => 'De dónde salió spec/funnelchat.json. Lo escribe `composer generate -- --spec <archivo>`; no lo edites a mano.',
+            'description' => 'Where spec/funnelchat.json came from. Written by `composer generate -- --spec <file>`; do not edit it by hand.',
             'file' => self::SPEC_FILE,
             'sha256' => hash('sha256', $bytes),
             'bytes' => \strlen($bytes),
@@ -239,7 +239,7 @@ final class Generator
         file_put_contents($this->path(self::SPEC_FILE), $bytes);
         file_put_contents($this->path(self::PROVENANCE_FILE), json_encode($provenance, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR) . "\n");
         $commit = $provenance['source']['commit'];
-        echo 'spec: copiada de ' . ($relPath ?? $sourcePath) . ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ")\n";
+        echo 'spec: copied from ' . ($relPath ?? $sourcePath) . ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ")\n";
     }
 
     private static function git(string $cwd, string ...$args): ?string
@@ -271,7 +271,7 @@ final class Generator
 
         foreach (self::obj(self::obj($pending['components'] ?? null)['schemas'] ?? null) as $name => $schema) {
             if (\array_key_exists($name, $schemas)) {
-                throw new GeneratorError("spec/pending.json: el esquema {$name} ya existe en la instantánea; renómbralo.");
+                throw new GeneratorError("spec/pending.json: the schema {$name} already exists in the snapshot; rename it.");
             }
             $schemas[$name] = $schema;
         }
@@ -724,7 +724,7 @@ final class Generator
             $class = self::str($resource['class'] ?? null) ?? '';
             $property = self::str($resource['property'] ?? null) ?? '';
             if (preg_match('/^[A-Z][A-Za-z0-9]*$/', $class) !== 1 || preg_match('/^[a-z][A-Za-z0-9]*$/', $property) !== 1) {
-                $errors[] = "recurso con class \"{$class}\" o property \"{$property}\" inválidos";
+                $errors[] = "resource with an invalid class \"{$class}\" or property \"{$property}\"";
 
                 continue;
             }
@@ -736,19 +736,19 @@ final class Generator
                 $name = self::str($method['name'] ?? null) ?? '';
                 $label = self::str($method['op'] ?? null) ?? '';
                 if (preg_match('/^(GET|POST|PUT|PATCH|DELETE) (\/\S*)$/', $label, $m) !== 1) {
-                    $errors[] = "{$class}::{$name}: op \"{$label}\" no tiene la forma \"MÉTODO /ruta\"";
+                    $errors[] = "{$class}::{$name}: op \"{$label}\" does not have the shape \"METHOD /path\"";
 
                     continue;
                 }
                 $op = self::obj(self::obj($paths[$m[2]] ?? null)[strtolower($m[1])] ?? null);
                 if ($op === []) {
-                    $errors[] = "{$class}::{$name}: la operación {$label} ya no está en la especificación";
+                    $errors[] = "{$class}::{$name}: the operation {$label} is no longer in the spec";
 
                     continue;
                 }
                 $doc = self::str($method['doc'] ?? null) ?? '';
                 if (!str_starts_with($doc, "`{$label}`")) {
-                    $errors[] = "{$class}::{$name}: el doc tiene que empezar con `{$label}`";
+                    $errors[] = "{$class}::{$name}: the doc must start with `{$label}`";
 
                     continue;
                 }
@@ -889,7 +889,7 @@ final class Generator
                         }
                     }
                     if ($variable === null) {
-                        throw new GeneratorError("{$name}: bodyDefaults usa el parámetro de ruta \"" . Php::value($placeholder) . "\", que {$path} no tiene");
+                        throw new GeneratorError("{$name}: bodyDefaults uses the path parameter \"" . Php::value($placeholder) . "\", which {$path} does not have");
                     }
                     $bodyDefaultLines[] = '        $body[' . Php::value((string) $field) . "] ??= \${$variable};";
                 }
@@ -1145,7 +1145,7 @@ final class Generator
     {
         $content = file_get_contents($file);
         if ($content === false) {
-            throw new GeneratorError("No se pudo leer {$file}");
+            throw new GeneratorError("Could not read {$file}");
         }
 
         return $content;
@@ -1159,10 +1159,10 @@ final class Generator
         try {
             $value = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException $exception) {
-            throw new GeneratorError("{$label} no es JSON válido: {$exception->getMessage()}");
+            throw new GeneratorError("{$label} is not valid JSON: {$exception->getMessage()}");
         }
         if (!\is_array($value)) {
-            throw new GeneratorError("{$label} no es un objeto JSON");
+            throw new GeneratorError("{$label} is not a JSON object");
         }
 
         return $value;
@@ -1705,7 +1705,7 @@ final class Php
             return '[' . implode(', ', array_map([self::class, 'value'], $value)) . ']';
         }
 
-        throw new GeneratorError('No se puede escribir como literal: ' . get_debug_type($value));
+        throw new GeneratorError('Cannot be written as a literal: ' . get_debug_type($value));
     }
 
     /** A PHPStan literal type, or the general type when the literal cannot be written safely. */
@@ -1729,7 +1729,7 @@ final class Php
             return $key;
         }
         if (preg_match('/^[^\x00-\x1F\x7F\'\\\\*]*$/u', $key) !== 1) {
-            throw new GeneratorError("No se puede escribir la clave \"{$key}\" en un tipo");
+            throw new GeneratorError("Cannot write the key \"{$key}\" in a type");
         }
 
         return "'{$key}'";

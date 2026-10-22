@@ -1,18 +1,18 @@
 {
   "x-fc-resources": {
-    "title": "Recursos del SDK",
-    "description": "Qué operación de la especificación es cada método de cada recurso. Son los mismos recursos y los mismos nombres que funnelchat-node (src/resources/*.ts en feat/inicial @ 88557ce), para que los dos SDKs se lean igual. El generador (`composer generate`) arma src/Resources/*.php con esto y con la especificación: los parámetros, la query, el cuerpo y la respuesta de cada método salen de la operación. Si una operación de esta lista ya no está en la especificación, la generación falla y dice cuál.",
+    "title": "SDK resources",
+    "description": "Which operation of the spec each method of each resource is. The same resources and the same names as funnelchat-node (src/resources/*.ts in feat/inicial @ 4f4947a), so both SDKs read the same. The generator (`composer generate`) builds src/Resources/*.php from this and from the spec: the parameters, query, body and response of each method come from the operation. If an operation of this list is no longer in the spec, the generation fails and says which one.",
     "fields": {
-      "property": "La propiedad del cliente: `$funnelchat->contacts`.",
-      "class": "La clase en Funnelchat\\Resources.",
-      "doc": "El comentario de la clase.",
-      "traits": "Traits escritos a mano que suma la clase.",
-      "methods[].op": "`MÉTODO /ruta`, tal como está en la especificación.",
-      "methods[].paginate": "Devuelve un Paginator (todas las páginas con foreach) en vez de la respuesta.",
-      "methods[].doc": "El comentario del método. Empieza con la operación entre comillas invertidas.",
-      "methods[].query": "`false` quita el parámetro `$query` (como en Node); `true` lo pone aunque la especificación no declare query. Si falta: está cuando la operación declara query o cuando pagina.",
-      "methods[].bodyOptional": "El cuerpo se puede omitir (como en Node). Si falta, el cuerpo es un argumento obligatorio cuando la operación lo tiene.",
-      "methods[].bodyDefaults": "Campos del cuerpo que, si no los pasas, se completan con un parámetro de ruta (y en el tipo quedan opcionales)."
+      "property": "The client property: `$funnelchat->contacts`.",
+      "class": "The class in Funnelchat\\Resources.",
+      "doc": "The class comment.",
+      "traits": "Hand-written traits the class adds.",
+      "methods[].op": "`METHOD /path`, exactly as in the spec.",
+      "methods[].paginate": "Returns a Paginator (every page with foreach) instead of the response.",
+      "methods[].doc": "The method comment. It starts with the operation in backticks.",
+      "methods[].query": "`false` removes the `$query` parameter (as in Node); `true` adds it even if the spec declares no query. When absent: it is there when the operation declares a query or when it paginates.",
+      "methods[].bodyOptional": "The body can be omitted (as in Node). When absent, the body is a required argument when the operation has one.",
+      "methods[].bodyDefaults": "Body fields that, if you do not pass them, are filled with a path parameter (and are optional in the type)."
     }
   },
   "resources": [

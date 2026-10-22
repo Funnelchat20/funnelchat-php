@@ -95,7 +95,7 @@ final class Url
             return;
         }
 
-        throw new FunnelchatException(\sprintf('No se puede mandar en la query el valor de "%s" (%s).', $key, get_debug_type($value)));
+        throw new FunnelchatException(\sprintf('The value of "%s" (%s) cannot be sent in the query.', $key, get_debug_type($value)));
     }
 
     /**
@@ -112,11 +112,11 @@ final class Url
                 $value = $value->value;
             }
             if (!\is_int($value) && !\is_string($value) && !$value instanceof \Stringable) {
-                throw new FunnelchatException("Falta el parámetro de ruta \"{$match[1]}\" para {$template}.");
+                throw new FunnelchatException("Missing path parameter \"{$match[1]}\" for {$template}.");
             }
             $text = (string) $value;
             if ($text === '') {
-                throw new FunnelchatException("Falta el parámetro de ruta \"{$match[1]}\" para {$template}.");
+                throw new FunnelchatException("Missing path parameter \"{$match[1]}\" for {$template}.");
             }
 
             return rawurlencode($text);

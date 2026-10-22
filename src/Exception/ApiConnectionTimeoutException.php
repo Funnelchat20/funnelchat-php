@@ -11,14 +11,14 @@ class ApiConnectionTimeoutException extends ApiConnectionException
     {
         parent::__construct(
             $timeout === null
-                ? 'La API de Funnelchat no respondió a tiempo.'
-                : 'La API de Funnelchat no respondió en ' . self::seconds($timeout) . ' s.',
+                ? 'The Funnelchat API did not answer in time.'
+                : 'The Funnelchat API did not answer within ' . self::seconds($timeout) . ' s.',
             $previous,
         );
     }
 
     private static function seconds(float $timeout): string
     {
-        return rtrim(rtrim(number_format($timeout, 3, ',', ''), '0'), ',');
+        return rtrim(rtrim(number_format($timeout, 3, '.', ''), '0'), '.');
     }
 }

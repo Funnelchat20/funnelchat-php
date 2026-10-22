@@ -200,7 +200,7 @@ final class ErrorsTest extends TestCase
     {
         $exception = $this->errorFor(Reply::text(500, ''));
 
-        self::assertSame('La API respondió 500.', $exception->getMessage());
+        self::assertSame('The API answered 500.', $exception->getMessage());
         self::assertNull($exception->body);
     }
 

@@ -27,7 +27,7 @@ final class FunnelchatWebhookController
             );
         } catch (WebhookVerificationException $exception) {
             // $exception->reason: missing_header, signature_mismatch, timestamp_out_of_tolerance…
-            Log::warning('Webhook de Funnelchat rechazado', ['reason' => $exception->reason]);
+            Log::warning('Funnelchat webhook rejected', ['reason' => $exception->reason]);
 
             return response()->noContent(400);
         }

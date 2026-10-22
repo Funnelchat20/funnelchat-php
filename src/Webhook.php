@@ -86,7 +86,7 @@ final class Webhook
         try {
             $event = json_decode(self::bytes($rawBody) ?? '', true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            throw new WebhookVerificationException(WebhookVerificationException::INVALID_JSON, 'La firma es válida pero el cuerpo no es JSON.');
+            throw new WebhookVerificationException(WebhookVerificationException::INVALID_JSON, 'The signature is valid but the body is not JSON.');
         }
         if (
             !\is_array($event)
@@ -99,7 +99,7 @@ final class Webhook
         ) {
             throw new WebhookVerificationException(
                 WebhookVerificationException::INVALID_EVENT,
-                'La firma es válida pero el cuerpo no tiene la forma de un evento (id, type, version, occurred_at, data).',
+                'The signature is valid but the body does not have the shape of an event (id, type, version, occurred_at, data).',
             );
         }
 
@@ -121,17 +121,17 @@ final class Webhook
         ?int $now = null,
     ): ?WebhookVerificationException {
         if ($secret === null || $secret === '') {
-            return new WebhookVerificationException(WebhookVerificationException::MISSING_SECRET, 'Falta el secreto de la suscripción.');
+            return new WebhookVerificationException(WebhookVerificationException::MISSING_SECRET, 'Missing the secret of the subscription.');
         }
         $body = self::bytes($rawBody);
         if ($body === null) {
             return new WebhookVerificationException(
                 WebhookVerificationException::INVALID_BODY,
-                'El cuerpo tiene que ser el crudo (un string o un StreamInterface), tal como llegó. En Laravel, léelo con $request->getContent() y no con $request->all() ni $request->json().',
+                'The body must be the raw one (a string or a StreamInterface), exactly as it arrived. In Laravel, read it with $request->getContent(), not with $request->all() or $request->json().',
             );
         }
         if ($signatureHeader === null || $signatureHeader === '') {
-            return new WebhookVerificationException(WebhookVerificationException::MISSING_HEADER, 'Falta la cabecera ' . self::SIGNATURE_HEADER . '.');
+            return new WebhookVerificationException(WebhookVerificationException::MISSING_HEADER, 'Missing the ' . self::SIGNATURE_HEADER . ' header.');
         }
 
         $t = null;
@@ -152,7 +152,7 @@ final class Webhook
         if ($t === null || !ctype_digit($t) || $signatures === []) {
             return new WebhookVerificationException(
                 WebhookVerificationException::MALFORMED_HEADER,
-                'La cabecera ' . self::SIGNATURE_HEADER . ' no tiene la forma t=<unix>,v1=<hex>.',
+                'The ' . self::SIGNATURE_HEADER . ' header does not have the shape t=<unix>,v1=<hex>.',
             );
         }
 
@@ -160,7 +160,7 @@ final class Webhook
         if (abs(($now ?? time()) - (int) $t) > $toleranceSeconds) {
             return new WebhookVerificationException(
                 WebhookVerificationException::TIMESTAMP_OUT_OF_TOLERANCE,
-                "La firma tiene más de {$toleranceSeconds} segundos de diferencia con el reloj local.",
+                "The signature is more than {$toleranceSeconds} seconds away from the local clock.",
             );
         }
 
@@ -171,7 +171,7 @@ final class Webhook
             }
         }
 
-        return new WebhookVerificationException(WebhookVerificationException::SIGNATURE_MISMATCH, 'La firma no coincide con el cuerpo y el secreto.');
+        return new WebhookVerificationException(WebhookVerificationException::SIGNATURE_MISMATCH, 'The signature does not match the body and the secret.');
     }
 
     /** The raw bytes of a body, or `null` when it is not a raw body. */

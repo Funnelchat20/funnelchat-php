@@ -1,23 +1,23 @@
 # funnelchat-php
 
-SDK oficial de PHP para la API pública de Funnelchat: contactos, conversaciones y mensajes, plantillas, formularios de WhatsApp, etiquetas, campos personalizados, grupos, números y webhooks, con los recursos y sus tipos generados de la especificación OpenAPI.
+The official PHP SDK for the Funnelchat public API: contacts, conversations and messages, templates, WhatsApp forms, tags, custom fields, groups, numbers and webhooks, with the resources and their types generated from the OpenAPI spec.
 
-- PHP 8.1 o posterior, PSR-4.
-- Cualquier cliente HTTP PSR-18 con fábricas PSR-17, que el SDK encuentra solo. Con Guzzle (7 u 8), además, aplica el timeout.
-- Reintentos con espera exponencial, paginación con `foreach` (generadores), excepciones tipadas, el `X-Request-Id` de cada respuesta y la verificación de la firma de los webhooks.
-- Las respuestas son arrays (el JSON decodificado) tipados con PHPDoc: PHPStan los entiende y PhpStorm 2025.1 o posterior completa sus claves.
+- PHP 8.1 or later, PSR-4.
+- Any PSR-18 HTTP client with PSR-17 factories, which the SDK finds by itself. With Guzzle (7 or 8) it also applies the timeout.
+- Retries with exponential backoff, pagination with `foreach` (generators), typed exceptions, the `X-Request-Id` of every response and webhook signature verification.
+- Responses are arrays (the decoded JSON) typed with PHPDoc: PHPStan understands them and PhpStorm 2025.1 or later completes their keys.
 
-> **Estado: v0.** La API pública está en v0 y puede cambiar. La referencia completa está en el [portal de desarrolladores](https://developers-portal.funnelchat.app/docs/). Algunos tipos vienen del código de la API en producción y no de la especificación publicada: están en [Pendiente de la especificación](#pendiente-de-la-especificación).
+> **Status: v0.** The public API is at v0 and may change. The full reference is on the [developers portal](https://developers-portal.funnelchat.app/docs/). Some types come from the code of the API in production rather than from the published spec: they are listed in [Pending of the spec](#pending-of-the-spec).
 
-## Instalación
+## Installation
 
 ```bash
 composer require funnelchat/funnelchat-php guzzlehttp/guzzle
 ```
 
-Guzzle no es obligatorio: sirve cualquier cliente PSR-18 con fábricas PSR-17 (por ejemplo `symfony/http-client` con `nyholm/psr7`). El SDK los encuentra con [php-http/discovery](https://docs.php-http.org/en/latest/discovery.html); si Composer te pregunta por su plugin, puedes decir que no.
+Guzzle is not required: any PSR-18 client with PSR-17 factories works (for example `symfony/http-client` with `nyholm/psr7`). The SDK finds them with [php-http/discovery](https://docs.php-http.org/en/latest/discovery.html); if Composer asks about its plugin, you can say no.
 
-Antes de que salga en Packagist, se instala desde GitHub. En el `composer.json` de tu proyecto:
+Until it is on Packagist, install it from GitHub. In your project's `composer.json`:
 
 ```json
 {
@@ -31,67 +31,67 @@ Antes de que salga en Packagist, se instala desde GitHub. En el `composer.json` 
 composer require funnelchat/funnelchat-php:^0.1@dev guzzlehttp/guzzle
 ```
 
-## Primer llamado
+## First call
 
-Necesitas una clave de API (`<id>|fc_live_...`) creada en «Desarrolladores», con los permisos de lo que vas a usar: hay catorce (`conversations:read`, `conversations:write`, `conversations:send`, `communities:read`, `communities:write`, `communities:send`, `communities:operate`, `accounts:read`, `accounts:write`, `accounts:operate`, `wha-link:read`, `wha-link:write`, `webhooks:read`, `webhooks:write`) y una clave puede tenerlos todos; no hay comodín. Dentro de cada área, `send` incluye `write` y `write` incluye `read`; `operate` va aparte. Guárdala en una variable de entorno: el cliente la lee de `FUNNELCHAT_API_KEY` si no se la pasas.
+You need an API key (`<id>|fc_live_...`) created in "Developers", with the permissions for what you are going to use. There are fourteen (`conversations:read`, `conversations:write`, `conversations:send`, `communities:read`, `communities:write`, `communities:send`, `communities:operate`, `accounts:read`, `accounts:write`, `accounts:operate`, `wha-link:read`, `wha-link:write`, `webhooks:read`, `webhooks:write`) and a key can have all of them; there is no wildcard. Within each area, `send` includes `write` and `write` includes `read`; `operate` is separate. Keep the key in an environment variable: the client reads it from `FUNNELCHAT_API_KEY` when you do not pass it.
 
 ```php
 use Funnelchat\Funnelchat;
 
 $funnelchat = new Funnelchat(apiKey: getenv('FUNNELCHAT_API_KEY'));
 
-// Tus números de WhatsApp (permiso accounts:read). El `id` de cada uno es el `device_id` con el que envías.
+// Your WhatsApp numbers (permission accounts:read). The `id` of each one is the `device_id` you send with.
 foreach ($funnelchat->devices->list() as $device) {
     echo $device['id'], ' ', $device['number'], "\n";
-    // Qué puede hacer ese número por la API: mensajes, grupos y los estados de entrega que informa.
+    // What that number can do through the API: messages, groups and the delivery statuses it reports.
     var_dump($device['capabilities']['messages']['templates'], $device['capabilities']['groups']['send']);
 }
 ```
 
-Opciones del cliente (argumentos con nombre):
+Client options (named arguments):
 
-| Opción | Qué es | Por defecto |
+| Option | What it is | Default |
 |---|---|---|
-| `apiKey` | Tu clave. | `FUNNELCHAT_API_KEY` |
-| `environment` | `production` (`https://api.funnelchat.com`) o `staging` (`https://api-staging.funnelchat.com`). | `production` |
-| `baseUrl` | Otra URL base; gana sobre `environment` (por ejemplo, el [sandbox](#probar-contra-el-sandbox)). | — |
-| `timeout` | Segundos máximos de cada intento. Solo con Guzzle (ver abajo). | `30` con el Guzzle que arma el SDK |
-| `maxRetries` | Reintentos automáticos (ver [Reintentos](#reintentos)). `0` los apaga. | `2` |
-| `defaultHeaders` | Cabeceras que van en todos los pedidos. | — |
-| `httpClient` | Tu cliente PSR-18. | Guzzle si está instalado; si no, el que encuentre discovery |
-| `requestFactory`, `streamFactory` | Tus fábricas PSR-17. | las que encuentre discovery |
-| `sleep` | Cómo esperar entre reintentos: `function (int $milisegundos): void`. Sirve para tests. | `usleep` |
+| `apiKey` | Your key. | `FUNNELCHAT_API_KEY` |
+| `environment` | `production` (`https://api.funnelchat.com`) or `staging` (`https://api-staging.funnelchat.com`). | `production` |
+| `baseUrl` | Another base URL; it wins over `environment` (for example, the [sandbox](#testing-against-the-sandbox)). | — |
+| `timeout` | Maximum seconds of each attempt. Guzzle only (see below). | `30` with the Guzzle the SDK builds |
+| `maxRetries` | Automatic retries (see [Retries](#retries)). `0` turns them off. | `2` |
+| `defaultHeaders` | Headers sent with every request. | — |
+| `httpClient` | Your PSR-18 client. | Guzzle if installed; otherwise the one discovery finds |
+| `requestFactory`, `streamFactory` | Your PSR-17 factories. | the ones discovery finds |
+| `sleep` | How to wait between retries: `function (int $milliseconds): void`. Useful in tests. | `usleep` |
 
-**El timeout.** PSR-18 no tiene timeout, así que el SDK solo lo puede aplicar con Guzzle: al Guzzle que arma solo le pone 30 segundos, y si le pasas el tuyo, aplica el `timeout` que indiques (si no indicas ninguno, rige la configuración de tu Guzzle). Con otro cliente, configura el timeout en ese cliente: si pasas `timeout`, el SDK falla enseguida para que nadie crea que hay uno.
+**The timeout.** PSR-18 has no timeout, so the SDK can only apply one with Guzzle: the Guzzle it builds by itself gets 30 seconds, and if you pass your own, it applies the `timeout` you set (if you set none, your Guzzle configuration rules). With another client, configure the timeout in that client: if you pass `timeout`, the SDK fails right away so nobody believes there is one.
 
-Cada pedido manda `Authorization: Bearer <clave>`, `Accept: application/json` y `User-Agent: funnelchat-php/<versión> php/<versión>`. La clave nunca aparece en un `var_dump`, `print_r`, `var_export`, `dd()` ni `serialize` del cliente, ni en el mensaje de un error. Un error de conexión trae como `getPrevious()` la excepción de tu cliente HTTP, que puede traer el pedido con sus cabeceras: no la registres entera.
+Every request sends `Authorization: Bearer <key>`, `Accept: application/json` and `User-Agent: funnelchat-php/<version> php/<version>`. The key never shows up in a `var_dump`, `print_r`, `var_export`, `dd()` or `serialize` of the client, nor in the message of an error. A connection error carries your HTTP client's exception as `getPrevious()`, which may include the request with its headers: do not log it whole.
 
-En Laravel, registra un solo cliente para toda la app: está en [examples/laravel/app/Providers/FunnelchatServiceProvider.php](examples/laravel/app/Providers/FunnelchatServiceProvider.php).
+In Laravel, register a single client for the whole app: see [examples/laravel/app/Providers/FunnelchatServiceProvider.php](examples/laravel/app/Providers/FunnelchatServiceProvider.php).
 
-## Las piezas
+## The resources
 
-| Recurso | Qué tiene |
+| Resource | What it has |
 |---|---|
-| `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, etiquetas y campos de un contacto, `metaWindow` (la ventana de 24 horas), notas. |
-| `$funnelchat->conversations` | `list`, `update`, contadores, marcar todo como leído o no leído. |
-| `$funnelchat->messages` | `send`, `sendDirect` (el contacto en el cuerpo), `sendForm` (un formulario), `get` (un mensaje por id), `list` (el historial de un contacto), `sendContactCard`, `forward`, `react`, `removeReaction`. |
+| `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, the tags and fields of a contact, `metaWindow` (the 24-hour window), notes. |
+| `$funnelchat->conversations` | `list`, `update`, counters, mark everything as read or unread. |
+| `$funnelchat->messages` | `send`, `sendDirect` (the contact in the body), `sendForm` (a form), `get` (one message by id), `list` (a contact's history), `sendContactCard`, `forward`, `react`, `removeReaction`. |
 | `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `delete`. |
-| `$funnelchat->forms` | Formularios de WhatsApp: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` y `metrics`. |
+| `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | Leer (`list`, `retrieve`, `listByDevice`, `metadata`, participantes, eventos, mensajes, acciones) y [actuar sobre grupos](#grupos): `create`, participantes y administradores, nombre, descripción, foto, ajustes, link de invitación, `sendMessage`, solicitudes de unión y `action`. |
-| `$funnelchat->devices` | `list`, `retrieve` (con `capabilities`), `update`, `status`, `health`, `me`, `checkPhone`, historial de conexión. |
-| `$funnelchat->webhooks` | Suscripciones (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), el catálogo (`events`), `verify` y `constructEvent`. |
+| `$funnelchat->groups` | Read (`list`, `retrieve`, `listByDevice`, `metadata`, participants, events, messages, actions) and [act on groups](#groups): `create`, participants and admins, name, description, photo, settings, invite link, `sendMessage`, join requests and `action`. |
+| `$funnelchat->devices` | `list`, `retrieve` (with `capabilities`), `update`, `status`, `health`, `me`, `checkPhone`, connection history. |
+| `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
 
-Los recursos que también tiene el [SDK de Node](https://github.com/Funnelchat20/funnelchat-node) tienen los mismos métodos, con los argumentos en el mismo orden: primero los parámetros de ruta, después la query o el cuerpo (arrays), y al final las opciones del llamado.
+The resources the [Node SDK](https://github.com/Funnelchat20/funnelchat-node) also has have the same methods, with the arguments in the same order: path parameters first, then the query or the body (arrays), and the call options last.
 
-Las clases de los recursos se generan de la especificación: los parámetros, la query, el cuerpo y la respuesta de cada método están tipados en su PHPDoc con formas de array (`array{id: int, name: string, …}`). Los esquemas de la especificación son alias de PHPStan en `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), que puedes usar en tu código con `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. Para cualquier otra ruta, ver [Cualquier ruta](#cualquier-ruta).
+The resource classes are generated from the spec: the parameters, query, body and response of each method are typed in its PHPDoc with array shapes (`array{id: int, name: string, …}`). The schemas of the spec are PHPStan aliases in `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), which you can use in your code with `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. For any other route, see [Any route](#any-route).
 
-## Enviar un mensaje
+## Sending a message
 
-El envío con clave pide el permiso `conversations:send` y cumple las reglas de WhatsApp.
+Sending with an API key needs the `conversations:send` permission and follows the WhatsApp rules.
 
-**Ventana abierta: texto libre.** Con un número oficial de Meta solo puedes mandar texto libre si el contacto te escribió en las últimas 24 horas. Mira la ventana antes:
+**Open window: free text.** With an official Meta number you can only send free text if the contact wrote to you in the last 24 hours. Check the window first:
 
 ```php
 $window = $funnelchat->contacts->metaWindow(2001, ['device_id' => 3]);
@@ -99,93 +99,93 @@ $window = $funnelchat->contacts->metaWindow(2001, ['device_id' => 3]);
 if ($window['is_open']) {
     $result = $funnelchat->messages->send(2001, [
         'device_id' => 3,
-        'phone' => '5491100000000',            // el teléfono del mismo contacto, sin +
-        'text' => '¡Hola! Te paso la info…',
-        'client_reference' => 'pedido-8841',   // opcional: tu referencia para seguirlo
+        'phone' => '5491100000000',            // the phone of the same contact, without +
+        'text' => 'Hi! Here is the info you asked for.',
+        'client_reference' => 'order-8841',    // optional: your reference to follow it
     ]);
     echo $result['message']['id'], ' ', $result['message']['status'], "\n"; // 9001 queued
 }
 ```
 
-- `send` devuelve `['message' => […]]`: el mensaje registrado, con su `id`, `status` `queued` y tu `client_reference`. **En cola no es enviado:** los estados siguientes (`sent`, `delivered`, `read` o `failed`) llegan por el evento `message.status_changed`, con el mismo `id` como `message_id`, o los lees con `$funnelchat->messages->get(2001, $id)`.
-- Si el mensaje no se pudo encolar, llega igual, con `status` `failed` y `error.reason` `not_queued`. Cuando falla, `error` trae `code` y `title` de Meta, o `code` `null`, un `title` y un `reason` de Funnelchat (`device_unavailable`, `insufficient_balance`, `window_closed`, `recipient_unreachable`…).
-- Las tarjetas (`sendContactCard`) devuelven `['messages' => […]]`, uno por tarjeta; el reenvío (`forward`), un ítem por destino con `status` (`queued` o `blocked`), `reason` y su `message`; la plantilla (`templates->send`) y el formulario (`messages->sendForm`), `['message' => […]]`.
-- `client_reference` (de 1 a 64 caracteres ASCII visibles, sin espacios) vuelve en el mensaje, en el historial del contacto y en `message.status_changed`.
-- `contact_id` va en el cuerpo, pero `send` lo completa con el contacto de la ruta si no lo pasas.
-- Manda `phone` (o `whatsapp_id`) del mismo contacto: la API lo valida, y si no corresponde al contacto de la ruta responde `422 recipient_mismatch`.
-- Con `options`, botones o una lista.
+- `send` returns `['message' => […]]`: the registered message, with its `id`, `status` `queued` and your `client_reference`. **Queued is not sent:** the next statuses (`sent`, `delivered`, `read` or `failed`) arrive through the `message.status_changed` event, with the same `id` as `message_id`, or you read them with `$funnelchat->messages->get(2001, $id)`.
+- If the message could not be queued, it still comes back, with `status` `failed` and `error.reason` `not_queued`. When it fails, `error` has Meta's `code` and `title`, or a `null` `code`, a `title` and a Funnelchat `reason` (`device_unavailable`, `insufficient_balance`, `window_closed`, `recipient_unreachable`…).
+- Contact cards (`sendContactCard`) return `['messages' => […]]`, one per card; a forward (`forward`), one item per target with `status` (`queued` or `blocked`), `reason` and its `message`; a template (`templates->send`) and a form (`messages->sendForm`), `['message' => […]]`.
+- `client_reference` (1 to 64 visible ASCII characters, no spaces) comes back in the message, in the contact's history and in `message.status_changed`.
+- `contact_id` goes in the body, but `send` fills it with the contact of the route when you do not pass it.
+- Send the `phone` (or `whatsapp_id`) of the same contact: the API checks it, and if it does not match the contact of the route it answers `422 recipient_mismatch`.
+- With `options`, buttons or a list.
 
-**Un archivo por URL.** Con `file` (la URL) mandas una imagen, un video, un audio, un documento o un sticker. Si la URL no deja ver el formato (una URL firmada, o sin extensión), dile cuál es con `file_type` (`image`, `video`, `audio`, `document` o `sticker`); para un documento así, `file_name` con su extensión:
+**A file by URL.** With `file` (the URL) you send an image, a video, an audio, a document or a sticker. If the URL does not show the format (a signed URL, or one without an extension), say what it is with `file_type` (`image`, `video`, `audio`, `document` or `sticker`); for such a document, also `file_name` with its extension:
 
 ```php
 $funnelchat->messages->send(2001, [
     'device_id' => 3,
     'phone' => '5491100000000',
-    'file' => 'https://archivos.example/descarga?firma=…',
+    'file' => 'https://files.example/download?signature=…',
     'file_type' => 'document',
-    'file_name' => 'factura.pdf',
+    'file_name' => 'invoice.pdf',
 ]);
 ```
 
-Si falta, la API responde `422` con el campo en `errors` (`file_type`, `file_name` o `file`), o `415` (`UnsupportedMediaTypeException`, con `supportedFileTypes`) si la extensión no se puede mandar.
+If one is missing, the API answers `422` with the field in `errors` (`file_type`, `file_name` or `file`), or `415` (`UnsupportedMediaTypeException`, with `supportedFileTypes`) when the extension cannot be sent.
 
-**Ventana cerrada: una plantilla aprobada.** En la ruta van el número (`3`) y el id de la plantilla (`45`), que sale de `$funnelchat->templates->list()`:
+**Closed window: an approved template.** The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`:
 
 ```php
 $funnelchat->templates->send(3, '45', [
     'phone' => '5491100000000',
     'contact_id' => 2001,
-    'template_variables' => ['body' => ['Lucía']], // las variables del cuerpo, en orden
+    'template_variables' => ['body' => ['Lucía']], // the body variables, in order
 ]);
 ```
 
-**Un formulario de WhatsApp.** `form_id` es el id del formulario publicado (`family_id`); las respuestas llegan por `whatsapp_form.completed`:
+**A WhatsApp form.** `form_id` is the id of the published form (`family_id`); the answers arrive through `whatsapp_form.completed`:
 
 ```php
-$funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
+$funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Fill in']);
 ```
 
-**Si te frenamos.** Si un envío rompe una regla de WhatsApp, no sale: te llega una excepción.
+**When a send is stopped.** If a send breaks a WhatsApp rule, it does not go out: you get an exception.
 
-| Error | Qué pasó | Qué hacer |
+| Error | What happened | What to do |
 |---|---|---|
-| `422 window_closed` | Texto libre con la ventana cerrada, en un número oficial. | Manda una plantilla aprobada. |
-| `422 antiblock_duplicate_content` | El mismo contenido repetido al mismo contacto. | Cambia el texto o espera. |
-| `422 antiblock_unanswered_limit` | Demasiados mensajes seguidos a alguien que no contesta. | Espera a que responda. |
-| `422 recipient_mismatch` | El `phone` o `whatsapp_id` no es el del contacto de la ruta. | Usa los datos de ese contacto. |
-| `422 recipient_unsupported` | El contacto es un grupo, una lista de difusión o un canal. | Por la API solo se escribe a personas. |
-| `422 device_unavailable` | El número no está conectado a WhatsApp. | Conéctalo y reintenta. |
-| `429 rate_limited` | Superaste el ritmo de tu número. Siempre trae `retryAfter`. | Espera esos segundos y reintenta. |
-| `429 mac_lockout_24h` | La cuenta está en el bloqueo de 24 horas por agotar los MAC (también para un contacto inactivo por MAC). Sin `retryAfter`. | No reintentes: espera a que pase el bloqueo. |
+| `422 window_closed` | Free text with the window closed, on an official number. | Send an approved template. |
+| `422 antiblock_duplicate_content` | The same content repeated to the same contact. | Change the text or wait. |
+| `422 antiblock_unanswered_limit` | Too many messages in a row to someone who does not answer. | Wait until they answer. |
+| `422 recipient_mismatch` | The `phone` or `whatsapp_id` is not the one of the contact of the route. | Use that contact's details. |
+| `422 recipient_unsupported` | The contact is a group, a broadcast list or a channel. | Through the API you can only write to people. |
+| `422 device_unavailable` | The number is not connected to WhatsApp. | Connect it and retry. |
+| `429 rate_limited` | You went over your number's pace. It always has `retryAfter`. | Wait those seconds and retry. |
+| `429 mac_lockout_24h` | The account is in the 24-hour lockout for using up its MACs (also for a contact that is inactive by MAC). No `retryAfter`. | Do not retry: wait for the lockout to end. |
 
-`$exception->isSendRuleError()` te dice si la excepción es una de estas reglas o de los otros rechazos de un envío (`not_sent`, `template_not_found`, `form_not_published`, `provider_unsupported`…; la lista está en `Funnelchat\Exception\SendErrors::CODES`). Un envío **nunca se reintenta solo**, porque un reintento puede mandar el mismo mensaje dos veces. Si un `429 rate_limited` no envió nada y quieres que el SDK reintente por vos, pídelo en ese llamado (un `mac_lockout_24h` no se reintenta nunca):
+`$exception->isSendRuleError()` tells you whether the exception is one of these rules or one of the other refusals of a send (`not_sent`, `template_not_found`, `form_not_published`, `provider_unsupported`…; the list is in `Funnelchat\Exception\SendErrors::CODES`). A send is **never retried by itself**, because a retry can deliver the same message twice. If a `429 rate_limited` sent nothing and you want the SDK to retry for you, ask for it in that call (a `mac_lockout_24h` is never retried):
 
 ```php
 $funnelchat->messages->send(2001, $body, ['retrySend' => true]);
 ```
 
-El ejemplo completo está en [examples/plain-php/send-message.php](examples/plain-php/send-message.php).
+The full example is in [examples/plain-php/send-message.php](examples/plain-php/send-message.php).
 
-## Grupos
+## Groups
 
-Las acciones sobre grupos son asincrónicas: cada una responde `202` con `action_id` y `status` `queued`, y el resultado llega después, en `$funnelchat->groups->action($actionId)` o por los eventos `group_action.completed` y `group_action.failed`.
+Group actions are asynchronous: each one answers `202` with `action_id` and `status` `queued`, and the result arrives later, in `$funnelchat->groups->action($actionId)` or through the `group_action.completed` and `group_action.failed` events.
 
 ```php
-$accepted = $funnelchat->groups->create(['device_id' => 4, 'name' => 'Clientes VIP', 'participants' => ['5491100000000']]);
-$action = $funnelchat->groups->action($accepted['action_id'])['data']; // queued, running, completed o failed
+$accepted = $funnelchat->groups->create(['device_id' => 4, 'name' => 'VIP customers', 'participants' => ['5491100000000']]);
+$action = $funnelchat->groups->action($accepted['action_id'])['data']; // queued, running, completed or failed
 
-$funnelchat->groups->sendMessage('120363000000000001@g.us', ['device_id' => 4, 'type' => 'text', 'text' => 'Hola a todos']);
+$funnelchat->groups->sendMessage('120363000000000001@g.us', ['device_id' => 4, 'type' => 'text', 'text' => 'Hello everyone']);
 ```
 
-- **Están apagadas por defecto.** Hasta que Funnelchat las habilite, responden `403 route_not_available` a cualquier clave.
-- Piden `communities:operate` (crear, participantes, administradores, nombre, descripción, foto, ajustes, link), `communities:send` (`sendMessage`, que nunca se reintenta solo) o `communities:read` (`action`, `inviteLink`, `listJoinRequests`). `operate` no incluye `read`: para pedir una acción y seguirla necesitas los dos.
-- `capabilities.groups` de cada número (`$funnelchat->devices->retrieve($id)`) dice qué puede hacer: un número por QR suma participantes directo; uno oficial los invita, necesita la beta `cloud-api-groups` (si no, `422 provider_unsupported`) y no cambia administradores, foto ni ajustes.
-- Las acciones con teléfonos (hasta 20 por pedido) terminan `completed` aunque fallen todos: mira `result.participants[].status`.
-- Hasta 50 acciones abiertas por número: más responde `429 too_many_pending_actions`.
+- **They are off by default.** Until Funnelchat turns them on, they answer `403 route_not_available` to any key.
+- They need `communities:operate` (create, participants, admins, name, description, photo, settings, link), `communities:send` (`sendMessage`, which is never retried by itself) or `communities:read` (`action`, `inviteLink`, `listJoinRequests`). `operate` does not include `read`: to request an action and follow it you need both.
+- The `capabilities.groups` of each number (`$funnelchat->devices->retrieve($id)`) says what it can do: a QR number adds participants directly; an official one invites them, needs the `cloud-api-groups` beta (otherwise `422 provider_unsupported`) and does not change admins, photo or settings.
+- Actions with phones (up to 20 per request) end `completed` even if every phone failed: check `result.participants[].status`.
+- Up to 50 open actions per number: more answers `429 too_many_pending_actions`.
 
-## Recibir webhooks con Laravel
+## Receiving webhooks with Laravel
 
-Verifica la firma sobre el **cuerpo crudo**, tal como llegó: `$request->getContent()`, no `$request->all()` ni `$request->json()`. Si lo decodificas y lo vuelves a codificar, cambia la firma.
+Verify the signature over the **raw body**, exactly as it arrived: `$request->getContent()`, not `$request->all()` or `$request->json()`. If you decode it and encode it again, the signature changes.
 
 ```php
 use App\Jobs\ProcessFunnelchatEvent;
@@ -193,27 +193,27 @@ use Funnelchat\Exception\WebhookVerificationException;
 use Funnelchat\Webhook;
 use Illuminate\Http\Request;
 
-// routes/api.php: el grupo `api` no pide el token CSRF, que un webhook no puede mandar.
+// routes/api.php: the `api` group does not ask for the CSRF token, which a webhook cannot send.
 Route::post('/hooks/funnelchat', function (Request $request) {
     try {
         $event = Webhook::constructEvent(
-            $request->getContent(),                                  // el cuerpo crudo
+            $request->getContent(),                                  // the raw body
             $request->header('X-Funnelchat-Signature'),
-            config()->string('services.funnelchat.webhook_secret'),  // el secreto completo, con whsec_
+            config()->string('services.funnelchat.webhook_secret'),  // the full secret, with whsec_
         );
     } catch (WebhookVerificationException $exception) {
-        return response()->noContent(400); // $exception->reason dice por qué
+        return response()->noContent(400); // $exception->reason says why
     }
 
-    ProcessFunnelchatEvent::dispatch($event); // procesa después; deduplica por $event['id']
+    ProcessFunnelchatEvent::dispatch($event); // process it later; deduplicate by $event['id']
 
-    return response()->noContent(200);        // responde rápido (menos de 10 s)
+    return response()->noContent(200);        // answer fast (under 10 s)
 });
 ```
 
-En [examples/laravel](examples/laravel) está armado con un controlador, un job que deduplica por `id` y despacha por tipo, el proveedor del cliente, la ruta y la configuración. Lo probamos copiado tal cual en una app de Laravel 13 (con PHPStan en el nivel máximo, vía Larastan).
+[examples/laravel](examples/laravel) has it put together with a controller, a job that deduplicates by `id` and dispatches by type, the client's provider, the route and the configuration. We tested it copied as is into a Laravel 13 app (with PHPStan at the max level, through Larastan).
 
-### Con PHP plano
+### With plain PHP
 
 ```php
 use Funnelchat\Exception\WebhookVerificationException;
@@ -230,18 +230,18 @@ http_response_code(200);
 // … $event['type'], $event['data']
 ```
 
-El ejemplo completo está en [examples/plain-php/webhook.php](examples/plain-php/webhook.php).
+The full example is in [examples/plain-php/webhook.php](examples/plain-php/webhook.php).
 
-### Qué hace cada función
+### What each function does
 
-- `Webhook::constructEvent($rawBody, $signatureHeader, $secret)` verifica la firma y devuelve el evento decodificado: `id`, `type`, `version`, `occurred_at` y `data`. Si algo falla, tira `WebhookVerificationException` con `reason`: `missing_header`, `malformed_header`, `timestamp_out_of_tolerance`, `signature_mismatch`, `missing_secret`, `invalid_body`, `invalid_json`, `invalid_event`.
-- Si solo quieres saber sí o no, `Webhook::verify($rawBody, $signatureHeader, $secret)` devuelve `true` o `false` y nunca tira.
-- Las dos rechazan una firma con un `t` a más de 300 segundos de tu reloj. Para cambiarlo, el cuarto argumento: `Webhook::verify($rawBody, $header, $secret, 600)`.
-- El cuerpo puede ser un string o un `StreamInterface` de PSR-7.
-- El algoritmo es exactamente el de `snippets/verificar-firma.php` del portal: `X-Funnelchat-Signature: t=<unix>,v1=<hex>`, donde `v1` es el HMAC-SHA256 con el secreto completo de `"<t>." + cuerpo crudo`, comparado en tiempo constante (`hash_equals`), y puede haber varias `v1`. Los tests usan los vectores de `tests/test_firmas.py` del portal y comparan, caso por caso, con una copia del snippet.
-- También están en el cliente: `$funnelchat->webhooks->verify(…)` y `$funnelchat->webhooks->constructEvent(…)`.
+- `Webhook::constructEvent($rawBody, $signatureHeader, $secret)` verifies the signature and returns the decoded event: `id`, `type`, `version`, `occurred_at` and `data`. When something fails, it throws `WebhookVerificationException` with a `reason`: `missing_header`, `malformed_header`, `timestamp_out_of_tolerance`, `signature_mismatch`, `missing_secret`, `invalid_body`, `invalid_json`, `invalid_event`.
+- If you only want a yes or no, `Webhook::verify($rawBody, $signatureHeader, $secret)` returns `true` or `false` and never throws.
+- Both reject a signature whose `t` is more than 300 seconds away from your clock. To change that, use the fourth argument: `Webhook::verify($rawBody, $header, $secret, 600)`.
+- The body can be a string or a PSR-7 `StreamInterface`.
+- The algorithm is exactly the one of the portal's `snippets/verificar-firma.php`: `X-Funnelchat-Signature: t=<unix>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>." + raw body` with the full secret, compared in constant time (`hash_equals`), and there can be several `v1`. The tests use the vectors of the portal's `tests/test_firmas.py` and compare, case by case, with a copy of the snippet.
+- They are also on the client: `$funnelchat->webhooks->verify(…)` and `$funnelchat->webhooks->constructEvent(…)`.
 
-**Los tipos de los eventos.** `type` es un string, porque pueden llegar tipos nuevos antes de que el SDK los conozca: responde `2xx` a los que no manejas. Cuando ya miraste `type`, el alias de ese evento te da la forma completa (están en `Funnelchat\Generated\WebhookEvents`: `MessageReceivedEvent`, `MessageStatusChangedEvent`…; y `XxxData` para su `data`):
+**The event types.** `type` is a string, because new types can arrive before the SDK knows them: answer `2xx` to the ones you do not handle. Once you checked `type`, the alias of that event gives you the full shape (they are in `Funnelchat\Generated\WebhookEvents`: `MessageReceivedEvent`, `MessageStatusChangedEvent`…; and `XxxData` for its `data`):
 
 ```php
 /**
@@ -258,80 +258,80 @@ final class FunnelchatEvents
                 echo $event['data']['contact']['phone'], ': ', $event['data']['message']['text'];
                 break;
             default:
-                // Un tipo que tu código no conoce todavía: no es un error.
+                // A type your code does not know yet: not an error.
         }
     }
 }
 ```
 
-El catálogo de eventos que conoce el SDK, con su estado, es `Funnelchat\Generated\WebhookEvents::CATALOG`.
+The catalog of events the SDK knows, with their status, is `Funnelchat\Generated\WebhookEvents::CATALOG`.
 
-### Suscribirte
+### Subscribing
 
 ```php
 $subscription = $funnelchat->webhooks->create([
-    'url' => 'https://tu-servidor.example/hooks/funnelchat',
+    'url' => 'https://your-server.example/hooks/funnelchat',
     'events' => ['message.received', 'message.status_changed'],
-    'description' => 'Mi integración',
+    'description' => 'My integration',
 ]);
-// Guarda $subscription['id'] y $subscription['secret']: el secreto se muestra una sola vez.
+// Store $subscription['id'] and $subscription['secret']: the secret is shown only once.
 ```
 
-- Las suscripciones piden `webhooks:read` y `webhooks:write`, y para cada tipo de evento, `{área}:read` del área del evento (`conversations:read` para `message.received`). Si falta, `create` y `update` responden `422` con el problema en `errors['events']`, y las demás, `403 permission_denied`.
-- Son de la cuenta: `list()` (paginado) trae también las de otras integraciones, salvo las que tienen eventos de un área que tu clave no puede leer.
-- Para cambiar la URL usa `update($id, […])`, que reemplaza `url`, `events`, `description` y `filters` (el secreto no cambia). `test($id)` manda un `webhook.test` firmado ahora mismo y `listDeliveries($id)` es el historial.
-- `rotateSecret($id)` **no está abierta a claves**: responde `403 route_not_available`. Rota el secreto desde el panel.
-- `message.status_changed` hay que pedirlo por nombre: `*` no lo incluye.
-- El catálogo, con el área y el estado (`active` o `planned`) de cada tipo, es `$funnelchat->webhooks->events()` (pide `accounts:read`). Desde el 21-10 están, entre otros, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added`, `group_action.completed` y `group_join_request.created`.
+- Subscriptions need `webhooks:read` and `webhooks:write`, and for each event type, the `{area}:read` of the event's area (`conversations:read` for `message.received`). When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
+- They belong to the account: `list()` (paginated) also brings the ones of other integrations, except those with events of an area your key cannot read.
+- To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
+- `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
+- `message.status_changed` must be requested by name: `*` does not include it.
+- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs `accounts:read`). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added`, `group_action.completed` and `group_join_request.created`.
 
-## Paginación
+## Pagination
 
-Los métodos `list…` devuelven un `Paginator` perezoso: no se pide nada hasta que lo recorres.
+The `list…` methods return a lazy `Paginator`: nothing is requested until you iterate it.
 
 ```php
-// Todos los ítems de todas las páginas (un generador: pide cada página cuando la necesita).
+// Every item of every page (a generator: it requests each page when it needs it).
 foreach ($funnelchat->contacts->list(['perPage' => 100, 'tag_mode' => 'any', 'tag_ids' => [12]]) as $contact) {
     echo $contact['id'], "\n";
 }
 
-// Página por página:
+// Page by page:
 $page = $funnelchat->tags->list(['perPage' => 50])->firstPage();
 print_r($page->data);
 while ($page->hasNextPage()) {
     $page = $page->getNextPage();
 }
 
-// O con un generador de páginas:
+// Or with a generator of pages:
 foreach ($funnelchat->tags->list()->iterPages() as $page) {
-    echo count($page), " etiquetas en esta página\n";
+    echo count($page), " tags on this page\n";
 }
 ```
 
-El SDK entiende las tres formas de paginar de la API: por número de página (`meta.current_page` y `meta.last_page`), por cursor (`meta.next_cursor`) y las listas que vienen enteras en un array. El tamaño de página se pide con el parámetro de cada ruta (`perPage`, `per_page` o `pageSize`, según la especificación). `$page->body` es la respuesta completa de esa página, con `meta` y `links`.
+The SDK understands the three ways the API paginates: by page number (`meta.current_page` and `meta.last_page`), by cursor (`meta.next_cursor`) and lists that come whole in an array. The page size is requested with each route's parameter (`perPage`, `per_page` or `pageSize`, as the spec says). `$page->body` is the full response of that page, with `meta` and `links`.
 
-## Errores
+## Errors
 
-Todo lo que tira el SDK hereda de `Funnelchat\Exception\FunnelchatException`. Cuando la API responde con un error, es un `ApiException`:
+Everything the SDK throws extends `Funnelchat\Exception\FunnelchatException`. When the API answers with an error, it is an `ApiException`:
 
-| Propiedad | Qué es |
+| Property | What it is |
 |---|---|
-| `status` | El código HTTP (también `getCode()`). |
-| `errorCode` | El código estable del cuerpo (`window_closed`, `rate_limited`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), o `null` si no trae (por ejemplo un `422` de validación o un `415`). En Node es `code`; en PHP `getCode()` ya existe y devuelve un número. |
-| `getMessage()` | El `message` del cuerpo, para personas. Decide por `status` y `errorCode`, no por el mensaje. |
-| `requestId` | El `X-Request-Id` de la respuesta. **Cítalo al reportar un problema**, con la hora aproximada de la llamada. |
-| `retryAfter` | Los segundos de `Retry-After`, si vino (redondeados hacia arriba). |
-| `errors` | En un `422` de validación, los mensajes por campo. |
-| `body`, `headers`, `method`, `url` | La respuesta y el pedido (la URL sin la query). |
+| `status` | The HTTP status (also `getCode()`). |
+| `errorCode` | The stable code of the body (`window_closed`, `rate_limited`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when there is none (for example a validation `422` or a `415`). In Node it is `code`; in PHP `getCode()` already exists and returns a number. |
+| `getMessage()` | The `message` of the body, meant for people. Decide by `status` and `errorCode`, not by the message. |
+| `requestId` | The `X-Request-Id` of the response. **Quote it when you report a problem**, with the approximate time of the call. |
+| `retryAfter` | The seconds of `Retry-After`, when present (rounded up). |
+| `errors` | In a validation `422`, the messages per field. |
+| `body`, `headers`, `method`, `url` | The response and the request (the URL without the query). |
 
-Cada código HTTP tiene su clase, en `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) e `InternalServerException` (5xx). Sin respuesta: `ApiConnectionException`, y `ApiConnectionTimeoutException` si se pasó del timeout.
+Each HTTP status has its class, in `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) and `InternalServerException` (5xx). Without a response: `ApiConnectionException`, and `ApiConnectionTimeoutException` when the timeout ran out.
 
-Los errores propios de la entrada de la API, que contesta sin llegar a ningún área, tienen la suya:
+The errors of the API entrypoint itself, which answers without reaching any area, have their own:
 
-| Clase | Error | Qué hacer |
+| Class | Error | What to do |
 |---|---|---|
-| `RouteNotFoundException` (un `NotFoundException`) | `404 route_not_found`: la ruta no existe. | Revisa la ruta y que empiece con `/api/v1/`. |
-| `EdgeMisconfiguredException` (un `InternalServerException`) | `500 edge_misconfigured`. | Es de nuestro lado: repórtalo citando `requestId`. |
-| `OriginUnreachableException` (un `InternalServerException`) | `502 origin_unreachable`: no se pudo llegar al área. | Trátalo como un timeout: una lectura se repite; una escritura, solo después de leer el estado (ver [Reintentos](#reintentos)). |
+| `RouteNotFoundException` (a `NotFoundException`) | `404 route_not_found`: the route does not exist. | Check the route and that it starts with `/api/v1/`. |
+| `EdgeMisconfiguredException` (an `InternalServerException`) | `500 edge_misconfigured`. | It is on our side: report it quoting `requestId`. |
+| `OriginUnreachableException` (an `InternalServerException`) | `502 origin_unreachable`: the area could not be reached. | Treat it like a timeout: a read is repeated; a write, only after reading the state (see [Retries](#retries)). |
 
 ```php
 use Funnelchat\Exception\ApiException;
@@ -340,129 +340,129 @@ use Funnelchat\Exception\RateLimitException;
 try {
     $funnelchat->contacts->retrieve(2001);
 } catch (RateLimitException $exception) {
-    echo "Espera {$exception->retryAfter} s\n";
+    echo "Wait {$exception->retryAfter} s\n";
 } catch (ApiException $exception) {
     echo $exception->status, ' ', $exception->errorCode, ' ', $exception->getMessage(), ' (', $exception->requestId, ")\n";
 }
 ```
 
-Un `403` con `errorCode` `route_not_available` quiere decir que esa ruta no está abierta a claves de API, aunque tu clave tenga el permiso.
+A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
 
-### El id del pedido
+### The request id
 
-Cada respuesta de la API, de éxito o de error, trae `X-Request-Id`: un UUID distinto por pedido, con el que soporte encuentra la llamada. En un error está en `$exception->requestId`; en un éxito, en `$funnelchat->lastResponse()` (la última respuesta del cliente, con `status`, `requestId` y `headers`) o, para un llamado en particular, en `onResponse`, que también ve cada página de una lista:
+Every response of the API, success or error, carries `X-Request-Id`: a different UUID per request, with which support finds the call. On an error it is in `$exception->requestId`; on a success, in `$funnelchat->lastResponse()` (the client's last response, with `status`, `requestId` and `headers`) or, for one call in particular, in `onResponse`, which also sees every page of a list:
 
 ```php
 use Funnelchat\ResponseInfo;
 
 $result = $funnelchat->messages->send(2001, $body);
-$logger->info('enviado', ['message_id' => $result['message']['id'], 'request_id' => $funnelchat->lastResponse()?->requestId]);
+$logger->info('sent', ['message_id' => $result['message']['id'], 'request_id' => $funnelchat->lastResponse()?->requestId]);
 
-$funnelchat->contacts->list([], ['onResponse' => fn(ResponseInfo $r) => $logger->debug('página', ['request_id' => $r->requestId])]);
+$funnelchat->contacts->list([], ['onResponse' => fn(ResponseInfo $r) => $logger->debug('page', ['request_id' => $r->requestId])]);
 ```
 
-Un id que mandes tú en `X-Request-Id` no se usa: la API pone el suyo. No hay una ruta para buscar una llamada por su id.
+An id you send yourself in `X-Request-Id` is not used: the API sets its own. There is no route to look a call up by its id.
 
-## Reintentos
+## Retries
 
-- Se reintenta ante un `429`, un `5xx` o un error de red (también si se pasó el timeout), hasta `maxRetries` veces (2 por defecto), con las excepciones de abajo.
-- Con `Retry-After`, se espera exactamente lo que pide. Si pide más de 60 segundos, no se espera: la excepción sale enseguida con su `retryAfter` y decides tú.
-- Sin `Retry-After`, la espera es exponencial: 0,5 s, 1 s, 2 s… hasta 8 s, con un poco de azar.
-- **Un envío nunca se reintenta solo**: los `POST` con un permiso `…:send` (mensajes, tarjetas de contacto, reenvíos, plantillas, formularios y mensajes a grupos). Se reintentan solo si pasas `'retrySend' => true` en ese llamado. Las reacciones (`PUT` y `DELETE`) sí, porque repetirlas da lo mismo.
-- **Una escritura que pudo haberse aplicado no se repite sola**: un `POST` o un `PATCH` se reintenta solo ante un `429` o un `503`, cuando seguro no se aplicó. Ante un `500`, `502` o `504`, un timeout o una conexión cortada, la excepción sale enseguida (un `502 origin_unreachable` no garantiza que el área no la haya recibido): lee el estado antes de repetirla. `retrySend` no cambia esto. Las lecturas, los `PUT` y los `DELETE` sí se reintentan ante cualquier falla pasajera. Es la misma regla que el SDK de Node.
-- `429 mac_lockout_24h` y `429 mac_limit_reached` no se reintentan nunca.
-- Por llamado puedes cambiar `maxRetries` y las cabeceras, y con Guzzle el `timeout`:
+- A request is retried on a `429`, a `5xx` or a network error (also when the timeout ran out), up to `maxRetries` times (2 by default), with the exceptions below.
+- With `Retry-After`, the SDK waits exactly what it asks for. If it asks for more than 60 seconds, it does not wait: the exception is thrown right away with its `retryAfter` and you decide.
+- Without `Retry-After`, the wait is exponential: 0.5 s, 1 s, 2 s… up to 8 s, with some jitter.
+- **A send is never retried by itself**: the `POST`s with a `…:send` permission (messages, contact cards, forwards, templates, forms and group messages). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
+- **A write that may have been applied is not repeated by itself**: a `POST` or a `PATCH` is retried only on a `429` or a `503`, when it was certainly not applied. On a `500`, `502` or `504`, a timeout or a dropped connection, the exception is thrown right away (a `502 origin_unreachable` does not guarantee the area did not get it): read the state before repeating it. `retrySend` does not change this. Reads, `PUT`s and `DELETE`s are retried on any transient failure. It is the same rule as in the Node SDK.
+- `429 mac_lockout_24h` and `429 mac_limit_reached` are never retried.
+- Per call you can change `maxRetries` and the headers, and with Guzzle the `timeout`:
 
 ```php
-$funnelchat->tags->list([], ['maxRetries' => 0, 'timeout' => 5, 'headers' => ['X-Mi-Traza' => 'abc']]);
+$funnelchat->tags->list([], ['maxRetries' => 0, 'timeout' => 5, 'headers' => ['X-My-Trace' => 'abc']]);
 ```
 
-## Cualquier ruta
+## Any route
 
-`request()` llama a cualquier ruta, esté o no en un recurso. Los parámetros de ruta van en `path`, la query en `query` y el cuerpo en `body`:
+`request()` calls any route, whether it is in a resource or not. Path parameters go in `path`, the query in `query` and the body in `body`:
 
 ```php
 $contact = $funnelchat->request('GET', '/api/v1/contacts/{contact}', ['path' => ['contact' => 2001]]);
 
 $stats = $funnelchat->request('GET', '/api/v1/broadcasts/{broadcast}/statistics', ['path' => ['broadcast' => 77]]);
 
-$result = $funnelchat->request('POST', '/api/v1/algo-nuevo', ['body' => ['a' => 1]]);
+$result = $funnelchat->request('POST', '/api/v1/something-new', ['body' => ['a' => 1]]);
 ```
 
-Devuelve el JSON decodificado (arrays asociativos), el texto si la respuesta no es JSON, o `null` si vino vacía (`204`). Aquí el SDK no sabe la forma de la respuesta: si la quieres tipada, usa el alias del esquema (`/** @var BroadcastResource $broadcast */`). El cuerpo `[]` se manda como `{}`.
+It returns the decoded JSON (associative arrays), the text when the response is not JSON, or `null` when it came empty (`204`). Here the SDK does not know the shape of the response: if you want it typed, use the schema alias (`/** @var BroadcastResource $broadcast */`). The body `[]` is sent as `{}`.
 
-`paginate()` es lo mismo para listas: `foreach ($funnelchat->paginate('/api/v1/broadcasts') as $broadcast)`.
+`paginate()` is the same for lists: `foreach ($funnelchat->paginate('/api/v1/broadcasts') as $broadcast)`.
 
-La query se arma como la lee Laravel: los arrays van como `clave[]=a&clave[]=b`, los arrays anidados con corchetes, los booleanos como `1` y `0` y las fechas (`DateTimeInterface`) en ISO 8601, en UTC.
+The query is built the way Laravel reads it: arrays go as `key[]=a&key[]=b`, nested arrays with brackets, booleans as `1` and `0` and dates (`DateTimeInterface`) in ISO 8601, in UTC.
 
-`Funnelchat\Generated\Routes::ALL` tiene cada operación de la especificación con su dominio, su permiso y el método del SDK que la llama (`sdk`), o `null` si se llama con `request()`.
+`Funnelchat\Generated\Routes::ALL` has every operation of the spec with its domain, its permission and the SDK method that calls it (`sdk`), or `null` when it is called with `request()`.
 
-## Cómo regenerar
+## Regenerating
 
-Todo lo generado sale de un solo script, en PHP:
+Everything generated comes from a single script, in PHP:
 
 ```bash
-# Con la especificación unificada nueva del portal:
-composer generate -- --spec ../developers-portal-worktrees/<rama>/out/specs/funnelchat.json
+# With the portal's new unified spec:
+composer generate -- --spec ../developers-portal-worktrees/<branch>/out/specs/funnelchat.json
 
-# Con la que ya está en spec/ (por ejemplo, después de tocar spec/pending.json o spec/resources.json):
+# With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
 
-# Para comprobar que lo generado está al día (sirve en CI):
+# To check that the generated code is up to date (useful in CI):
 composer generate:check
 ```
 
-Qué hace (`scripts/generate.php`):
+What it does (`scripts/generate.php`):
 
-1. Con `--spec`, copia la especificación a `spec/funnelchat.json` y escribe `spec/procedencia.json`: repositorio, rama, commit, fecha y `sha256` del archivo.
-2. Suma `spec/pending.json` (la capa [pendiente de la especificación](#pendiente-de-la-especificación)), pero **solo lo que la instantánea no trae**. Al terminar lista lo que la instantánea nueva ya trae, para que lo borres de `spec/pending.json`.
-3. Escribe `src/Generated/Routes.php` (cada operación), `src/Generated/Schemas.php` (cada esquema como alias de PHPStan), `src/Generated/WebhookEvents.php` (el catálogo y la forma de cada evento, sacada del esquema o del ejemplo), `src/Resources/*.php` (un método por operación, con sus tipos) y `src/Generated/ResourceProperties.php` (las propiedades del cliente).
+1. With `--spec`, it copies the spec to `spec/funnelchat.json` and writes `spec/procedencia.json`: repository, branch, commit, date and `sha256` of the file.
+2. It adds `spec/pending.json` (the [pending of the spec](#pending-of-the-spec) layer), but **only what the snapshot does not bring**. At the end it lists what the new snapshot already brings, so you can delete it from `spec/pending.json`.
+3. It writes `src/Generated/Routes.php` (every operation), `src/Generated/Schemas.php` (every schema as a PHPStan alias), `src/Generated/WebhookEvents.php` (the catalog and the shape of each event, taken from the schema or from the example), `src/Resources/*.php` (one method per operation, with its types) and `src/Generated/ResourceProperties.php` (the client's properties).
 
-`spec/resources.json` dice qué operación es cada método de cada recurso: son los mismos nombres que en Node. No hace falta tocar código a mano para regenerar. Si una operación de esa lista ya no está en la especificación, la generación falla y dice cuál; si cambió de forma, `composer analyse` lo marca. Después de regenerar: `composer check`.
+`spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**La instantánea actual** es la del portal, rama `feat/openapi-unificada` @ `0ef4abb`, del 15-10: 191 rutas y 230 operaciones de conversations `9d723d52c`, communities `fab0bb10` y accounts `c234b6f8` (13-10). Es anterior a lo que salió a producción el 21-10: lo nuevo está en la capa pendiente. El detalle está en `spec/procedencia.json`.
+**The current snapshot** is the portal's, branch `feat/openapi-unificada` @ `0ef4abb`, of 15-10: 191 paths and 230 operations of conversations `9d723d52c`, communities `fab0bb10` and accounts `c234b6f8` (13-10). It predates what reached production on 21-10: what is new is in the pending layer. The details are in `spec/procedencia.json`. The snapshot's own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
-## Pendiente de la especificación
+## Pending of the spec
 
-La instantánea de la especificación es del 13-10. Lo que salió después a producción está en una capa aparte, marcada así en el código, que la próxima regeneración reemplaza sola cuando una instantánea lo traiga (y avisa qué entradas ya se pueden borrar):
+The spec snapshot is from 13-10. What reached production afterwards is in a separate layer, marked as such in the code, which the next regeneration replaces by itself once a snapshot brings it (and it tells you which entries can be deleted):
 
-- `spec/pending.json`: rutas, campos, respuestas, esquemas y eventos, en formato OpenAPI, con la fuente de cada entrada (`x-fc-pending`).
+- `spec/pending.json`: paths, fields, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`).
 
-Todo sale del código de los dominios en los tags que corren en producción el 22-10 (solo lectura, `git show <tag>:<archivo>`): conversations `v1.18.10` (`a580a3d0`), communities `v2.34.52` (`6f32f0b4`) y accounts `v1.4.24` (`300cc843`), más la entrada de la API, api-edge `v0.3.0` (`a1c5b350`).
+All of it comes from the code of the domains at the tags running in production on 22-10 (read only, `git show <tag>:<file>`): conversations `v1.18.10` (`a580a3d0`), communities `v2.34.52` (`6f32f0b4`) and accounts `v1.4.24` (`300cc843`), plus the API entrypoint, api-edge `v0.3.0` (`a1c5b350`).
 
-| Qué | De dónde sale |
+| What | Where it comes from |
 |---|---|
-| Lo que responden los envíos con clave (`200` con el mensaje en cola, nunca `204`), `messages->get`, `client_reference` (también en el historial), `file_type` y `file_name` | conversations `v1.18.10` |
-| Los formularios de WhatsApp (`/api/v1/forms…`), su envío a un contacto y `whatsapp_form.completed` | conversations `v1.18.10` |
-| La forma de `message.status_changed` (con `error.reason`), ahora `live`, y `device_id` en `message.received` | conversations `v1.18.10` |
-| Las acciones de grupo, las solicitudes de unión y los eventos `group.message_received`, `group.reaction_added`, `group_action.completed` y `group_join_request.*` | communities `v2.34.52` |
-| Las suscripciones de webhooks (`/api/v1/webhooks…`, con `webhooks:*`), los eventos de accounts y cuatro de communities | accounts `v1.4.24` |
-| `capabilities` y los demás campos nuevos de cada número en `devices` | accounts `v1.4.24` |
+| What the API-key sends answer (`200` with the queued message, never `204`), `messages->get`, `client_reference` (also in the history), `file_type` and `file_name` | conversations `v1.18.10` |
+| WhatsApp forms (`/api/v1/forms…`), sending one to a contact and `whatsapp_form.completed` | conversations `v1.18.10` |
+| The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10` |
+| Group actions, join requests and the `group.message_received`, `group.reaction_added`, `group_action.completed` and `group_join_request.*` events | communities `v2.34.52` |
+| Webhook subscriptions (`/api/v1/webhooks…`, with `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
+| `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
 
-Los códigos de error de los envíos están en `Funnelchat\Exception\SendErrors`, escritos a mano desde las mismas fuentes: la especificación no los enumera.
+The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them.
 
-## Desarrollo
+## Development
 
 ```bash
 composer install
-composer generate:check   # lo generado está al día
-composer cs               # PHP-CS-Fixer (PER-CS 2.0), en modo verificación; composer cs:fix lo aplica
-composer analyse          # PHPStan en el nivel máximo: src, tests, scripts y examples/plain-php
-composer test             # PHPUnit, sin red ni claves: un cliente PSR-18 simulado
-composer check            # todo lo de arriba, en orden
+composer generate:check   # the generated code is up to date
+composer cs               # PHP-CS-Fixer (PER-CS 2.0), in check mode; composer cs:fix applies it
+composer analyse          # PHPStan at the max level: src, tests, scripts and examples/plain-php
+composer test             # PHPUnit, with no network and no keys: a simulated PSR-18 client
+composer check            # all of the above, in order
 ```
 
-La suite corre en PHP 8.1 (con PHPUnit 10) y en PHP 8.5 (con PHPUnit 12), con Guzzle 7 y con Guzzle 8.
+The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), with Guzzle 7 and with Guzzle 8.
 
-### Probar contra el sandbox
+### Testing against the sandbox
 
-[funnelchat-sandbox](https://github.com/Funnelchat20/funnelchat-sandbox) imita la API y manda webhooks firmados, sin efectos reales. Apunta el cliente a él con `baseUrl` y cualquier clave bien formada:
+[funnelchat-sandbox](https://github.com/Funnelchat20/funnelchat-sandbox) imitates the API and sends signed webhooks, with no real effects. Point the client at it with `baseUrl` and any well-formed key:
 
 ```php
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-Los e2e del SDK corren contra él (un envío y sus avisos firmados, que verifica un receptor en el servidor embebido de PHP; los rechazos; `messages->get`; un formulario; `X-Request-Id`):
+The SDK's end-to-end tests run against it (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`):
 
 ```bash
 npx funnelchat-sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet
@@ -470,19 +470,19 @@ FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010 composer test:e2e
 ```
 
 ```
-spec/              la especificación, su procedencia, la capa pendiente y el mapa de recursos
-scripts/           generate.php, el único generador
-src/Generated/     lo generado (no se edita)
-src/Resources/     los recursos, generados (no se editan)
-src/Core/          HTTP, reintentos, URL y query
-src/Pagination/    Paginator y Page
-src/Exception/     las excepciones y los códigos de error de los envíos
-src/ResponseInfo.php  el status, las cabeceras y el X-Request-Id de una respuesta
-src/Webhook.php    firma y eventos
-examples/          Laravel y PHP plano
-tests/             PHPUnit; tests/E2E, contra el sandbox
+spec/              the spec, its provenance, the pending layer and the resource map
+scripts/           generate.php, the only generator
+src/Generated/     generated code (not edited)
+src/Resources/     the resources, generated (not edited)
+src/Core/          HTTP, retries, URL and query
+src/Pagination/    Paginator and Page
+src/Exception/     the exceptions and the error codes of the sends
+src/ResponseInfo.php  the status, headers and X-Request-Id of a response
+src/Webhook.php    signature and events
+examples/          Laravel and plain PHP
+tests/             PHPUnit; tests/E2E, against the sandbox
 ```
 
-## Licencia
+## License
 
 [MIT](LICENSE).

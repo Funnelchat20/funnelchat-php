@@ -60,7 +60,7 @@ final class ProcessFunnelchatEvent implements ShouldQueue
      */
     private function messageReceived(array $event): void
     {
-        Log::info('Mensaje de Funnelchat', [
+        Log::info('Funnelchat message', [
             'phone' => $event['data']['contact']['phone'],
             'text' => $event['data']['message']['text'],
             'device_id' => $event['data']['device_id'] ?? null, // the number that received it: reply with the same device_id
@@ -72,7 +72,7 @@ final class ProcessFunnelchatEvent implements ShouldQueue
      */
     private function statusChanged(array $event): void
     {
-        Log::info('Estado de un mensaje', [
+        Log::info('Message status', [
             'message_id' => $event['data']['message_id'],
             'status' => $event['data']['status'],
             'client_reference' => $event['data']['client_reference'],

@@ -61,7 +61,7 @@ final class RequestsTest extends TestCase
         putenv('FUNNELCHAT_API_KEY=');
         try {
             $this->expectException(FunnelchatException::class);
-            $this->expectExceptionMessage('Falta la clave de API');
+            $this->expectExceptionMessage('Missing API key');
             new Funnelchat(apiKey: '  ', httpClient: new MockHttpClient());
         } finally {
             putenv($previous === false ? 'FUNNELCHAT_API_KEY' : "FUNNELCHAT_API_KEY={$previous}");
@@ -71,7 +71,7 @@ final class RequestsTest extends TestCase
     public function testFailsEarlyWithAnUnknownEnvironment(): void
     {
         $this->expectException(FunnelchatException::class);
-        $this->expectExceptionMessage('Entorno desconocido');
+        $this->expectExceptionMessage('Unknown environment');
         // Through reflection: the PHPDoc of `environment` already rejects 'dev' statically.
         (new \ReflectionClass(Funnelchat::class))->newInstanceArgs(['apiKey' => self::TEST_API_KEY, 'environment' => 'dev', 'httpClient' => new MockHttpClient()]);
     }
@@ -100,7 +100,7 @@ final class RequestsTest extends TestCase
     public function testTheTimeoutNeedsGuzzle(): void
     {
         $this->expectException(FunnelchatException::class);
-        $this->expectExceptionMessage('El timeout solo se puede aplicar con Guzzle');
+        $this->expectExceptionMessage('A timeout can only be applied with Guzzle');
         new Funnelchat(apiKey: self::TEST_API_KEY, timeout: 5, httpClient: new MockHttpClient());
     }
 
@@ -167,7 +167,7 @@ final class RequestsTest extends TestCase
             self::fail('should have thrown');
         } catch (ApiConnectionTimeoutException $exception) {
             self::assertSame(2.0, $exception->timeout);
-            self::assertSame('La API de Funnelchat no respondió en 2 s.', $exception->getMessage());
+            self::assertSame('The Funnelchat API did not answer within 2 s.', $exception->getMessage());
             self::assertInstanceOf(ConnectException::class, $exception->getPrevious());
         }
     }

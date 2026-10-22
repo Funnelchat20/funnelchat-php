@@ -154,7 +154,7 @@ final class Transport
     /** @return never */
     public function __serialize(): array
     {
-        throw new FunnelchatException('El cliente de Funnelchat no se puede serializar.');
+        throw new FunnelchatException('The Funnelchat client cannot be serialized.');
     }
 
     private function __clone() {}
@@ -167,7 +167,7 @@ final class Transport
         $timeout = isset($options['timeout']) ? (float) $options['timeout'] : $this->timeout;
         if ($timeout !== null && !$this->httpClient instanceof GuzzleClientInterface) {
             throw new FunnelchatException(
-                'El timeout solo se puede aplicar con Guzzle: PSR-18 no tiene timeout. Configúralo en tu cliente HTTP y no pases `timeout`.',
+                'A timeout can only be applied with Guzzle: PSR-18 has no timeout. Set it in your HTTP client and do not pass `timeout`.',
             );
         }
 
@@ -229,7 +229,7 @@ final class Transport
         try {
             return [json_encode($body, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES | \JSON_PRESERVE_ZERO_FRACTION), 'application/json'];
         } catch (\JsonException $exception) {
-            throw new FunnelchatException('No se pudo codificar el cuerpo como JSON: ' . $exception->getMessage(), 0, $exception);
+            throw new FunnelchatException('Could not encode the body as JSON: ' . $exception->getMessage(), 0, $exception);
         }
     }
 
@@ -256,7 +256,7 @@ final class Transport
             return new ApiConnectionTimeoutException($timeout, $cause);
         }
 
-        return new ApiConnectionException('No se pudo conectar con la API de Funnelchat.', $cause);
+        return new ApiConnectionException('Could not connect to the Funnelchat API.', $cause);
     }
 
     /**

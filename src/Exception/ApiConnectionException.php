@@ -12,7 +12,7 @@ namespace Funnelchat\Exception;
  */
 class ApiConnectionException extends FunnelchatException
 {
-    public function __construct(string $message = 'No se pudo conectar con la API de Funnelchat.', ?\Throwable $previous = null)
+    public function __construct(string $message = 'Could not connect to the Funnelchat API.', ?\Throwable $previous = null)
     {
         parent::__construct($message, 0, $previous);
     }
