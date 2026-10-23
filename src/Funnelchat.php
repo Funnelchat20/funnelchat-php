@@ -22,14 +22,22 @@ use Psr\Http\Message\StreamFactoryInterface;
  * foreach ($funnelchat->devices->list() as $device) { … }
  * ```
  *
- * The resources (`contacts`, `conversations`, `messages`, `templates`, `tags`, `customFields`,
- * `groups`, `devices`, `webhooks`) are generated from the spec: see {@see ResourceProperties}.
+ * The resources (`contacts`, `conversations`, `messages`, `templates`, `forms`, `tags`,
+ * `customFields`, `groups`, `devices`, `connectLinks`, `webhooks`) are generated from the spec: see
+ * {@see ResourceProperties}.
+ *
+ * Request options, the last argument of every method: `headers`, `timeout`, `maxRetries`,
+ * `retrySend` (see {@see Core\Retry}), `onResponse`, and `idempotencyKey`: sent as the
+ * `Idempotency-Key` header (up to 255 characters), which `devices->create()` and
+ * `connectLinks->create()` accept. With it, the API answers the same resource to the same key and
+ * body, so the SDK may also repeat that write after a timeout or a `5xx`.
  *
  * @phpstan-type RequestOptions array{
  *     headers?: array<string, string>,
  *     timeout?: float|int,
  *     maxRetries?: int,
  *     retrySend?: bool,
+ *     idempotencyKey?: string,
  *     onResponse?: callable(ResponseInfo): void,
  * }
  * @phpstan-type RawRequestOptions array{
@@ -40,6 +48,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  *     timeout?: float|int,
  *     maxRetries?: int,
  *     retrySend?: bool,
+ *     idempotencyKey?: string,
  *     onResponse?: callable(ResponseInfo): void,
  * }
  */
@@ -137,7 +146,8 @@ final class Funnelchat
 
     /**
      * Calls any route. Path parameters go in `path`, the query in `query` and the JSON body in
-     * `body`; the request options (`headers`, `timeout`, `maxRetries`, `retrySend`) are accepted too.
+     * `body`; the request options (`headers`, `timeout`, `maxRetries`, `retrySend`,
+     * `idempotencyKey`) are accepted too.
      *
      * Returns the decoded JSON (associative arrays), the raw text when the answer is not JSON, or
      * `null` for an empty answer (`204`).

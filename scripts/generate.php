@@ -11,7 +11,7 @@
  * Steps:
  *   1. (with --spec) copy the spec and write spec/procedencia.json (repository, branch, commit, sha256).
  *   2. Merge spec/pending.json (the "pending of the spec" layer) into the snapshot: routes, request-body
- *      fields, schema fields, responses and events. Every pending entry is applied only while the
+ *      fields, query parameters, schema fields, responses and events. Every pending entry is applied only while the
  *      snapshot lacks it; the report lists the entries a new snapshot made
  *      obsolete so they can be deleted from spec/pending.json.
  *   3. src/Generated/Routes.php            every operation: method, path, domain, permission, SDK method.
@@ -369,6 +369,45 @@ final class Generator
             }
             $target['x-fc-pending-fields'] = [...self::strings($target['x-fc-pending-fields'] ?? null), ...array_keys($missing)];
             $schemas[$name] = $target;
+            $report['applied'][] = $label;
+        }
+
+        foreach (self::arr($pending['parameterPatches'] ?? null) as $patch) {
+            $patch = self::obj($patch);
+            $method = self::str($patch['method'] ?? null) ?? '';
+            $path = self::str($patch['path'] ?? null) ?? '';
+            $parameters = self::arr($patch['parameters'] ?? null);
+            $names = array_map(static fn(mixed $parameter): string => self::str(self::obj($parameter)['name'] ?? null) ?? '', $parameters);
+            $label = strtoupper($method) . " {$path} (parche: " . implode(', ', $names) . ')';
+            $item = self::obj($paths[$path] ?? null);
+            $op = self::obj($item[$method] ?? null);
+            if ($op === []) {
+                $report['missing'][] = $label;
+
+                continue;
+            }
+            $declared = [];
+            foreach (self::arr($op['parameters'] ?? null) as $parameter) {
+                $parameter = self::obj($parameter);
+                $declared[(self::str($parameter['in'] ?? null) ?? '') . ' ' . (self::str($parameter['name'] ?? null) ?? '')] = true;
+            }
+            $missing = array_values(array_filter(
+                $parameters,
+                static fn(mixed $parameter): bool => !isset($declared['query ' . (self::str(self::obj($parameter)['name'] ?? null) ?? '')]),
+            ));
+            if ($missing === []) {
+                $report['superseded'][] = $label;
+
+                continue;
+            }
+            $op['parameters'] = [...self::arr($op['parameters'] ?? null), ...array_map(static fn(mixed $parameter): array => ['in' => 'query'] + self::obj($parameter), $missing)];
+            $op['x-fc-pending'] = $patch['x-fc-pending'] ?? true;
+            $op['x-fc-pending-fields'] = [
+                ...self::strings($op['x-fc-pending-fields'] ?? null),
+                ...array_map(static fn(mixed $parameter): string => self::str(self::obj($parameter)['name'] ?? null) ?? '', $missing),
+            ];
+            $item[$method] = $op;
+            $paths[$path] = $item;
             $report['applied'][] = $label;
         }
 

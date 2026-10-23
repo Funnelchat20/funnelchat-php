@@ -223,10 +223,48 @@ final class GeneratedTest extends TestCase
         self::assertStringContainsString('@phpstan-type PendingDeviceCapabilities', $schemas);
     }
 
+    public function testAddsThePendingQueryParametersOnlyWhileTheSnapshotLacksThem(): void
+    {
+        $patches = self::at(self::readJson('pending.json'), 'parameterPatches');
+        self::assertIsArray($patches);
+        $spec = self::readJson('funnelchat.json');
+        $routes = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
+            self::assertIsArray($route);
+            self::assertIsString($route['method']);
+            self::assertIsString($route['path']);
+            $routes["{$route['method']} {$route['path']}"] = $route;
+        }
+        foreach ($patches as $patch) {
+            self::assertIsArray($patch);
+            self::assertIsString($patch['method']);
+            self::assertIsString($patch['path']);
+            self::assertIsArray($patch['parameters']);
+            $declared = [];
+            foreach ((array) self::at($spec, 'paths', $patch['path'], $patch['method'], 'parameters') as $parameter) {
+                self::assertIsArray($parameter);
+                $declared[] = $parameter['name'] ?? null;
+            }
+            $route = $routes[strtoupper($patch['method']) . " {$patch['path']}"] ?? null;
+            self::assertIsArray($route, $patch['path']);
+            self::assertIsString($route['sdk']);
+            [$property, $name] = explode('->', $route['sdk']);
+            $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
+            foreach ($patch['parameters'] as $parameter) {
+                self::assertIsArray($parameter);
+                self::assertIsString($parameter['name']);
+                if (!\in_array($parameter['name'], $declared, true)) {
+                    self::assertTrue($route['pending'], $patch['path']);
+                    self::assertMatchesRegularExpression('/@param array\{.*?' . preg_quote($parameter['name'], '/') . '\?:/s', $doc, $route['sdk']);
+                }
+            }
+        }
+    }
+
     public function testHasEveryResource(): void
     {
         $client = $this->client(new MockHttpClient());
-        foreach (['contacts', 'conversations', 'messages', 'templates', 'forms', 'tags', 'customFields', 'groups', 'devices', 'webhooks'] as $property) {
+        foreach (['contacts', 'conversations', 'messages', 'templates', 'forms', 'tags', 'customFields', 'groups', 'devices', 'connectLinks', 'webhooks'] as $property) {
             self::assertTrue(property_exists($client, $property), $property);
         }
         self::assertSame(['verify', 'constructEvent'], array_values(array_intersect(get_class_methods($client->webhooks), ['verify', 'constructEvent'])));

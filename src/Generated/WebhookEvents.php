@@ -19,7 +19,9 @@ namespace Funnelchat\Generated;
  * When the spec only has an example, the type is inferred from it: keys in the example are
  * required and `null` values are `mixed`. `WebhookEventType` is every type the spec knows.
  *
+ * @phpstan-import-type PendingDeviceHealthState from Schemas
  * @phpstan-import-type PendingMessageError from Schemas
+ * @phpstan-import-type PendingWebhookDevice from Schemas
  *
  * @phpstan-type AccountBlockedData array{
  *     reason: string,
@@ -285,12 +287,9 @@ namespace Funnelchat\Generated;
  *     data: DailyReportGeneratedData,
  * }
  * @phpstan-type DeviceConnectedData array{
- *     device: array{
- *         id: int,
- *         name: string|null,
- *         'number': string|null,
- *     },
+ *     device: PendingWebhookDevice,
  *     connected_at: string,
+ *     connect_link_id: int|string|null,
  * }
  * @phpstan-type DeviceConnectedEvent array{
  *     id: string,
@@ -299,13 +298,21 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: DeviceConnectedData,
  * }
+ * @phpstan-type DeviceDeletedData array{
+ *     device: PendingWebhookDevice,
+ *     deleted_at: string,
+ * }
+ * @phpstan-type DeviceDeletedEvent array{
+ *     id: string,
+ *     type: 'device.deleted',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: DeviceDeletedData,
+ * }
  * @phpstan-type DeviceDisconnectedData array{
- *     device: array{
- *         id: int,
- *         name: string|null,
- *         'number': string|null,
- *     },
+ *     device: PendingWebhookDevice,
  *     disconnected_at: string,
+ *     reason: 'qr_logged_out'|'meta_account_not_registered'|'shadow_ban_protection'|'provider_error'|'unknown',
  * }
  * @phpstan-type DeviceDisconnectedEvent array{
  *     id: string,
@@ -313,6 +320,19 @@ namespace Funnelchat\Generated;
  *     version: int,
  *     occurred_at: string,
  *     data: DeviceDisconnectedData,
+ * }
+ * @phpstan-type DeviceHealthChangedData array{
+ *     device: PendingWebhookDevice,
+ *     previous_state: PendingDeviceHealthState,
+ *     state: PendingDeviceHealthState,
+ *     changed_at: string,
+ * }
+ * @phpstan-type DeviceHealthChangedEvent array{
+ *     id: string,
+ *     type: 'device.health_changed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: DeviceHealthChangedData,
  * }
  * @phpstan-type FlowCompletedData array{
  *     flow: array{
@@ -912,7 +932,7 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: WhatsappFormCompletedData,
  * }
- * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.disconnected'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
+ * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.deleted'|'device.disconnected'|'device.health_changed'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
  * @phpstan-type WebhookEvent array{
  *     id: string,
  *     type: string,
@@ -924,7 +944,7 @@ namespace Funnelchat\Generated;
 final class WebhookEvents
 {
     /**
-     * Every webhook event type known to the spec (53). `status`: `live` is emitted today;
+     * Every webhook event type known to the spec (55). `status`: `live` is emitted today;
      * `planned` can be subscribed to, but nothing is emitted yet. `pending` = taken from
      * spec/pending.json; `pendingFields` = fields of `data` added by spec/pending.json.
      *
@@ -949,8 +969,10 @@ final class WebhookEvents
         'conversation.assigned' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => "Una conversación quedó asignada a una persona del equipo o a un agente de IA.\n\nSe envía cuando una conversación queda asignada a una persona del equipo (`assignee.type` = `human`) o a un agente de IA (`assignee.type` = `ai`), por cualquier camino. `assignee` trae el tipo y el nombre, nunca un identificador. No se envía al desasignar, ni cuando se vuelve a enviar el mismo asignado."],
         'conversation.closed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => "Una conversación pasó a cerrada.\n\nSe envía cuando una conversación pasa de abierta a cerrada. No se envía si la conversación ya estaba cerrada ni cuando se reabre."],
         'daily_report.generated' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'The account\'s daily report was generated (clicks, joins and exits).'],
-        'device.connected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding.'],
-        'device.disconnected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers disconnected and can no longer send or receive.'],
+        'device.connected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['device.connection', 'device.external_reference', 'connect_link_id'], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. `connection`, `external_reference` and `connect_link_id` (`null` when it did not come from a link) are from contract 1022-alta-de-numeros, not in production yet.'],
+        'device.deleted' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'A number was deleted from the account (once per number, before the row is deleted). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number\'s session is closed. From contract 1022-alta-de-numeros: not emitted in production yet.'],
+        'device.disconnected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['device.connection', 'device.external_reference', 'reason'], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers disconnected and can no longer send or receive: a QR session closed, or an official number left without registration or protected from a shadow ban. `reason`, `device.connection` and `device.external_reference` are from contract 1022-alta-de-numeros, not in production yet; so are the official numbers.'],
+        'device.health_changed' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'schema', 'description' => 'The aggregated health of an official number changed (not on every Meta webhook). From contract 1022-alta-de-numeros: not emitted in production yet.'],
         'flow.completed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => "Un contacto terminó un flujo de automatización.\n\nSe envía una sola vez por cada ejecución de un flujo, cuando termina con éxito. No se envía si la ejecución se cortó, se canceló, quedó bloqueada o falló. `contact` es `null` si la ejecución no tiene un contacto asociado. Un flujo muy usado puede generar muchos eventos seguidos."],
         'flow.failed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => "La ejecución de un flujo para un contacto terminó por un error.\n\nSe envía una sola vez por cada ejecución de un flujo que termina por un error, no porque llegó al final. `reason` indica el motivo y toma uno de estos valores: `node_missing` (el paso a ejecutar ya no existe), `unknown_node_type` (el paso es de un tipo no reconocido), `missing_subflow` (el flujo que debía ejecutarse dentro de otro ya no existe), `malformed_node` (el paso tiene una configuración dañada), `loop_detected` (la ejecución dio vueltas sin esperar nada) y `execution_error` (un error inesperado detuvo la ejecución). No se envía si la ejecución se canceló, quedó bloqueada o se cortó porque se editó el flujo o se unieron contactos. `contact` es `null` si la ejecución no tiene un contacto asociado."],
         'group.blocked' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Un grupo quedó inoperable: sin administrador conectado, con el link de invitación inválido o suspendido por WhatsApp.'],

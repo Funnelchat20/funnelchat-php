@@ -22,22 +22,61 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type DeviceConnectionEventResource from Schemas
  * @phpstan-import-type DeviceHealthDetailResource from Schemas
  * @phpstan-import-type DeviceResource from Schemas
+ * @phpstan-import-type PendingDeviceCreate from Schemas
+ * @phpstan-import-type PendingDeviceQr from Schemas
+ * @phpstan-import-type PendingExternalReference from Schemas
  */
 final class Devices extends AbstractResource
 {
     /**
-     * `GET /api/v1/devices`. Iterate it with `foreach`, or call `firstPage()`.
+     * `GET /api/v1/devices`. Iterate it with `foreach`, or call `firstPage()`. Filter by your own
+     * reference with `external_reference` (exact match).
      *
      * Permission: `accounts:read`.
+     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
+     * `external_reference`.
      *
+     * @param array{
+     *     external_reference?: string,
+     *     page?: int,
+     *     cursor?: string,
+     * } $query
      * @param RequestOptions $options
      *
      * @return Paginator<DeviceResource>
      */
-    public function list(array $options = []): Paginator
+    public function list(array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<DeviceResource> $result */
-        $result = $this->client->paginate('/api/v1/devices', $options);
+        $result = $this->client->paginate('/api/v1/devices', ['query' => $query] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/devices`: creates a QR number (`connection: 'qr'`), not connected yet. Returns
+     * `['data' => <number>]`; then scan its QR with `qr()`, or send your customer a link with
+     * `connectLinks->create()`. It uses the plan's quota: see `Funnelchat\Exception\DeviceErrors`.
+     * Pass `idempotencyKey` in the options to repeat it safely.
+     *
+     * Permission: `accounts:operate`.
+     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     *
+     * @param PendingDeviceCreate $body
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: DeviceResource,
+     * }
+     */
+    public function create(array $body, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: DeviceResource,
+         * } $result
+         */
+        $result = $this->client->request('POST', '/api/v1/devices', ['body' => $body] + $options);
 
         return $result;
     }
@@ -64,6 +103,8 @@ final class Devices extends AbstractResource
      * `PUT /api/v1/devices/{device}`.
      *
      * Permission: `accounts:write`.
+     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
+     * `external_reference`.
      *
      * @param int $device
      * @param array{
@@ -78,6 +119,7 @@ final class Devices extends AbstractResource
      *     code?: string,
      *     whatsApp_business_app?: bool,
      *     capi_consent?: bool,
+     *     external_reference?: PendingExternalReference,
      * } $body
      * @param RequestOptions $options
      *
@@ -105,6 +147,33 @@ final class Devices extends AbstractResource
     {
         /** @var array<string, mixed> $result */
         $result = $this->client->request('GET', '/api/v1/devices/{device}/status', ['path' => ['device' => $device]] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `GET /api/v1/devices/{device}/qr`: the QR to scan, as a PNG data URI in `data.qr_code`
+     * (`null` once `data.connected`). Ask again after `data.expires_in` seconds, or wait for
+     * `device.connected`. An official number answers `422 provider_unsupported`.
+     *
+     * Permission: `accounts:operate`.
+     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     *
+     * @param int $device
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: PendingDeviceQr,
+     * }
+     */
+    public function qr(int|string $device, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: PendingDeviceQr,
+         * } $result
+         */
+        $result = $this->client->request('GET', '/api/v1/devices/{device}/qr', ['path' => ['device' => $device]] + $options);
 
         return $result;
     }

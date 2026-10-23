@@ -124,6 +124,16 @@ class ApiException extends FunnelchatException
     }
 
     /**
+     * Whether `errorCode` is one of the refusals of creating or connecting a number of
+     * {@see DeviceErrors} (`number_limit_reached`, `too_many_open_links`,
+     * `idempotency_key_mismatch`…): nothing was created.
+     */
+    public function isDeviceError(): bool
+    {
+        return DeviceErrors::isDeviceError($this->errorCode);
+    }
+
+    /**
      * Seconds to wait from a `Retry-After` header: delta-seconds (`"30"`, rounded up when it has
      * decimals) or an HTTP date. `null` when absent or unreadable.
      */

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Funnelchat\Generated;
 
+use Funnelchat\Resources\ConnectLinks;
 use Funnelchat\Resources\Contacts;
 use Funnelchat\Resources\Conversations;
 use Funnelchat\Resources\CustomFields;
@@ -78,6 +79,14 @@ trait ResourceProperties
     public readonly Devices $devices;
 
     /**
+     * Connect links (accounts area): a single-use page where your customer creates or reconnects a
+     * WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is
+     * created when the page ends. Learn the result by `device.connected` (with `connect_link_id`
+     * and `external_reference`), by `return_url`, or with `get()`.
+     */
+    public readonly ConnectLinks $connectLinks;
+
+    /**
      * Webhook subscriptions (accounts area) and the verification of deliveries.
      */
     public readonly Webhooks $webhooks;
@@ -93,6 +102,7 @@ trait ResourceProperties
         $this->customFields = new CustomFields($this);
         $this->groups = new Groups($this);
         $this->devices = new Devices($this);
+        $this->connectLinks = new ConnectLinks($this);
         $this->webhooks = new Webhooks($this);
     }
 }

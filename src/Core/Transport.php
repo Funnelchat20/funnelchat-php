@@ -7,6 +7,7 @@ namespace Funnelchat\Core;
 use Funnelchat\Exception\ApiConnectionException;
 use Funnelchat\Exception\ApiConnectionTimeoutException;
 use Funnelchat\Exception\ApiException;
+use Funnelchat\Exception\DeviceErrors;
 use Funnelchat\Exception\FunnelchatException;
 use Funnelchat\Exception\SendErrors;
 use Funnelchat\Funnelchat;
@@ -69,7 +70,13 @@ final class Transport
         $url = Url::join($this->baseUrl, $pathname, Url::serializeQuery($options['query'] ?? []));
         $errorUrl = Url::join($this->baseUrl, explode('?', $pathname, 2)[0], '');
         $maxRetries = max(0, $options['maxRetries'] ?? $this->maxRetries);
-        $retriesAllowed = ($options['retrySend'] ?? false) === true || !Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
+        $isSend = Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
+        $retriesAllowed = ($options['retrySend'] ?? false) === true || !$isSend;
+        $idempotencyKey = self::idempotencyKey($options);
+        // With an `Idempotency-Key` the API answers the same resource to a repeated write, so a write
+        // that may have been applied can be repeated as safely as a `PUT`. Not a send: the send
+        // routes do not take the header.
+        $retryAs = $idempotencyKey !== null && !$isSend ? 'PUT' : $verb;
         $onResponse = $options['onResponse'] ?? null;
         $timeout = $this->timeoutFor($options);
         [$body, $contentType] = $this->encodeBody(\array_key_exists('body', $options) ? $options['body'] : null);
@@ -80,6 +87,9 @@ final class Transport
         ];
         if ($contentType !== null) {
             $headers['Content-Type'] = $contentType;
+        }
+        if ($idempotencyKey !== null) {
+            $headers['Idempotency-Key'] = $idempotencyKey;
         }
         $headers = array_merge($headers, $this->defaultHeaders, $options['headers'] ?? []);
 
@@ -99,7 +109,7 @@ final class Transport
 
             if ($failure !== null || $response === null) {
                 $error = self::connectionError($failure, $timeout);
-                if ($canRetry && Retry::isRetryable($verb, null)) {
+                if ($canRetry && Retry::isRetryable($retryAs, null)) {
                     ($this->sleep)(Retry::delayMs($attempt, null) ?? 0);
 
                     continue;
@@ -123,7 +133,7 @@ final class Transport
             }
 
             $error = ApiException::from($status, $parsed, $responseHeaders, $verb, $errorUrl);
-            if ($canRetry && Retry::isRetryable($verb, $status) && !\in_array($error->errorCode, SendErrors::NOT_RETRYABLE, true)) {
+            if ($canRetry && Retry::isRetryable($retryAs, $status) && !self::isNotRetryable($error->errorCode)) {
                 $delay = Retry::delayMs($attempt, $error->retryAfter);
                 if ($delay !== null) {
                     ($this->sleep)($delay);
@@ -158,6 +168,30 @@ final class Transport
     }
 
     private function __clone() {}
+
+    /**
+     * The `idempotencyKey` option, checked: 1 to 255 characters.
+     *
+     * @param RawRequestOptions $options
+     */
+    private static function idempotencyKey(array $options): ?string
+    {
+        $key = $options['idempotencyKey'] ?? null;
+        if ($key === null) {
+            return null;
+        }
+        if (trim($key) === '' || \strlen($key) > 255) {
+            throw new FunnelchatException('`idempotencyKey` must have between 1 and 255 characters.');
+        }
+
+        return $key;
+    }
+
+    /** Codes that a retry does not fix soon, whatever their status. */
+    private static function isNotRetryable(?string $code): bool
+    {
+        return \in_array($code, SendErrors::NOT_RETRYABLE, true) || \in_array($code, DeviceErrors::NOT_RETRYABLE, true);
+    }
 
     /**
      * @param RawRequestOptions $options

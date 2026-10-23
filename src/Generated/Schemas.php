@@ -813,6 +813,8 @@ namespace Funnelchat\Generated;
  *     qr_allowed: bool,
  *     can_change_to_meta: bool,
  *     capabilities: PendingDeviceCapabilities,
+ *     connection: PendingConnectionType,
+ *     external_reference: PendingExternalReference,
  * }
  * @phpstan-type DisconnectSurveyResource array{
  *     pending: bool,
@@ -1703,6 +1705,53 @@ namespace Funnelchat\Generated;
  *     draft_id?: int,
  *     draft_version?: int,
  * }
+ * @phpstan-type PendingExternalReference string|null
+ * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'
+ * @phpstan-type PendingDeviceCreate array{
+ *     connection: 'qr',
+ *     alias?: string|null,
+ *     external_reference?: PendingExternalReference,
+ *     same_number_as?: int|null,
+ * }
+ * @phpstan-type PendingDeviceQr array{
+ *     connected: bool,
+ *     qr_code: string|null,
+ *     expires_in: int,
+ * }
+ * @phpstan-type PendingConnectLinkErrorCode 'link_expired'|'already_used'|'revoked'|'quota_exceeded'|'trial_number_blocked'|'facebook_auth_failed'|'meta_error'|'number_not_owned'|'qr_timeout'|'provider_error'|null
+ * @phpstan-type PendingConnectLinkCreate array{
+ *     type: 'meta'|'qr',
+ *     allowed_connection_types?: list<'coexistence'|'dedicated'>,
+ *     provision_us_number?: bool,
+ *     device_id?: int|null,
+ *     same_number_as?: int|null,
+ *     external_reference?: PendingExternalReference,
+ *     return_url?: string|null,
+ *     expires_in_minutes?: int,
+ * }
+ * @phpstan-type PendingConnectLink array{
+ *     id: int|string,
+ *     type: 'meta'|'qr',
+ *     status: 'pending'|'completed'|'failed'|'expired'|'revoked',
+ *     url?: string,
+ *     expires_at: string,
+ *     allowed_connection_types: list<'coexistence'|'dedicated'>|null,
+ *     provision_us_number: bool,
+ *     device_id: int|null,
+ *     external_reference: PendingExternalReference,
+ *     return_url: string|null,
+ *     error_code: PendingConnectLinkErrorCode,
+ *     created_at: string,
+ *     completed_at: string|null,
+ * }
+ * @phpstan-type PendingWebhookDevice array{
+ *     id: int,
+ *     name: string|null,
+ *     'number': string|null,
+ *     connection: PendingConnectionType,
+ *     external_reference: PendingExternalReference,
+ * }
+ * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'
  */
 final class Schemas
 {
