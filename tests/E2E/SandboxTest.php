@@ -235,8 +235,9 @@ final class SandboxTest extends TestCase
         self::assertSame('qr', $number['connection'] ?? null);
         self::assertSame('e2e-php-customer', $number['external_reference'] ?? null);
         self::assertEquals(false, $number['connected']);
-        // The same key with the same body: the same number, nothing new.
+        // The same key with the same body: the same number, nothing new, marked as a replay.
         self::assertSame($number['id'], $this->funnelchat->devices->create($body, ['idempotencyKey' => 'e2e-php-number'])['data']['id']);
+        self::assertSame(['true'], $this->funnelchat->lastResponse()?->headers['Idempotent-Replayed'] ?? $this->funnelchat->lastResponse()?->headers['idempotent-replayed'] ?? null);
 
         $qr = $this->funnelchat->devices->qr($number['id'])['data'];
         self::assertFalse($qr['connected']);
@@ -257,14 +258,19 @@ final class SandboxTest extends TestCase
             $ids[] = $device['id'];
         }
         self::assertSame([$number['id']], $ids);
+        // The call of 0.1, with only the options, still lists every number.
+        self::assertCount(3, iterator_to_array($this->funnelchat->devices->list(['maxRetries' => 0]), false));
 
         $this->sandbox('POST', "/_sandbox/devices/{$number['id']}/disconnect", ['reason' => 'qr_logged_out']);
         [$disconnected, $disconnectedDevice] = $this->event($this->waitForDeliveries(2)[1], $secret, 'device.disconnected');
         self::assertSame('qr_logged_out', $disconnected['reason']);
+        self::assertArrayHasKey('connect_link_id', $disconnected);
         self::assertSame('e2e-php-customer', $disconnectedDevice['external_reference']);
 
-        $this->funnelchat->request('DELETE', '/api/v1/devices/{device}', ['path' => ['device' => $number['id']]]);
+        self::assertNull($this->funnelchat->devices->delete($number['id']));
         [$deleted, $deletedDevice] = $this->event($this->waitForDeliveries(3)[2], $secret, 'device.deleted');
+        self::assertArrayHasKey('connect_link_id', $deleted);
+        self::assertNull($deleted['connect_link_id']);
         self::assertSame($number['id'], $deletedDevice['id']);
         self::assertSame('qr', $deletedDevice['connection']);
         self::assertSame('e2e-php-customer', $deletedDevice['external_reference']);
@@ -286,8 +292,10 @@ final class SandboxTest extends TestCase
         self::assertIsString($link['url'] ?? null);
         self::assertNull($link['device_id']);
 
-        // The sandbox's test page connects at once and sends the customer back with the result.
-        [$status, $location] = $this->openPage($link['url'] . '?connection=coexistence');
+        // Opening the page does not use the link (a messenger's preview cannot burn it); its button does.
+        self::assertSame(200, $this->openPage($link['url'])[0]);
+        self::assertSame('pending', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status']);
+        [$status, $location] = $this->openPage($link['url'] . '/start', ['connection' => 'coexistence']);
         self::assertSame(303, $status);
         self::assertIsString($location);
         self::assertStringStartsWith('https://app.example/connected?', $location);
@@ -302,6 +310,7 @@ final class SandboxTest extends TestCase
         self::assertSame((string) $read['device_id'], $result['device_id'] ?? null);
 
         [$connected, $connectedDevice] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.connected');
+        // The link id is an integer (amendment v0.1), the same in the event.
         self::assertSame($link['id'], $connected['connect_link_id']);
         self::assertSame($read['device_id'], $connectedDevice['id']);
         self::assertSame('coexistence', $connectedDevice['connection']);
@@ -344,20 +353,31 @@ final class SandboxTest extends TestCase
             $this->funnelchat->connectLinks->revoke($link['id']);
             self::fail('should have thrown');
         } catch (ConflictException $exception) {
-            self::assertSame(409, $exception->status);
+            self::assertSame('link_not_pending', $exception->errorCode);
+            self::assertTrue($exception->isDeviceError());
         }
         self::assertSame(410, $this->openPage((string) ($link['url'] ?? ''))[0]);
     }
 
     public function testTheRefusalsOfCreatingNumbersAndLinks(): void
     {
-        $this->funnelchat->devices->create(['connection' => 'qr'], ['idempotencyKey' => 'e2e-php-mismatch']);
+        $first = $this->funnelchat->devices->create(['connection' => 'qr'], ['idempotencyKey' => 'e2e-php-mismatch'])['data']['id'];
         try {
             $this->funnelchat->devices->create(['connection' => 'qr', 'alias' => 'Another'], ['idempotencyKey' => 'e2e-php-mismatch']);
             self::fail('should have thrown');
         } catch (UnprocessableEntityException $exception) {
             self::assertSame('idempotency_key_mismatch', $exception->errorCode);
             self::assertTrue($exception->isDeviceError());
+        }
+
+        // One QR number not connected yet per account: another one names it.
+        try {
+            $this->funnelchat->devices->create(['connection' => 'qr']);
+            self::fail('should have thrown');
+        } catch (ConflictException $exception) {
+            self::assertSame('pending_number_exists', $exception->errorCode);
+            self::assertIsArray($exception->body);
+            self::assertSame($first, $exception->body['device_id'] ?? null);
         }
 
         $this->sandbox('POST', '/_sandbox/numbers', ['limit' => 3]);
@@ -367,6 +387,8 @@ final class SandboxTest extends TestCase
         } catch (PermissionDeniedException $exception) {
             self::assertSame('number_limit_reached', $exception->errorCode);
             self::assertTrue($exception->isDeviceError());
+            self::assertIsArray($exception->body);
+            self::assertArrayHasKey('pending_device_ids', $exception->body);
             $this->assertRequestId($exception->requestId);
         }
 
@@ -392,7 +414,9 @@ final class SandboxTest extends TestCase
         $funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 2, sleep: static function (int $milliseconds) use (&$sleeps): void {
             $sleeps[] = $milliseconds;
         });
-        // 20 open links per account: the 21st is refused, and waiting does not fix it.
+        // 20 open links per account: the 21st is refused, and waiting does not fix it. The per-minute
+        // limit (10) is raised so it does not come first.
+        $this->sandbox('POST', '/_sandbox/numbers', ['links_per_minute' => 100]);
         for ($i = 0; $i < 20; ++$i) {
             $funnelchat->connectLinks->create(['type' => 'qr']);
         }
@@ -417,6 +441,27 @@ final class SandboxTest extends TestCase
         self::assertSame([], $sleeps);
     }
 
+    public function testThePerMinuteLimitOfLinksIsAPlainRateLimitThatIsRetried(): void
+    {
+        $sleeps = [];
+        $funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 1, sleep: static function (int $milliseconds) use (&$sleeps): void {
+            $sleeps[] = $milliseconds;
+        });
+        for ($i = 0; $i < 10; ++$i) {
+            $funnelchat->connectLinks->create(['type' => 'qr']);
+        }
+        try {
+            $funnelchat->connectLinks->create(['type' => 'qr']);
+            self::fail('should have thrown');
+        } catch (RateLimitException $exception) {
+            // Laravel's own 429: no code, with `Retry-After`. Nothing was created, so it was retried.
+            self::assertNull($exception->errorCode);
+            self::assertFalse($exception->isDeviceError());
+            self::assertGreaterThan(0, $exception->retryAfter);
+        }
+        self::assertCount(1, $sleeps);
+    }
+
     /**
      * A signed `device.*` delivery, verified with the SDK: its `data` and the `device` in it.
      *
@@ -435,13 +480,20 @@ final class SandboxTest extends TestCase
     }
 
     /**
-     * Opens a connect link as a browser would (no key, no redirect followed).
+     * Opens a connect link as a browser would (no key, no redirect followed): a `GET`, or the `POST`
+     * of a form when `$form` is given.
+     *
+     * @param array<string, string>|null $form
      *
      * @return array{int, string|null} the status and the `Location` header
      */
-    private function openPage(string $url): array
+    private function openPage(string $url, ?array $form = null): array
     {
-        $context = stream_context_create(['http' => ['method' => 'GET', 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 5]]);
+        $http = ['method' => 'GET', 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 5];
+        if ($form !== null) {
+            $http = ['method' => 'POST', 'header' => 'Content-Type: application/x-www-form-urlencoded', 'content' => http_build_query($form)] + $http;
+        }
+        $context = stream_context_create(['http' => $http]);
         $stream = @fopen($url, 'r', false, $context);
         self::assertNotFalse($stream, "the page does not answer at {$url}");
         $headers = stream_get_meta_data($stream)['wrapper_data'] ?? [];
