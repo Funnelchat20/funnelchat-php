@@ -533,7 +533,7 @@ The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), wi
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The SDK's end-to-end tests run against it (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`):
+The SDK's end-to-end tests run against it (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`; a QR number created, scanned, disconnected and deleted, a connect link completed on its page, the refusals and the four signed `device.*` events):
 
 ```bash
 npx funnelchat-sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet

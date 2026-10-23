@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Funnelchat\Tests\E2E;
 
 use Funnelchat\Exception\ApiException;
+use Funnelchat\Exception\ConflictException;
+use Funnelchat\Exception\InternalServerException;
+use Funnelchat\Exception\PermissionDeniedException;
+use Funnelchat\Exception\RateLimitException;
 use Funnelchat\Exception\RouteNotFoundException;
 use Funnelchat\Exception\UnprocessableEntityException;
 use Funnelchat\Funnelchat;
@@ -219,6 +223,242 @@ final class SandboxTest extends TestCase
             self::assertSame('route_not_found', $exception->errorCode);
             $this->assertRequestId($exception->requestId);
         }
+    }
+
+    public function testAQrNumberIsCreatedScannedDisconnectedAndDeletedWithItsSignedNotices(): void
+    {
+        $hook = $this->startReceiver();
+        $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['device.connected', 'device.disconnected', 'device.deleted']])['secret'];
+
+        $body = ['connection' => 'qr', 'alias' => 'Store 12', 'external_reference' => 'e2e-php-customer'];
+        $number = $this->funnelchat->devices->create($body, ['idempotencyKey' => 'e2e-php-number'])['data'];
+        self::assertSame('qr', $number['connection']);
+        self::assertSame('e2e-php-customer', $number['external_reference']);
+        self::assertEquals(false, $number['connected']);
+        // The same key with the same body: the same number, nothing new.
+        self::assertSame($number['id'], $this->funnelchat->devices->create($body, ['idempotencyKey' => 'e2e-php-number'])['data']['id']);
+
+        $qr = $this->funnelchat->devices->qr($number['id'])['data'];
+        self::assertFalse($qr['connected']);
+        self::assertStringStartsWith('data:image/png;base64,', (string) $qr['qr_code']);
+        self::assertGreaterThan(0, $qr['expires_in']);
+
+        $this->sandbox('POST', "/_sandbox/devices/{$number['id']}/connect", ['number' => '5491155550000']);
+        [$connected, $connectedDevice] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.connected');
+        self::assertSame($number['id'], $connectedDevice['id']);
+        self::assertSame('qr', $connectedDevice['connection']);
+        self::assertSame('e2e-php-customer', $connectedDevice['external_reference']);
+        self::assertNull($connected['connect_link_id']);
+        self::assertTrue($this->funnelchat->devices->qr($number['id'])['data']['connected']);
+        self::assertNull($this->funnelchat->devices->qr($number['id'])['data']['qr_code']);
+
+        $ids = [];
+        foreach ($this->funnelchat->devices->list(['external_reference' => 'e2e-php-customer']) as $device) {
+            $ids[] = $device['id'];
+        }
+        self::assertSame([$number['id']], $ids);
+
+        $this->sandbox('POST', "/_sandbox/devices/{$number['id']}/disconnect", ['reason' => 'qr_logged_out']);
+        [$disconnected, $disconnectedDevice] = $this->event($this->waitForDeliveries(2)[1], $secret, 'device.disconnected');
+        self::assertSame('qr_logged_out', $disconnected['reason']);
+        self::assertSame('e2e-php-customer', $disconnectedDevice['external_reference']);
+
+        $this->funnelchat->request('DELETE', '/api/v1/devices/{device}', ['path' => ['device' => $number['id']]]);
+        [$deleted, $deletedDevice] = $this->event($this->waitForDeliveries(3)[2], $secret, 'device.deleted');
+        self::assertSame($number['id'], $deletedDevice['id']);
+        self::assertSame('qr', $deletedDevice['connection']);
+        self::assertSame('e2e-php-customer', $deletedDevice['external_reference']);
+    }
+
+    public function testAConnectLinkCompletesOnItsPageRedirectsAndNotifiesWithItsId(): void
+    {
+        $hook = $this->startReceiver();
+        $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['device.connected']])['secret'];
+
+        $link = $this->funnelchat->connectLinks->create([
+            'type' => 'meta',
+            'allowed_connection_types' => ['coexistence', 'dedicated'],
+            'external_reference' => 'e2e-php-link',
+            'return_url' => 'https://app.example/connected',
+            'expires_in_minutes' => 60,
+        ], ['idempotencyKey' => 'e2e-php-link'])['data'];
+        self::assertSame('pending', $link['status']);
+        self::assertIsString($link['url'] ?? null);
+        self::assertNull($link['device_id']);
+
+        // The sandbox's test page connects at once and sends the customer back with the result.
+        [$status, $location] = $this->openPage($link['url'] . '?connection=coexistence');
+        self::assertSame(303, $status);
+        self::assertIsString($location);
+        self::assertStringStartsWith('https://app.example/connected?', $location);
+        parse_str((string) parse_url($location, \PHP_URL_QUERY), $result);
+        self::assertSame('completed', $result['status'] ?? null);
+        self::assertSame((string) $link['id'], $result['connect_link_id'] ?? null);
+
+        $read = $this->funnelchat->connectLinks->get($link['id'])['data'];
+        self::assertSame('completed', $read['status']);
+        self::assertArrayNotHasKey('url', $read);
+        self::assertIsInt($read['device_id']);
+        self::assertSame((string) $read['device_id'], $result['device_id'] ?? null);
+
+        [$connected, $connectedDevice] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.connected');
+        self::assertSame($link['id'], $connected['connect_link_id']);
+        self::assertSame($read['device_id'], $connectedDevice['id']);
+        self::assertSame('coexistence', $connectedDevice['connection']);
+        self::assertSame('e2e-php-link', $connectedDevice['external_reference']);
+
+        // QR on the number in coexistence: the same phone, no new place.
+        $qr = $this->funnelchat->devices->create(['connection' => 'qr', 'same_number_as' => $read['device_id']])['data'];
+        self::assertSame('qr', $qr['connection']);
+
+        $completed = [];
+        foreach ($this->funnelchat->connectLinks->list(['status' => 'completed', 'external_reference' => 'e2e-php-link']) as $item) {
+            $completed[] = $item['id'];
+        }
+        self::assertSame([$link['id']], $completed);
+    }
+
+    public function testAHealthChangeOfAnOfficialNumberArrivesSigned(): void
+    {
+        $hook = $this->startReceiver();
+        $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['device.health_changed']])['secret'];
+
+        $this->sandbox('POST', '/_sandbox/devices/' . self::OFFICIAL_DEVICE . '/health', ['state' => 'limited']);
+        [$changed, $device] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.health_changed');
+
+        self::assertSame(self::OFFICIAL_DEVICE, $device['id']);
+        self::assertSame('dedicated', $device['connection']);
+        self::assertSame('limited', $changed['state']);
+        self::assertContains($changed['previous_state'], ['available', 'limited', 'blocked', 'unknown']);
+        self::assertNotSame($changed['previous_state'], $changed['state']);
+        self::assertIsString($changed['changed_at']);
+    }
+
+    public function testAPendingLinkIsRevokedOnceAndAUsedPageIsClosed(): void
+    {
+        $link = $this->funnelchat->connectLinks->create(['type' => 'qr'])['data'];
+
+        self::assertNull($this->funnelchat->connectLinks->revoke($link['id']));
+        self::assertSame('revoked', $this->funnelchat->connectLinks->get($link['id'])['data']['status']);
+        try {
+            $this->funnelchat->connectLinks->revoke($link['id']);
+            self::fail('should have thrown');
+        } catch (ConflictException $exception) {
+            self::assertSame(409, $exception->status);
+        }
+        self::assertSame(410, $this->openPage((string) ($link['url'] ?? ''))[0]);
+    }
+
+    public function testTheRefusalsOfCreatingNumbersAndLinks(): void
+    {
+        $this->funnelchat->devices->create(['connection' => 'qr'], ['idempotencyKey' => 'e2e-php-mismatch']);
+        try {
+            $this->funnelchat->devices->create(['connection' => 'qr', 'alias' => 'Another'], ['idempotencyKey' => 'e2e-php-mismatch']);
+            self::fail('should have thrown');
+        } catch (UnprocessableEntityException $exception) {
+            self::assertSame('idempotency_key_mismatch', $exception->errorCode);
+            self::assertTrue($exception->isDeviceError());
+        }
+
+        $this->sandbox('POST', '/_sandbox/numbers', ['limit' => 3]);
+        try {
+            $this->funnelchat->devices->create(['connection' => 'qr']);
+            self::fail('should have thrown');
+        } catch (PermissionDeniedException $exception) {
+            self::assertSame('number_limit_reached', $exception->errorCode);
+            self::assertTrue($exception->isDeviceError());
+            $this->assertRequestId($exception->requestId);
+        }
+
+        $this->sandbox('POST', '/_sandbox/numbers', ['included' => false]);
+        try {
+            $this->funnelchat->connectLinks->create(['type' => 'qr']);
+            self::fail('should have thrown');
+        } catch (PermissionDeniedException $exception) {
+            self::assertSame('numbers_not_included', $exception->errorCode);
+        }
+
+        try {
+            $this->funnelchat->devices->qr(self::OFFICIAL_DEVICE);
+            self::fail('should have thrown');
+        } catch (UnprocessableEntityException $exception) {
+            self::assertSame('provider_unsupported', $exception->errorCode);
+        }
+    }
+
+    public function testTooManyOpenLinksAndTheMetaSwitchAreNotRetried(): void
+    {
+        $sleeps = [];
+        $funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 2, sleep: static function (int $milliseconds) use (&$sleeps): void {
+            $sleeps[] = $milliseconds;
+        });
+        // 20 open links per account: the 21st is refused, and waiting does not fix it.
+        for ($i = 0; $i < 20; ++$i) {
+            $funnelchat->connectLinks->create(['type' => 'qr']);
+        }
+        try {
+            $funnelchat->connectLinks->create(['type' => 'qr']);
+            self::fail('should have thrown');
+        } catch (RateLimitException $exception) {
+            self::assertSame('too_many_open_links', $exception->errorCode);
+            self::assertTrue($exception->isDeviceError());
+        }
+
+        $this->sandbox('POST', '/_sandbox/reset');
+        $this->sandbox('POST', '/_sandbox/numbers', ['meta_connect' => false]);
+        try {
+            $funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['coexistence']], ['idempotencyKey' => 'e2e-php-meta-off']);
+            self::fail('should have thrown');
+        } catch (InternalServerException $exception) {
+            self::assertSame(503, $exception->status);
+            self::assertSame('meta_connect_disabled', $exception->errorCode);
+        }
+
+        self::assertSame([], $sleeps);
+    }
+
+    /**
+     * A signed `device.*` delivery, verified with the SDK: its `data` and the `device` in it.
+     *
+     * @param array{signature: string|null, body: string} $delivery
+     *
+     * @return array{array<array-key, mixed>, array<array-key, mixed>}
+     */
+    private function event(array $delivery, string $secret, string $type): array
+    {
+        $event = Webhook::constructEvent($delivery['body'], $delivery['signature'], $secret);
+        self::assertSame($type, $event['type']);
+        self::assertIsArray($event['data']);
+        self::assertIsArray($event['data']['device'] ?? null);
+
+        return [$event['data'], $event['data']['device']];
+    }
+
+    /**
+     * Opens a connect link as a browser would (no key, no redirect followed).
+     *
+     * @return array{int, string|null} the status and the `Location` header
+     */
+    private function openPage(string $url): array
+    {
+        $context = stream_context_create(['http' => ['method' => 'GET', 'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 5]]);
+        $stream = @fopen($url, 'r', false, $context);
+        self::assertNotFalse($stream, "the page does not answer at {$url}");
+        $headers = stream_get_meta_data($stream)['wrapper_data'] ?? [];
+        fclose($stream);
+        self::assertIsArray($headers);
+        $status = 0;
+        $location = null;
+        foreach ($headers as $line) {
+            self::assertIsString($line);
+            if (preg_match('#^HTTP/\S+ (\d{3})#', $line, $match) === 1) {
+                $status = (int) $match[1];
+            } elseif (stripos($line, 'Location:') === 0) {
+                $location = trim(substr($line, \strlen('Location:')));
+            }
+        }
+
+        return [$status, $location];
     }
 
     private function assertRequestId(?string $id): void
