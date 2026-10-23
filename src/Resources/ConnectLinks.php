@@ -17,11 +17,11 @@ use Funnelchat\Pagination\Paginator;
 /**
  * Connect links (accounts area): a single-use page where your customer creates or reconnects a
  * WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is created
- * when the page ends. Learn the result by `device.connected` (with `connect_link_id` and
- * `external_reference`), by `return_url`, or with `retrieve()`.
+ * when the page ends. Learn the result by `device.connected` (with `connect_link_id`, the link of
+ * that connection, and `external_reference`), by `return_url`, or with `retrieve()`.
  *
  * Creating and revoking need `accounts:operate`; reading, `accounts:read`. PENDING OF THE SPEC:
- * from the contract 1022-alta-de-numeros v0.1, not in production yet (spec/pending.json,
+ * from the contract 1022-alta-de-numeros v0.2, not in production yet (spec/pending.json,
  * `accounts-number-onboarding`).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
@@ -34,8 +34,12 @@ final class ConnectLinks extends AbstractResource
      * `POST /api/v1/connect-links`: returns `['data' => <link>]` with its `url`, the only time the
      * URL comes: give it to your customer. `allowed_connection_types` is required with `type:
      * 'meta'` and forbidden with `type: 'qr'`; `device_id` reconnects that number without new
-     * quota. Refusals: see `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the
-     * options to repeat it safely.
+     * quota. `provision_us_number` (a US pool number, always dedicated) needs `dedicated` in
+     * `allowed_connection_types` and does not go with `device_id`: otherwise `422 invalid_request`.
+     * A `meta` link stays `pending` after a Facebook or Meta failure, so your customer can retry on
+     * the page; the fifth failure makes it `failed`. Refusals: see
+     * `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to repeat it
+     * safely.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).

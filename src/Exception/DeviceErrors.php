@@ -8,9 +8,9 @@ namespace Funnelchat\Exception;
  * The stable error codes of creating and connecting numbers by API: `devices->create()`,
  * `devices->qr()` and `connectLinks`. When the API answers one of these, nothing was created.
  *
- * Source: the contract `1022-alta-de-numeros` v0.1 (23-10, its "Enmienda v0.1", which describes
- * accounts `feat/alta-de-numeros-api` @ 52d49b319), not the code: these codes are not in production
- * yet. The quota codes are the ones the panel already answers.
+ * Source: the contract `1022-alta-de-numeros` v0.2 (23-10, its "Enmienda v0.1" and "Enmienda v0.2",
+ * which describe accounts `feat/alta-de-numeros-api` @ 52d49b319 and @ 8852b3fad), not the code:
+ * these codes are not in production yet. The quota codes are the ones the panel already answers.
  */
 final class DeviceErrors
 {
@@ -28,7 +28,7 @@ final class DeviceErrors
      * The request:
      * - `pending_number_exists` (409, with `device_id`): the account already has a QR number not connected yet. Connect it (`devices->qr()`) or delete it before creating another.
      * - `operation_in_progress` (409): another creation of the account, or the first call with the same `Idempotency-Key`, is still running.
-     * - `invalid_request` (422, with `errors`): a field is wrong.
+     * - `invalid_request` (422, with `errors`): a field is wrong, also `provision_us_number` without `dedicated` in `allowed_connection_types` or with `device_id`.
      * - `invalid_reference_device` (422): `same_number_as` or `device_id` is not a number of the account that can be used.
      * - `qr_requires_coexistence` (422 creating, 409 `devices->qr()`): QR can only be added to an official number in coexistence.
      * - `method_already_present` (422, with `device_id`): that phone number already has this method.

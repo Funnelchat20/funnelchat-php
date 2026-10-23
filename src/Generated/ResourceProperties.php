@@ -81,8 +81,9 @@ trait ResourceProperties
     /**
      * Connect links (accounts area): a single-use page where your customer creates or reconnects a
      * WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is
-     * created when the page ends. Learn the result by `device.connected` (with `connect_link_id`
-     * and `external_reference`), by `return_url`, or with `retrieve()`.
+     * created when the page ends. Learn the result by `device.connected` (with `connect_link_id`,
+     * the link of that connection, and `external_reference`), by `return_url`, or with
+     * `retrieve()`.
      */
     public readonly ConnectLinks $connectLinks;
 

@@ -170,7 +170,7 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 
 ## Creating and connecting numbers
 
-> **Not in production yet.** This follows the contract of the API (v0.1, 23-10); accounts is building it. Until it ships, the API refuses these routes. Try it against [the sandbox](#testing-against-the-sandbox).
+> **Not in production yet.** This follows the contract of the API (v0.2, 23-10); accounts is building it. Until it ships, the API refuses these routes. Try it against [the sandbox](#testing-against-the-sandbox).
 
 A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need `accounts:operate`; reading links, `accounts:read`. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
 
@@ -207,9 +207,10 @@ $link = $funnelchat->connectLinks->create([
 sendToYourCustomer($link['url']); // the URL comes only in this answer
 ```
 
-- With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. Your customer pays Meta directly, with a payment method in their WhatsApp account.
+- With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. A pool number is always dedicated: it needs `dedicated` in `allowed_connection_types` and does not go with `device_id`; otherwise `422 invalid_request`. Your customer pays Meta directly, with a payment method in their WhatsApp account.
 - `'device_id' => 41` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
 - The page claims the link when your customer presses its button, not when it opens: a messenger's link preview does not use it up.
+- A `meta` link tolerates retries: after a Facebook or Meta failure it stays `pending` and your customer can try again on the page; the fifth failure makes it `failed` (`facebook_auth_failed` or `meta_error`). `quota_exceeded`, `trial_number_blocked` and `number_not_owned` close it at the first attempt.
 - Learn the result three ways: the `device.connected` event (with `connect_link_id` and `external_reference`), `return_url` (it gets `connect_link_id`, `status`, and `device_id` or `error_code`), or reading the link:
 
 ```php
@@ -247,7 +248,7 @@ Deleting is physical and frees the quota: an official number loses the app subsc
 | `device.deleted` | `device`, `deleted_at`, `connect_link_id` |
 | `device.health_changed` | `device`, `previous_state`, `state` (`available`, `limited`, `blocked` or `unknown`), `changed_at`, `connect_link_id` |
 
-`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence`, `dedicated` or `null`) and `external_reference`. `connect_link_id` is the link that connected the number the last time, or `null`. The fields that production does not send yet (`device.connection`, `device.external_reference`, `connect_link_id` and `reason`) are optional in the types: read them with `?? null`. The types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
+`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence`, `dedicated` or `null`) and `external_reference`. `connect_link_id` is, in `device.connected`, the link of that connection; in the other three, the last link that connected the number; `null` when no link did. The fields that production does not send yet (`device.connection`, `device.external_reference`, `connect_link_id` and `reason`) are optional in the types: read them with `?? null`. The types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
 
 ```php
 $event = $funnelchat->webhooks->constructEvent($body, $signature, $secret);
@@ -514,7 +515,7 @@ All of it comes from the code of the domains at the tags running in production o
 | The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
 | Webhook subscriptions (`/api/v1/webhooks…`, with `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
-| **Not in production yet:** creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`) and the fields and events of `device.*` | the contract `1022-alta-de-numeros` v0.1 (23-10), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
+| **Not in production yet:** creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`) and the fields and events of `device.*` | the contract `1022-alta-de-numeros` v0.2 (23-10), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
 
 The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`, from the contract.
 
