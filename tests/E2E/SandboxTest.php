@@ -232,8 +232,8 @@ final class SandboxTest extends TestCase
 
         $body = ['connection' => 'qr', 'alias' => 'Store 12', 'external_reference' => 'e2e-php-customer'];
         $number = $this->funnelchat->devices->create($body, ['idempotencyKey' => 'e2e-php-number'])['data'];
-        self::assertSame('qr', $number['connection']);
-        self::assertSame('e2e-php-customer', $number['external_reference']);
+        self::assertSame('qr', $number['connection'] ?? null);
+        self::assertSame('e2e-php-customer', $number['external_reference'] ?? null);
         self::assertEquals(false, $number['connected']);
         // The same key with the same body: the same number, nothing new.
         self::assertSame($number['id'], $this->funnelchat->devices->create($body, ['idempotencyKey' => 'e2e-php-number'])['data']['id']);
@@ -295,7 +295,7 @@ final class SandboxTest extends TestCase
         self::assertSame('completed', $result['status'] ?? null);
         self::assertSame((string) $link['id'], $result['connect_link_id'] ?? null);
 
-        $read = $this->funnelchat->connectLinks->get($link['id'])['data'];
+        $read = $this->funnelchat->connectLinks->retrieve($link['id'])['data'];
         self::assertSame('completed', $read['status']);
         self::assertArrayNotHasKey('url', $read);
         self::assertIsInt($read['device_id']);
@@ -309,7 +309,7 @@ final class SandboxTest extends TestCase
 
         // QR on the number in coexistence: the same phone, no new place.
         $qr = $this->funnelchat->devices->create(['connection' => 'qr', 'same_number_as' => $read['device_id']])['data'];
-        self::assertSame('qr', $qr['connection']);
+        self::assertSame('qr', $qr['connection'] ?? null);
 
         $completed = [];
         foreach ($this->funnelchat->connectLinks->list(['status' => 'completed', 'external_reference' => 'e2e-php-link']) as $item) {
@@ -339,7 +339,7 @@ final class SandboxTest extends TestCase
         $link = $this->funnelchat->connectLinks->create(['type' => 'qr'])['data'];
 
         self::assertNull($this->funnelchat->connectLinks->revoke($link['id']));
-        self::assertSame('revoked', $this->funnelchat->connectLinks->get($link['id'])['data']['status']);
+        self::assertSame('revoked', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status']);
         try {
             $this->funnelchat->connectLinks->revoke($link['id']);
             self::fail('should have thrown');

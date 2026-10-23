@@ -68,8 +68,8 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
 | `$funnelchat->groups` | [Read only](#groups): `list`, `retrieve`, `listByDevice`, `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages` and `listActions`. |
-| `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `status`, `health`, `me`, `checkPhone`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
-| `$funnelchat->connectLinks` | `create`, `get`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
+| `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `delete`, `status`, `health`, `me`, `checkPhone`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
+| `$funnelchat->connectLinks` | `create`, `retrieve`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
 | `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
 
 The resources the [Node SDK](https://github.com/Funnelchat20/funnelchat-node) also has have the same methods, with the arguments in the same order: path parameters first, then the query or the body (arrays), and the call options last.
@@ -170,9 +170,9 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 
 ## Creating and connecting numbers
 
-> **Not in production yet.** This follows the contract of the API (22-10); accounts is building it. Until it ships, the API refuses these routes. Try it against [the sandbox](#testing-against-the-sandbox).
+> **Not in production yet.** This follows the contract of the API (v0.1, 23-10); accounts is building it. Until it ships, the API refuses these routes. Try it against [the sandbox](#testing-against-the-sandbox).
 
-A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, asking for the QR and creating or revoking links need `accounts:operate`; reading links, `accounts:read`. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
+A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need `accounts:operate`; reading links, `accounts:read`. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
 
 ### A QR number
 
@@ -183,11 +183,13 @@ $number = $funnelchat->devices->create(
 )['data'];
 
 $qr = $funnelchat->devices->qr($number['id'])['data'];
-// $qr['qr_code'] is a PNG data URI: <img src="…">. Ask again after $qr['expires_in'] seconds,
-// until $qr['connected'], or wait for the device.connected event.
+// $qr['qr_code'] is a PNG data URI: <img src="…">. Ask again after $qr['expires_in'] seconds
+// (20 with a QR, 3 while the session starts, 0 once connected), or wait for device.connected.
 ```
 
-`same_number_as` adds QR to an official number in coexistence, without using quota. A QR number is not official: WhatsApp can ban it.
+- The account has at most one QR number not connected yet: creating another answers `409 pending_number_exists` with its `device_id`. Connect that one, or delete it, first.
+- `same_number_as` adds QR to an official number in coexistence, without using quota.
+- A QR number is not official: WhatsApp can ban it.
 
 ### A connect link
 
@@ -198,7 +200,7 @@ $link = $funnelchat->connectLinks->create([
     'type' => 'meta',                                          // or 'qr'
     'allowed_connection_types' => ['coexistence', 'dedicated'], // only with 'meta'; with both, your customer chooses
     'external_reference' => 'customer-8841',
-    'return_url' => 'https://app.example.com/numbers/done',
+    'return_url' => 'https://app.example.com/numbers/done',    // https, up to 2048 characters
     'expires_in_minutes' => 1440,                              // 30 to 10080
 ], ['idempotencyKey' => 'customer-8841-link'])['data'];
 
@@ -206,49 +208,53 @@ sendToYourCustomer($link['url']); // the URL comes only in this answer
 ```
 
 - With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. Your customer pays Meta directly, with a payment method in their WhatsApp account.
-- `'device_id' => 41` reconnects that number instead of creating one, without new quota.
-- Learn the result three ways: the `device.connected` event (with `connect_link_id` and `external_reference`), `return_url` (it gets `connect_link_id`, `status`, `device_id` and `error_code`), or reading the link:
+- `'device_id' => 41` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
+- The page claims the link when your customer presses its button, not when it opens: a messenger's link preview does not use it up.
+- Learn the result three ways: the `device.connected` event (with `connect_link_id` and `external_reference`), `return_url` (it gets `connect_link_id`, `status`, and `device_id` or `error_code`), or reading the link:
 
 ```php
-$link = $funnelchat->connectLinks->get($link['id'])['data'];
+$link = $funnelchat->connectLinks->retrieve($link['id'])['data'];
 // status: pending, completed, failed (see error_code), expired or revoked; device_id once completed
 
-foreach ($funnelchat->connectLinks->list(['status' => 'pending']) as $open) { … }
-$funnelchat->connectLinks->revoke($open['id']); // only a pending link; otherwise 409
+foreach ($funnelchat->connectLinks->list(['status' => 'pending']) as $open) { … } // newest first
+$funnelchat->connectLinks->revoke($open['id']); // only a pending link; otherwise 409 link_not_pending
 ```
 
-At most 20 links are open per account.
+At most 20 links are open per account, and 10 can be created per minute.
 
-### Finding your customer's numbers
+### Finding, tagging and deleting your customer's numbers
 
 ```php
 foreach ($funnelchat->devices->list(['external_reference' => 'customer-8841']) as $number) { … }
 $funnelchat->devices->update(41, ['external_reference' => 'customer-9000']);
+$funnelchat->devices->delete(41);
 ```
+
+Deleting is physical and frees the quota: an official number loses the app subscription but stays registered with Meta, and a QR number's session is closed. It emits `device.deleted`. There is no undo.
+
+`devices->list()` now takes the query first, like every other list; the call of 0.1, `devices->list($options)`, still works.
 
 ### Idempotency-Key
 
-`devices->create()` and `connectLinks->create()` take `idempotencyKey` in the options (up to 255 characters), sent as the `Idempotency-Key` header. For 24 hours, the same key with the same body answers the same number or link without creating another; with a different body, `422 idempotency_key_mismatch`; while the first call runs, `409 operation_in_progress`. With a key, the SDK also repeats the create after a timeout or a `5xx` (see [Retries](#retries)).
+`devices->create()` and `connectLinks->create()` take `idempotencyKey` in the options (1 to 255 characters), sent as the `Idempotency-Key` header. For 24 hours, the same key with the same body answers the same number or link without creating another, with the header `Idempotent-Replayed: true` (read it in `$funnelchat->lastResponse()->headers`). Only successful answers are replayed: a refusal is evaluated again. With a different body, `422 idempotency_key_mismatch`; while the first call runs, `409 operation_in_progress`. With a key, the SDK also repeats the create after a timeout or a `5xx` (see [Retries](#retries)).
 
 ### The events of a number
 
 | Event | `data` |
 |---|---|
-| `device.connected` | `device`, `connected_at`, `connect_link_id` (`null` when it did not come from a link) |
-| `device.disconnected` | `device`, `disconnected_at`, `reason`: `qr_logged_out`, `meta_account_not_registered`, `shadow_ban_protection`, `provider_error` or `unknown` |
-| `device.deleted` | `device`, `deleted_at` |
-| `device.health_changed` | `device`, `previous_state`, `state` (`available`, `limited`, `blocked` or `unknown`), `changed_at` |
+| `device.connected` | `device`, `connected_at`, `connect_link_id` |
+| `device.disconnected` | `device`, `disconnected_at`, `reason`: `qr_logged_out`, `meta_account_not_registered`, `shadow_ban_protection`, `provider_error`, `disconnected_by_user` or `unknown`, `connect_link_id` |
+| `device.deleted` | `device`, `deleted_at`, `connect_link_id` |
+| `device.health_changed` | `device`, `previous_state`, `state` (`available`, `limited`, `blocked` or `unknown`), `changed_at`, `connect_link_id` |
 
-`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence` or `dedicated`) and `external_reference`. Their types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
+`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence`, `dedicated` or `null`) and `external_reference`. `connect_link_id` is the link that connected the number the last time, or `null`. The fields that production does not send yet (`device.connection`, `device.external_reference`, `connect_link_id` and `reason`) are optional in the types: read them with `?? null`. The types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
 
 ```php
 $event = $funnelchat->webhooks->constructEvent($body, $signature, $secret);
 if ($event['type'] === 'device.connected') {
-    markConnected($event['data']['device']['external_reference'], $event['data']['device']['id']);
+    markConnected($event['data']['device']['external_reference'] ?? null, $event['data']['device']['id']);
 }
 ```
-
-Deleting a number (`$funnelchat->request('DELETE', '/api/v1/devices/{device}', ['path' => ['device' => 41]])`) is physical and frees the quota: an official number loses the app subscription but stays registered with Meta, and a QR number's session is closed.
 
 ## Receiving webhooks with Laravel
 
@@ -415,7 +421,7 @@ try {
 
 A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
 
-The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, and `$exception->isDeviceError()` tells them apart: `403 numbers_not_included`, `403 number_limit_reached`, `422 qr_requires_coexistence`, `422 method_already_present` (with `device_id` in `body`), `409 operation_in_progress`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
+The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
 
 ### The request id
 
@@ -508,7 +514,7 @@ All of it comes from the code of the domains at the tags running in production o
 | The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
 | Webhook subscriptions (`/api/v1/webhooks…`, with `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
-| **Not in production yet:** creating and connecting numbers (`devices->create`, `devices->qr`, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`) and the fields and events of `device.*` | the contract `1022-alta-de-numeros` v0 (22-10), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
+| **Not in production yet:** creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`) and the fields and events of `device.*` | the contract `1022-alta-de-numeros` v0.1 (23-10), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
 
 The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`, from the contract.
 

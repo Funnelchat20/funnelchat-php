@@ -21,7 +21,7 @@
       "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still says 204.",
       "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 and L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php and Webhook/Payloads/WhatsappFormCompletedPayload.php.",
       "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136.",
-      "accounts-number-onboarding": "NOT IN PRODUCTION YET. Creating and connecting numbers by API, from the contract `1022-alta-de-numeros.md` v0 (22-10, sections A1 and A3) of funnelchat-dev-platform (docs/initiatives/api-abierta/contratos), not from code: accounts is building it in `feat/alta-de-numeros-api`, and its OpenAPI will be the final source. `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Revise every entry with this source against accounts' OpenAPI before publishing."
+      "accounts-number-onboarding": "NOT IN PRODUCTION YET. Creating and connecting numbers by API, from the contract `1022-alta-de-numeros.md` v0.1 (23-10: sections A1 and A3, and its \"Enmienda v0.1\", which describes accounts `feat/alta-de-numeros-api` @ 52d49b319 as the coordinator read it, plus what part 2, still in progress, adds) of funnelchat-dev-platform @ 8c68067 (docs/initiatives/api-abierta/contratos), not from accounts' code or OpenAPI, which will be the final source. The new fields of the events are optional in the types: production does not send them until the deploy. `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Revise every entry with this source against accounts' OpenAPI before publishing."
     }
   },
   "components": {
@@ -314,9 +314,9 @@
         "description": "Your own reference for the number (for example, your customer's ID). Free text, it can repeat. It comes back in the number, in the list filter and in every `device.*` event."
       },
       "PendingConnectionType": {
-        "type": "string",
-        "enum": ["qr", "coexistence", "dedicated"],
-        "description": "How the number is connected: `qr` (WhatsApp Web session, not official), `coexistence` (WhatsApp Cloud API alongside the WhatsApp Business app) or `dedicated` (WhatsApp Cloud API only)."
+        "type": ["string", "null"],
+        "enum": ["qr", "coexistence", "dedicated", null],
+        "description": "How the number is connected: `qr` (WhatsApp Web session, not official), `coexistence` (WhatsApp Cloud API alongside the WhatsApp Business app), `dedicated` (WhatsApp Cloud API only), or `null` when it cannot be told."
       },
       "PendingDeviceCreate": {
         "type": "object",
@@ -336,7 +336,7 @@
         "properties": {
           "connected": { "type": "boolean" },
           "qr_code": { "type": ["string", "null"], "description": "A PNG image as a data URI (`data:image/png;base64,…`), or `null` once the number is connected." },
-          "expires_in": { "type": "integer", "description": "Suggested seconds before asking for the QR again." }
+          "expires_in": { "type": "integer", "description": "Seconds before asking for the QR again: 20 with a QR, 3 while the session starts, 0 once connected." }
         },
         "required": ["connected", "qr_code", "expires_in"]
       },
@@ -359,17 +359,18 @@
           "provision_us_number": {
             "type": "boolean",
             "default": false,
-            "description": "Only `meta`: offers a US number from the pool (3 per account, 1 on trial accounts, held 15 minutes)."
+            "description": "Only `meta` (forbidden with `qr`): offers a US number from the pool (3 per account, 1 on trial accounts, held 15 minutes)."
           },
           "device_id": {
             "type": ["integer", "null"],
             "description": "Reconnects this existing number instead of creating one: it uses no new quota. `type` must match the number's method. It revokes the previous reconnect links of that number."
           },
-          "same_number_as": { "type": ["integer", "null"], "description": "Only `qr`: adds QR to a number in coexistence." },
+          "same_number_as": { "type": ["integer", "null"], "description": "Only `qr`, and not with `device_id`: adds QR to a number in coexistence." },
           "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" },
           "return_url": {
             "type": ["string", "null"],
             "format": "uri",
+            "maxLength": 2048,
             "description": "`https` only. When the page ends it redirects to `return_url?connect_link_id=<id>&status=<completed|failed>&device_id=<id?>&error_code=<code?>`, nothing else."
           },
           "expires_in_minutes": { "type": "integer", "minimum": 30, "maximum": 10080, "default": 1440 }
@@ -380,7 +381,7 @@
         "type": "object",
         "description": "A single-use link where your customer creates or reconnects a number, without a Funnelchat session.",
         "properties": {
-          "id": { "type": ["integer", "string"] },
+          "id": { "type": "integer" },
           "type": { "type": "string", "enum": ["meta", "qr"] },
           "status": { "type": "string", "enum": ["pending", "completed", "failed", "expired", "revoked"] },
           "url": {
@@ -394,7 +395,7 @@
             "items": { "type": "string", "enum": ["coexistence", "dedicated"] }
           },
           "provision_us_number": { "type": "boolean" },
-          "device_id": { "type": ["integer", "null"], "description": "The number it created or reconnected; `null` until it completes." },
+          "device_id": { "type": ["integer", "null"], "description": "The number to reconnect, or the one it created once `completed`; `null` otherwise." },
           "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" },
           "return_url": { "type": ["string", "null"] },
           "error_code": { "$ref": "#/components/schemas/PendingConnectLinkErrorCode" },
@@ -413,7 +414,11 @@
           "connection": { "$ref": "#/components/schemas/PendingConnectionType" },
           "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" }
         },
-        "required": ["id", "name", "number", "connection", "external_reference"]
+        "required": ["id", "name", "number"]
+      },
+      "PendingConnectLinkId": {
+        "type": ["integer", "null"],
+        "description": "The connect link that connected this number the last time, or `null`."
       },
       "PendingDeviceHealthState": {
         "type": "string",
@@ -1557,7 +1562,7 @@
       "post": {
         "operationId": "pendingDevice.store",
         "summary": "Create a number by QR",
-        "description": "Creates a number of the account, not connected yet: then ask for its QR with `GET /api/v1/devices/{device}/qr`, or send your customer a connect link (`POST /api/v1/connect-links`). An official (WhatsApp Cloud) number is created only with a connect link. It uses the plan's quota, counted by phone number, with the same refusals and the same trial-account rule as the panel; the provider is the one the system assigns.\n\n`Idempotency-Key` (optional, up to 255 characters, kept 24 hours per account): the same key with the same body answers the same number without creating another; with a different body, `422 idempotency_key_mismatch`; while the first one runs, `409 operation_in_progress`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
+        "description": "Creates a number of the account, not connected yet: then ask for its QR with `GET /api/v1/devices/{device}/qr`, or send your customer a connect link (`POST /api/v1/connect-links`). An official (WhatsApp Cloud) number is created only with a connect link. It uses the plan's quota, counted by phone number, with the same refusals and the same trial-account rule as the panel; the provider is the one the system assigns.\n\n`Idempotency-Key` (optional, up to 255 characters, kept 24 hours per account): the same key with the same body answers the same number without creating another (only successful answers are replayed, with `Idempotent-Replayed: true`; a refusal is evaluated again); with a different body, `422 idempotency_key_mismatch`; while the first one runs, `409 operation_in_progress`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
         "tags": ["Device"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1580,9 +1585,10 @@
               }
             }
           },
-          "403": { "description": "`numbers_not_included` (the plan includes no numbers) or `number_limit_reached` (the plan's quota is full)." },
-          "409": { "description": "`operation_in_progress`." },
-          "422": { "description": "`qr_requires_coexistence` (`same_number_as` is an official number not in coexistence), `method_already_present` (with `device_id`), `idempotency_key_mismatch`, or validation." }
+          "403": { "description": "`numbers_not_included` (the plan includes no numbers), `number_limit_reached` (the plan's quota is full; with `limit`, `used` and `pending_device_ids`) or `connect_not_allowed`. Without an active plan, `403` without `error`." },
+          "409": { "description": "`pending_number_exists` (the account already has a QR number not connected yet, in `device_id`: connect or delete it first) or `operation_in_progress`." },
+          "422": { "description": "`invalid_request` (with `errors`), `invalid_reference_device`, `qr_requires_coexistence` (`same_number_as` is an official number not in coexistence), `method_already_present` (with `device_id`), `number_suspended_by_plan`, `idempotency_key_mismatch` or `invalid_idempotency_key`." },
+          "500": { "description": "`provider_error`." }
         }
       }
     },
@@ -1609,7 +1615,10 @@
               }
             }
           },
-          "422": { "description": "`provider_unsupported`: the number is not a QR number." }
+          "403": { "description": "`number_limit_reached`, `connect_not_allowed` or `payment_required`." },
+          "409": { "description": "`trial_number_blocked`, `qr_requires_coexistence`, `number_suspended_by_plan`, `device_inactive` or `provisioning_quota_exceeded`." },
+          "422": { "description": "`provider_unsupported`: the number is not a QR number." },
+          "502": { "description": "`provider_error`." }
         }
       }
     },
@@ -1617,7 +1626,7 @@
       "post": {
         "operationId": "pendingConnectLink.store",
         "summary": "Create a connect link",
-        "description": "A single-use page where your customer connects a number, with no Funnelchat session: `type: \"qr\"` shows the QR and renews it; `type: \"meta\"` runs Meta's Embedded Signup. The number is created when the page ends (or the existing one is reconnected, with `device_id`). The quota is checked now and again at the end: the link does not hold a place. Learn the result by `device.connected` (with `connect_link_id` and `external_reference`), by `return_url`, or by reading the link. The raw token is only in `url` of this answer.\n\nAt most 20 open links per account (`429 too_many_open_links`), and a per-minute limit. With `type: \"meta\"` while the official signup is off, `503 meta_connect_disabled`. `Idempotency-Key` works as in `POST /api/v1/devices`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
+        "description": "A single-use page where your customer connects a number, with no Funnelchat session: `type: \"qr\"` shows the QR and renews it; `type: \"meta\"` runs Meta's Embedded Signup. The number is created when the page ends (or the existing one is reconnected, with `device_id`). The quota is checked now and again at the end: the link does not hold a place. Learn the result by `device.connected` (with `connect_link_id` and `external_reference`), by `return_url`, or by reading the link. The raw token is only in `url` of this answer.\n\nAt most 20 open links per account (`429 too_many_open_links`), and a per-minute limit. With `type: \"meta\"` while the official signup is off, `503 meta_connect_disabled`. The page claims the link when your customer presses its button, not when it opens, so a messenger's preview does not burn it. `Idempotency-Key` works as in `POST /api/v1/devices`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1640,17 +1649,17 @@
               }
             }
           },
-          "403": { "description": "`numbers_not_included` or `number_limit_reached` (not for a reconnect)." },
-          "409": { "description": "`operation_in_progress`." },
-          "422": { "description": "`qr_requires_coexistence`, `method_already_present` (with `device_id`), `idempotency_key_mismatch`, or validation." },
-          "429": { "description": "`too_many_open_links` (20 open links per account), or the per-minute limit." },
+          "403": { "description": "The quota refusals of `POST /api/v1/devices` (not for a reconnect)." },
+          "409": { "description": "`pending_number_exists` or `operation_in_progress`." },
+          "422": { "description": "`invalid_request` (with `errors`), `invalid_reference_device`, `connection_type_mismatch` (`device_id` is a number of the other method), `qr_requires_coexistence`, `method_already_present` (with `device_id`), `idempotency_key_mismatch` or `invalid_idempotency_key`." },
+          "429": { "description": "`too_many_open_links` (20 open links per account), or the per-minute limit (10 links; `Too Many Attempts.` without `error`)." },
           "503": { "description": "`meta_connect_disabled`: the official signup by link is off." }
         }
       },
       "get": {
         "operationId": "pendingConnectLink.index",
         "summary": "List connect links",
-        "description": "The links of the account, paginated, without their token.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
+        "description": "The links of the account, paginated, newest first, without their token.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:read",
@@ -1705,7 +1714,7 @@
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:read",
         "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": ["integer", "string"] } }],
+        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "200": {
             "description": "OK",
@@ -1718,21 +1727,23 @@
                 }
               }
             }
-          }
+          },
+          "404": { "description": "The link does not exist." }
         }
       },
       "delete": {
         "operationId": "pendingConnectLink.destroy",
         "summary": "Revoke a connect link",
-        "description": "Revokes a `pending` link: `204`. A link that is no longer `pending` answers `409`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
+        "description": "Revokes a `pending` link: `204`. A link that is no longer `pending` answers `409 link_not_pending`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros, not in production yet).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
         "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": ["integer", "string"] } }],
+        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": "integer" } }],
         "responses": {
           "204": { "description": "No Content" },
-          "409": { "description": "The link is no longer `pending`." }
+          "404": { "description": "The link does not exist." },
+          "409": { "description": "`link_not_pending`: the link is no longer `pending`." }
         }
       }
     }
@@ -1851,8 +1862,7 @@
       "properties": {
         "connection": { "$ref": "#/components/schemas/PendingConnectionType" },
         "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" }
-      },
-      "required": ["connection", "external_reference"]
+      }
     }
   ],
   "responsePatches": [
@@ -1947,6 +1957,14 @@
           "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PendingForwardResult" } } } }
         }
       }
+    },
+    {
+      "method": "delete",
+      "path": "/api/v1/devices/{device}",
+      "x-fc-pending": "accounts-number-onboarding",
+      "responses": {
+        "200": { "description": "Empty body. The deletion is physical and frees the quota; it emits `device.deleted`." }
+      }
     }
   ],
   "webhookPatches": [
@@ -2000,7 +2018,7 @@
     "device.connected": {
       "post": {
         "summary": "device.connected",
-        "description": "One of the account's numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. `connection`, `external_reference` and `connect_link_id` (`null` when it did not come from a link) are from contract 1022-alta-de-numeros, not in production yet.",
+        "description": "One of the account's numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. `device.connection`, `device.external_reference` and `connect_link_id` (the link that connected the number the last time, or `null`) are from contract 1022-alta-de-numeros, not in production yet: optional until then.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
@@ -2016,9 +2034,9 @@
                     "properties": {
                       "device": { "$ref": "#/components/schemas/PendingWebhookDevice" },
                       "connected_at": { "type": "string", "format": "date-time" },
-                      "connect_link_id": { "type": ["integer", "string", "null"], "description": "The connect link that created or reconnected the number, or `null`." }
+                      "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "connected_at", "connect_link_id"]
+                    "required": ["device", "connected_at"]
                   }
                 }
               }
@@ -2030,11 +2048,11 @@
     "device.disconnected": {
       "post": {
         "summary": "device.disconnected",
-        "description": "One of the account's numbers disconnected and can no longer send or receive: a QR session closed, or an official number left without registration or protected from a shadow ban. `reason`, `device.connection` and `device.external_reference` are from contract 1022-alta-de-numeros, not in production yet; so are the official numbers.",
+        "description": "One of the account's numbers disconnected and can no longer send or receive: a QR session closed or protected from a shadow ban, an official number left without registration, or disconnected in the panel. `reason`, `device.connection`, `device.external_reference` and `connect_link_id` are from contract 1022-alta-de-numeros, not in production yet: optional until then; so are the official numbers.",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
-        "x-fc-pending-fields": ["device.connection", "device.external_reference", "reason"],
+        "x-fc-pending-fields": ["device.connection", "device.external_reference", "reason", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2048,10 +2066,11 @@
                       "disconnected_at": { "type": "string", "format": "date-time" },
                       "reason": {
                         "type": "string",
-                        "enum": ["qr_logged_out", "meta_account_not_registered", "shadow_ban_protection", "provider_error", "unknown"]
-                      }
+                        "enum": ["qr_logged_out", "meta_account_not_registered", "shadow_ban_protection", "provider_error", "disconnected_by_user", "unknown"]
+                      },
+                      "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "disconnected_at", "reason"]
+                    "required": ["device", "disconnected_at"]
                   }
                 }
               }
@@ -2063,10 +2082,11 @@
     "device.deleted": {
       "post": {
         "summary": "device.deleted",
-        "description": "A number was deleted from the account (once per number, before the row is deleted). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number's session is closed. From contract 1022-alta-de-numeros: not emitted in production yet.",
+        "description": "A number was deleted from the account (once per number, after the deletion, with the number as it was). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number's session is closed. From contract 1022-alta-de-numeros: not emitted in production yet.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
+        "x-fc-pending-fields": ["device.connection", "device.external_reference", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2077,7 +2097,8 @@
                     "type": "object",
                     "properties": {
                       "device": { "$ref": "#/components/schemas/PendingWebhookDevice" },
-                      "deleted_at": { "type": "string", "format": "date-time" }
+                      "deleted_at": { "type": "string", "format": "date-time" },
+                      "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
                     "required": ["device", "deleted_at"]
                   }
@@ -2091,10 +2112,11 @@
     "device.health_changed": {
       "post": {
         "summary": "device.health_changed",
-        "description": "The aggregated health of an official number changed (not on every Meta webhook). From contract 1022-alta-de-numeros: not emitted in production yet.",
+        "description": "The aggregated health of an official number changed (not on every Meta webhook). From contract 1022-alta-de-numeros: not emitted in production yet. The shape (`previous_state` and `state`) is the contract's; an open PR in accounts (#1103) proposes `state: { previous, current }`, still to be decided.",
         "x-fc-status": "planned",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
+        "x-fc-pending-fields": ["device.connection", "device.external_reference", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2107,7 +2129,8 @@
                       "device": { "$ref": "#/components/schemas/PendingWebhookDevice" },
                       "previous_state": { "$ref": "#/components/schemas/PendingDeviceHealthState" },
                       "state": { "$ref": "#/components/schemas/PendingDeviceHealthState" },
-                      "changed_at": { "type": "string", "format": "date-time" }
+                      "changed_at": { "type": "string", "format": "date-time" },
+                      "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
                     "required": ["device", "previous_state", "state", "changed_at"]
                   }

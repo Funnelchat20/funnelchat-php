@@ -804,6 +804,7 @@ final class Generator
                     \is_bool($query) ? $query : null,
                     ($method['bodyOptional'] ?? false) === true,
                     self::obj($method['bodyDefaults'] ?? null),
+                    ($method['optionsOnlyBefore'] ?? false) === true,
                     $types,
                 );
                 $sdkMethods[$label] = "{$property}->{$name}";
@@ -841,7 +842,8 @@ final class Generator
     /**
      * @param Json      $op
      * @param bool|null $withQuery    force the `$query` parameter on or off; default: when the spec declares query parameters, or on lists
-     * @param Json      $bodyDefaults body field => path parameter
+     * @param Json      $bodyDefaults      body field => path parameter
+     * @param bool      $optionsOnlyBefore the method took only `$options` before: that call keeps working
      */
     private function generateMethod(
         string $name,
@@ -853,6 +855,7 @@ final class Generator
         ?bool $withQuery,
         bool $bodyOptional,
         array $bodyDefaults,
+        bool $optionsOnlyBefore,
         Types $types,
     ): string {
         preg_match_all('/\{([^}]+)\}/', $path, $placeholders);
@@ -1020,6 +1023,13 @@ final class Generator
             $request = '$options';
         }
         $body = implode('', array_map(static fn(string $line): string => "{$line}\n", $bodyDefaultLines)) . ($bodyDefaultLines === [] ? '' : "\n");
+        if ($optionsOnlyBefore) {
+            if (($args[0]['variable'] ?? null) !== 'query') {
+                throw new GeneratorError("{$name}: optionsOnlyBefore needs `\$query` as the first parameter");
+            }
+            $body .= "        // The call of 0.1, `{$name}(\$options)`, keeps working.\n"
+                . "        [\$query, \$options] = self::queryOrOptions(\$query, \$options);\n\n";
+        }
         if ($paginate) {
             $body .= Php::docTag("@var {$returnDoc} \$result", '', '        ', '', true) . "\n"
                 . '        $result = $this->client->paginate(' . Php::value($path) . ", {$request});\n\n"

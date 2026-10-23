@@ -813,8 +813,8 @@ namespace Funnelchat\Generated;
  *     qr_allowed: bool,
  *     can_change_to_meta: bool,
  *     capabilities: PendingDeviceCapabilities,
- *     connection: PendingConnectionType,
- *     external_reference: PendingExternalReference,
+ *     connection?: PendingConnectionType,
+ *     external_reference?: PendingExternalReference,
  * }
  * @phpstan-type DisconnectSurveyResource array{
  *     pending: bool,
@@ -1706,7 +1706,7 @@ namespace Funnelchat\Generated;
  *     draft_version?: int,
  * }
  * @phpstan-type PendingExternalReference string|null
- * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'
+ * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null
  * @phpstan-type PendingDeviceCreate array{
  *     connection: 'qr',
  *     alias?: string|null,
@@ -1730,7 +1730,7 @@ namespace Funnelchat\Generated;
  *     expires_in_minutes?: int,
  * }
  * @phpstan-type PendingConnectLink array{
- *     id: int|string,
+ *     id: int,
  *     type: 'meta'|'qr',
  *     status: 'pending'|'completed'|'failed'|'expired'|'revoked',
  *     url?: string,
@@ -1748,9 +1748,10 @@ namespace Funnelchat\Generated;
  *     id: int,
  *     name: string|null,
  *     'number': string|null,
- *     connection: PendingConnectionType,
- *     external_reference: PendingExternalReference,
+ *     connection?: PendingConnectionType,
+ *     external_reference?: PendingExternalReference,
  * }
+ * @phpstan-type PendingConnectLinkId int|null
  * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'
  */
 final class Schemas

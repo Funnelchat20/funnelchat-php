@@ -18,10 +18,10 @@ use Funnelchat\Pagination\Paginator;
  * Connect links (accounts area): a single-use page where your customer creates or reconnects a
  * WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is created
  * when the page ends. Learn the result by `device.connected` (with `connect_link_id` and
- * `external_reference`), by `return_url`, or with `get()`.
+ * `external_reference`), by `return_url`, or with `retrieve()`.
  *
  * Creating and revoking need `accounts:operate`; reading, `accounts:read`. PENDING OF THE SPEC:
- * from the contract 1022-alta-de-numeros, not in production yet (spec/pending.json,
+ * from the contract 1022-alta-de-numeros v0.1, not in production yet (spec/pending.json,
  * `accounts-number-onboarding`).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
@@ -66,14 +66,14 @@ final class ConnectLinks extends AbstractResource
      * Permission: `accounts:read`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
-     * @param int|string $link
+     * @param int $link
      * @param RequestOptions $options
      *
      * @return array{
      *     data: PendingConnectLink,
      * }
      */
-    public function get(int|string $link, array $options = []): mixed
+    public function retrieve(int|string $link, array $options = []): mixed
     {
         /**
          * @var array{
@@ -86,7 +86,8 @@ final class ConnectLinks extends AbstractResource
     }
 
     /**
-     * `GET /api/v1/connect-links`, paginated. Filter by `status` and `external_reference`.
+     * `GET /api/v1/connect-links`, paginated, newest first. Filter by `status` and
+     * `external_reference`.
      *
      * Permission: `accounts:read`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
@@ -112,13 +113,13 @@ final class ConnectLinks extends AbstractResource
 
     /**
      * `DELETE /api/v1/connect-links/{link}`: revokes a `pending` link. A link that is no longer
-     * `pending` answers `409`.
+     * `pending` answers `409 link_not_pending`.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int|string $link
+     * @param int $link
      * @param RequestOptions $options
      *
      * @return mixed

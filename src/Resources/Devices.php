@@ -30,7 +30,8 @@ final class Devices extends AbstractResource
 {
     /**
      * `GET /api/v1/devices`. Iterate it with `foreach`, or call `firstPage()`. Filter by your own
-     * reference with `external_reference` (exact match).
+     * reference with `external_reference` (exact match). The call of 0.1, `list($options)`, still
+     * works.
      *
      * Permission: `accounts:read`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
@@ -47,6 +48,9 @@ final class Devices extends AbstractResource
      */
     public function list(array $query = [], array $options = []): Paginator
     {
+        // The call of 0.1, `list($options)`, keeps working.
+        [$query, $options] = self::queryOrOptions($query, $options);
+
         /** @var Paginator<DeviceResource> $result */
         $result = $this->client->paginate('/api/v1/devices', ['query' => $query] + $options);
 
@@ -56,8 +60,10 @@ final class Devices extends AbstractResource
     /**
      * `POST /api/v1/devices`: creates a QR number (`connection: 'qr'`), not connected yet. Returns
      * `['data' => <number>]`; then scan its QR with `qr()`, or send your customer a link with
-     * `connectLinks->create()`. It uses the plan's quota: see `Funnelchat\Exception\DeviceErrors`.
-     * Pass `idempotencyKey` in the options to repeat it safely.
+     * `connectLinks->create()`. The account has at most one QR number not connected yet: another
+     * one answers `409 pending_number_exists` with its `device_id`. It uses the plan's quota: see
+     * `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to repeat it
+     * safely.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
@@ -134,6 +140,26 @@ final class Devices extends AbstractResource
     }
 
     /**
+     * `DELETE /api/v1/devices/{device}`: deletes the number for good and frees its quota. An
+     * official number loses the app subscription but stays registered with Meta; a QR number's
+     * session is closed. It emits `device.deleted`. There is no undo.
+     *
+     * Permission: `accounts:operate`.
+     * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
+     * change.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
+     *
+     * @param int $device
+     * @param RequestOptions $options
+     *
+     * @return mixed
+     */
+    public function delete(int|string $device, array $options = []): mixed
+    {
+        return $this->client->request('DELETE', '/api/v1/devices/{device}', ['path' => ['device' => $device]] + $options);
+    }
+
+    /**
      * `GET /api/v1/devices/{device}/status`: connection status.
      *
      * Permission: `accounts:read`.
@@ -153,8 +179,9 @@ final class Devices extends AbstractResource
 
     /**
      * `GET /api/v1/devices/{device}/qr`: the QR to scan, as a PNG data URI in `data.qr_code`
-     * (`null` once `data.connected`). Ask again after `data.expires_in` seconds, or wait for
-     * `device.connected`. An official number answers `422 provider_unsupported`.
+     * (`null` once `data.connected`). Ask again after `data.expires_in` seconds (20 with a QR, 3
+     * while it starts, 0 once connected), or wait for `device.connected`. An official number
+     * answers `422 provider_unsupported`.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
