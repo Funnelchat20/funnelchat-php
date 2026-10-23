@@ -343,6 +343,43 @@ final class SandboxTest extends TestCase
         self::assertIsString($changed['changed_at']);
     }
 
+    public function testAPoolNumberMustBeDedicatedAndCannotReconnect(): void
+    {
+        foreach ([
+            ['type' => 'meta', 'allowed_connection_types' => ['coexistence'], 'provision_us_number' => true],
+            ['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'provision_us_number' => true, 'device_id' => self::OFFICIAL_DEVICE],
+        ] as $body) {
+            try {
+                $this->funnelchat->connectLinks->create($body);
+                self::fail('should have thrown');
+            } catch (UnprocessableEntityException $exception) {
+                self::assertSame('invalid_request', $exception->errorCode);
+                self::assertNotNull($exception->errors);
+            }
+        }
+
+        $link = $this->funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'provision_us_number' => true])['data'];
+        self::assertTrue($link['provision_us_number']);
+    }
+
+    public function testAMetaLinkSurvivesFourFailuresAndEndsFailedAtTheFifth(): void
+    {
+        $link = $this->funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['dedicated']])['data'];
+        $url = (string) ($link['url'] ?? '');
+
+        for ($attempt = 1; $attempt <= 4; ++$attempt) {
+            $this->openPage($url . '/start', ['outcome' => 'failed', 'error_code' => 'meta_error']);
+            $status = $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status'];
+            self::assertSame('pending', $status, "after failure {$attempt}");
+        }
+
+        $this->openPage($url . '/start', ['outcome' => 'failed', 'error_code' => 'meta_error']);
+        $read = $this->funnelchat->connectLinks->retrieve($link['id'])['data'];
+        self::assertSame('failed', $read['status']);
+        self::assertSame('meta_error', $read['error_code']);
+        self::assertNull($read['device_id']);
+    }
+
     public function testAPendingLinkIsRevokedOnceAndAUsedPageIsClosed(): void
     {
         $link = $this->funnelchat->connectLinks->create(['type' => 'qr'])['data'];
