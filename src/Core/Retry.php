@@ -87,9 +87,9 @@ final class Retry
 
     /**
      * Whether `$method` + `$pathname` (already interpolated, without query) is a non-idempotent
-     * send: a `POST` with a `…:send` permission in the spec (`conversations:send`,
-     * `communities:send`). It delivers a WhatsApp message, so it is never retried automatically.
-     * Built from the generated route table, so a regeneration keeps the list current.
+     * send: a `POST` that needs a **Send** permission (**Contacts and conversations → Send**,
+     * **Groups and campaigns → Send**). It delivers a WhatsApp message, so it is never retried
+     * automatically. Built from the generated route table, so a regeneration keeps the list current.
      */
     public static function isSendRequest(string $method, string $pathname): bool
     {
@@ -105,7 +105,7 @@ final class Retry
         return false;
     }
 
-    /** `conversations:send`, `communities:send`…: the permission of a route that delivers a message. */
+    /** Whether the permission of a route, as `Routes::ALL` has it, is a **Send** one: the route delivers a message. */
     public static function isSendPermission(?string $permission): bool
     {
         return $permission !== null && str_ends_with($permission, ':send');

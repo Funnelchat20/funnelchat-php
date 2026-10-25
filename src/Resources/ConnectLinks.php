@@ -20,11 +20,11 @@ use Funnelchat\Pagination\Paginator;
  * when the page ends. Learn the result by `device.connected` (with `connect_link_id`, the link of
  * that connection, and `external_reference`), by `return_url`, or with `retrieve()`.
  *
- * Creating and revoking need **WhatsApp numbers → Create, connect and delete**
- * (`accounts:operate`); reading, **WhatsApp numbers → View** (`accounts:read`). The official
- * signup (`type: 'meta'`) is off in production until Funnelchat registers its domain with Meta: it
- * answers `503 meta_connect_disabled`. PENDING OF THE SPEC: from the contract 1022-alta-de-numeros
- * v0.2 (spec/pending.json, `accounts-number-onboarding`).
+ * Creating and revoking need **WhatsApp numbers → Create, connect and delete**; reading,
+ * **WhatsApp numbers → View**. The official signup (`type: 'meta'`) is off in production until
+ * Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. PENDING OF THE
+ * SPEC: from the contract 1022-alta-de-numeros v0.2 (spec/pending.json,
+ * `accounts-number-onboarding`).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingConnectLink from Schemas
@@ -45,7 +45,7 @@ final class ConnectLinks extends AbstractResource
      * `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to repeat it
      * safely.
      *
-     * Permission: **WhatsApp numbers → Create, connect and delete** (`accounts:operate`).
+     * Permission: **WhatsApp numbers → Create, connect and delete**.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
      * @param PendingConnectLinkCreate $body
@@ -71,7 +71,7 @@ final class ConnectLinks extends AbstractResource
      * `GET /api/v1/connect-links/{link}`: the link and its `status` (`pending`, `completed`,
      * `failed`, `expired`, `revoked`), with `device_id` and `error_code`; never its URL.
      *
-     * Permission: **WhatsApp numbers → View** (`accounts:read`).
+     * Permission: **WhatsApp numbers → View**.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
      * @param int $link
@@ -97,7 +97,7 @@ final class ConnectLinks extends AbstractResource
      * `GET /api/v1/connect-links`, paginated, newest first. Filter by `status` and
      * `external_reference`.
      *
-     * Permission: **WhatsApp numbers → View** (`accounts:read`).
+     * Permission: **WhatsApp numbers → View**.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
      * @param array{
@@ -123,7 +123,7 @@ final class ConnectLinks extends AbstractResource
      * `DELETE /api/v1/connect-links/{link}`: revokes a `pending` link. A link that is no longer
      * `pending` answers `409 link_not_pending`.
      *
-     * Permission: **WhatsApp numbers → Create, connect and delete** (`accounts:operate`).
+     * Permission: **WhatsApp numbers → Create, connect and delete**.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *

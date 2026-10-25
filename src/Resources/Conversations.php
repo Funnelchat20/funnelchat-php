@@ -23,7 +23,7 @@ final class Conversations extends AbstractResource
     /**
      * `GET /api/v1/conversations`, paginated by cursor.
      *
-     * Permission: **Contacts and conversations → View** (`conversations:read`).
+     * Permission: **Contacts and conversations → View**.
      *
      * @param array{
      *     favorites?: bool,
@@ -69,7 +69,7 @@ final class Conversations extends AbstractResource
      * `PUT /api/v1/contacts/{contact}/update`: changes the conversation with a contact (open,
      * assigned…).
      *
-     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
+     * Permission: **Contacts and conversations → Edit**.
      *
      * @param int $contact
      * @param array{
@@ -98,7 +98,7 @@ final class Conversations extends AbstractResource
     /**
      * `GET /api/v1/conversations/count/unread`.
      *
-     * Permission: **Contacts and conversations → View** (`conversations:read`).
+     * Permission: **Contacts and conversations → View**.
      *
      * @param array{
      *     advisorIds?: string,
@@ -126,7 +126,7 @@ final class Conversations extends AbstractResource
     /**
      * `GET /api/v1/conversations/count/open`.
      *
-     * Permission: **Contacts and conversations → View** (`conversations:read`).
+     * Permission: **Contacts and conversations → View**.
      *
      * @param array{
      *     advisorIds?: string,
@@ -154,7 +154,7 @@ final class Conversations extends AbstractResource
     /**
      * `GET /api/v1/conversations/count/closed`.
      *
-     * Permission: **Contacts and conversations → View** (`conversations:read`).
+     * Permission: **Contacts and conversations → View**.
      *
      * @param array{
      *     advisorIds?: string,
@@ -182,7 +182,7 @@ final class Conversations extends AbstractResource
     /**
      * `GET /api/v1/conversations/count/all`.
      *
-     * Permission: **Contacts and conversations → View** (`conversations:read`).
+     * Permission: **Contacts and conversations → View**.
      *
      * @param array{
      *     advisorIds?: string,
@@ -210,7 +210,7 @@ final class Conversations extends AbstractResource
     /**
      * `POST /api/v1/conversations/mark-all-read`.
      *
-     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
+     * Permission: **Contacts and conversations → Edit**.
      *
      * @param array{
      *     advisorIds?: string,
@@ -240,7 +240,7 @@ final class Conversations extends AbstractResource
     /**
      * `POST /api/v1/conversations/mark-all-unread`.
      *
-     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
+     * Permission: **Contacts and conversations → Edit**.
      *
      * @param array{
      *     advisorIds?: string,

@@ -44,7 +44,10 @@ final class Generator
     private const RESOURCES_FILE = 'spec/resources.json';
     private const GENERATED_DIRS = ['src/Generated', 'src/Resources'];
     private const MARKER = 'GENERATED FILE — do not edit. Run `composer generate`.';
-    /** Each permission as the panel shows it ("Developers" → "Create API key"): area → box. */
+    /**
+     * Each permission as the panel shows it ("Developers" → "Create API key"): area → box. The
+     * docblocks name a permission only like this; the value of the spec is never written in them.
+     */
     private const PERMISSION_LABELS = [
         'conversations:read' => 'Contacts and conversations → View',
         'conversations:write' => 'Contacts and conversations → Edit',
@@ -143,6 +146,7 @@ final class Generator
             'src/Generated/ResourceProperties.php' => $this->generateResourceProperties($resources),
         ] + $resourceFiles;
         ksort($files);
+        $this->assertNoPermissionValues($files);
 
         echo 'pending of the spec: ' . \count($report['applied']) . " entries applied.\n";
         if ($report['superseded'] !== []) {
@@ -193,6 +197,48 @@ final class Generator
         echo 'generated: ' . \count($files) . ' files in ' . implode(' and ', self::GENERATED_DIRS) . ($stale === [] ? '' : '; deleted: ' . implode(', ', $stale)) . ".\n";
 
         return 0;
+    }
+
+    /**
+     * Fails if a docblock or comment of src/ (the generated files and the hand-written ones) writes
+     * a permission as the spec's value instead of with its panel name.
+     *
+     * @param array<string, string> $generated path → content
+     */
+    private function assertNoPermissionValues(array $generated): void
+    {
+        $areas = array_unique(array_map(static fn(string $value): string => explode(':', $value)[0], array_keys(self::PERMISSION_LABELS)));
+        $pattern = '/(?<![\w{])(?:' . implode('|', array_map(static fn(string $area): string => preg_quote($area, '/'), $areas)) . '|\{area\}|…):(?:[a-z_]+|\*)/u';
+
+        $sources = $generated;
+        $handWritten = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->path('src'), \FilesystemIterator::SKIP_DOTS));
+        foreach ($handWritten as $file) {
+            if (!$file instanceof \SplFileInfo) {
+                continue;
+            }
+            $relative = 'src/' . substr($file->getPathname(), \strlen($this->path('src')) + 1);
+            if (!str_ends_with($relative, '.php') || isset($sources[$relative])) {
+                continue;
+            }
+            $content = self::read($file->getPathname());
+            // A generated file the generation no longer produces is deleted, not checked.
+            if (!str_contains($content, self::MARKER)) {
+                $sources[$relative] = $content;
+            }
+        }
+
+        $found = [];
+        foreach ($sources as $relative => $content) {
+            foreach (token_get_all($content) as $token) {
+                if (\is_array($token) && ($token[0] === \T_DOC_COMMENT || $token[0] === \T_COMMENT)
+                    && preg_match_all($pattern, $token[1], $matches) > 0) {
+                    $found[] = "{$relative}:{$token[2]}: " . implode(', ', array_unique($matches[0]));
+                }
+            }
+        }
+        if ($found !== []) {
+            throw new GeneratorError("A docblock names a permission by its value: write only its panel name (PERMISSION_LABELS).\n  - " . implode("\n  - ", $found));
+        }
     }
 
     // ---- Step 1: import a spec ------------------------------------------------------------------
@@ -998,7 +1044,7 @@ final class Generator
         if ($permission !== null) {
             $label = self::PERMISSION_LABELS[$permission]
                 ?? throw new GeneratorError("The permission `{$permission}` has no panel name in PERMISSION_LABELS.");
-            $notes[] = "Permission: **{$label}** (`{$permission}`).";
+            $notes[] = "Permission: **{$label}**.";
         }
         $pending = $op['x-fc-pending'] ?? null;
         if ($pending !== null) {

@@ -5,7 +5,7 @@
  *
  *   FUNNELCHAT_API_KEY='<id>|fc_live_...' php examples/plain-php/send-message.php 2001 5491100000000
  *
- * Sending needs a key with the **Contacts and conversations → Send** permission (`conversations:send`).
+ * Sending needs a key with the **Contacts and conversations → Send** permission.
  */
 
 declare(strict_types=1);
@@ -27,7 +27,7 @@ if ($contactId <= 0 || $phone === '') {
 // The key comes from FUNNELCHAT_API_KEY. Never print it or commit it.
 $funnelchat = new Funnelchat();
 
-// Your WhatsApp numbers (permission WhatsApp numbers → View, `accounts:read`). The `id` of each one is the `device_id` you send with.
+// Your WhatsApp numbers (permission WhatsApp numbers → View). The `id` of each one is the `device_id` you send with.
 $deviceId = null;
 foreach ($funnelchat->devices->list() as $device) {
     echo "number {$device['id']}: {$device['number']}\n";

@@ -21,22 +21,16 @@ The package is published on [Packagist](https://packagist.org/packages/funnelcha
 
 ## First call
 
-You need an API key (`<id>|fc_live_...`) created in the panel, in "Developers" → "Create API key", with the permissions for what you are going to use. The panel groups them by area, one box per permission; the literal is what the code and the API's errors use, and the panel shows it as a tooltip. There are twelve and a key can have all of them; there is no wildcard:
+You need an API key (`<id>|fc_live_...`) created in the panel, in "Developers" → "Create API key", with the permissions for what you are going to use. The panel groups them by area, one box per permission. There are twelve and a key can have all of them; there is no wildcard:
 
-| In the panel | Literal |
+| Area | Permissions |
 |---|---|
-| **Contacts and conversations → View** | `conversations:read` |
-| **Contacts and conversations → Edit** | `conversations:write` |
-| **Contacts and conversations → Send** | `conversations:send` |
-| **Groups and campaigns → View** | `communities:read` |
-| **Groups and campaigns → Edit** | `communities:write` |
-| **Groups and campaigns → Send** | `communities:send` |
-| **Groups and campaigns → Manage groups** | `communities:operate` |
-| **WhatsApp numbers → View** | `accounts:read` |
-| **WhatsApp numbers → Edit** | `accounts:write` |
-| **WhatsApp numbers → Create, connect and delete** | `accounts:operate` |
-| **Notifications (webhooks) → View** | `webhooks:read` |
-| **Notifications (webhooks) → Manage** | `webhooks:write` |
+| **Contacts and conversations** | **View**, **Edit**, **Send** |
+| **Groups and campaigns** | **View**, **Edit**, **Send**, **Manage groups** |
+| **WhatsApp numbers** | **View**, **Edit**, **Create, connect and delete** |
+| **Notifications (webhooks)** | **View**, **Manage** |
+
+This README names each one as the panel does: **WhatsApp numbers → View** is the **View** box of the **WhatsApp numbers** area.
 
 Within each area, **Send** includes **Edit** and **Edit** includes **View**; **Manage groups** and **Create, connect and delete** are separate. Keep the key in an environment variable: the client reads it from `FUNNELCHAT_API_KEY` when you do not pass it.
 
@@ -45,7 +39,7 @@ use Funnelchat\Funnelchat;
 
 $funnelchat = new Funnelchat(apiKey: getenv('FUNNELCHAT_API_KEY'));
 
-// Your WhatsApp numbers (permission WhatsApp numbers → View, `accounts:read`). The `id` of each one is the `device_id` you send with.
+// Your WhatsApp numbers (permission WhatsApp numbers → View). The `id` of each one is the `device_id` you send with.
 foreach ($funnelchat->devices->list() as $device) {
     echo $device['id'], ' ', $device['number'], "\n";
     // What that number can do through the API: messages and the delivery statuses it reports.
@@ -95,7 +89,7 @@ The resource classes are generated from the spec: the parameters, query, body an
 
 ## Sending a message
 
-Sending with an API key needs the **Contacts and conversations → Send** permission (`conversations:send`) and follows the WhatsApp rules.
+Sending with an API key needs the **Contacts and conversations → Send** permission and follows the WhatsApp rules.
 
 **Open window: free text.** With an official Meta number you can only send free text if the contact wrote to you in the last 24 hours. Check the window first:
 
@@ -174,7 +168,7 @@ The full example is in [examples/plain-php/send-message.php](examples/plain-php/
 
 ## Groups
 
-Groups are read only through the API, with **Groups and campaigns → View** (`communities:read`): the account's groups, their participants, joins and leaves, the messages sent to them and their scheduled messages.
+Groups are read only through the API, with **Groups and campaigns → View**: the account's groups, their participants, joins and leaves, the messages sent to them and their scheduled messages.
 
 ```php
 foreach ($funnelchat->groups->list(['deviceId' => 4]) as $group) {
@@ -189,7 +183,7 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 
 > **The official signup by link (`'type' => 'meta'`) is not available in production yet:** it answers `503 meta_connect_disabled` until Funnelchat registers its domain with Meta. QR numbers and QR links work. Try the Meta flow against [the sandbox](#testing-against-the-sandbox), turning it on there.
 
-A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need **WhatsApp numbers → Create, connect and delete** (`accounts:operate`); reading links, **WhatsApp numbers → View** (`accounts:read`). Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
+A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need **WhatsApp numbers → Create, connect and delete**; reading links, **WhatsApp numbers → View**. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
 
 ### A QR number
 
@@ -372,12 +366,12 @@ $subscription = $funnelchat->webhooks->create([
 // Store $subscription['id'] and $subscription['secret']: the secret is shown only once.
 ```
 
-- Subscriptions need **Notifications (webhooks) → View** (`webhooks:read`) and **Notifications (webhooks) → Manage** (`webhooks:write`), and for each event type, the **View** of the event's area (`{area}:read`): **Contacts and conversations → View** (`conversations:read`) for `message.received`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
+- Subscriptions need **Notifications (webhooks) → View** and **Notifications (webhooks) → Manage**, and for each event type, the **View** of the event's area: **Contacts and conversations → View** for `message.received`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
 - They belong to the account: `list()` (paginated) also brings the ones of other integrations, except those with events of an area your key cannot read.
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
 - `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
 - `message.status_changed` must be requested by name: `*` does not include it.
-- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**, `accounts:read`). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added` and `group_join_request.created`.
+- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added` and `group_join_request.created`.
 
 ## Pagination
 
@@ -465,7 +459,7 @@ An id you send yourself in `X-Request-Id` is not used: the API sets its own. The
 - A request is retried on a `429`, a `5xx` or a network error (also when the timeout ran out), up to `maxRetries` times (2 by default), with the exceptions below.
 - With `Retry-After`, the SDK waits exactly what it asks for. If it asks for more than 60 seconds, it does not wait: the exception is thrown right away with its `retryAfter` and you decide.
 - Without `Retry-After`, the wait is exponential: 0.5 s, 1 s, 2 s… up to 8 s, with some jitter.
-- **A send is never retried by itself**: the `POST`s that need a **Send** permission (`…:send`: **Contacts and conversations → Send** or **Groups and campaigns → Send**) (messages, contact cards, forwards, templates and forms). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
+- **A send is never retried by itself**: the `POST`s that need a **Send** permission (**Contacts and conversations → Send** or **Groups and campaigns → Send**: messages, contact cards, forwards, templates and forms). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
 - **A write that may have been applied is not repeated by itself**: a `POST` or a `PATCH` is retried only on a `429` or a `503`, when it was certainly not applied. On a `500`, `502` or `504`, a timeout or a dropped connection, the exception is thrown right away (a `502 origin_unreachable` does not guarantee the area did not get it): read the state before repeating it. `retrySend` does not change this. Reads, `PUT`s and `DELETE`s are retried on any transient failure. It is the same rule as in the Node SDK.
 - **A create with an `idempotencyKey`** (`devices->create()`, `connectLinks->create()`) is retried like a `PUT`: the API answers the same resource to the same key. A send is not, key or no key.
 - `429 mac_lockout_24h`, `429 mac_limit_reached`, `429 too_many_open_links` and `503 meta_connect_disabled` are never retried.
@@ -534,7 +528,7 @@ All of it comes from the code of the domains at the tags running in production o
 | WhatsApp forms (`/api/v1/forms…`), sending one to a contact and `whatsapp_form.completed` | conversations `v1.18.10` |
 | The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10` |
 | The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
-| Webhook subscriptions (`/api/v1/webhooks…`, with the **Notifications (webhooks)** permissions, `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
+| Webhook subscriptions (`/api/v1/webhooks…`, with the **Notifications (webhooks)** permissions), the accounts events and four communities ones | accounts `v1.4.24` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
 | Creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`, `country`) and the fields and events of `device.*`. In production since 25-10, except `type: 'meta'` (`503 meta_connect_disabled`) | the contract `1022-alta-de-numeros` v0.2 (23-10) and the changes of 25-10 (the QR every 5 seconds, accounts #1335; `meta` off; `country`), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
 
