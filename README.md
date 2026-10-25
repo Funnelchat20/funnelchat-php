@@ -210,7 +210,7 @@ sendToYourCustomer($link['url']); // the URL comes only in this answer
 ```
 
 - `'type' => 'meta'` answers `503 meta_connect_disabled` in production until Funnelchat registers its domain with Meta. A `qr` link works: its page renews the QR every 5 seconds.
-- With `'type' => 'qr'`, `country` (two letters) is the country of the phone, as in `devices->create()`. It does not go with `device_id`, and the link returns it.
+- With `'type' => 'qr'`, `country` (two letters) is the country of the phone, as in `devices->create()`. It does not go with `device_id` nor with `meta` (`422 invalid_request`), and the link returns it in lower case (`'ar'`).
 - With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. A pool number is always dedicated: it needs `dedicated` in `allowed_connection_types` and does not go with `device_id`; otherwise `422 invalid_request`. Your customer pays Meta directly, with a payment method in their WhatsApp account.
 - `'device_id' => 41` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
 - The page claims the link when your customer presses its button, not when it opens: a messenger's link preview does not use it up.
@@ -544,7 +544,13 @@ The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), wi
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The SDK's end-to-end tests run against it (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`; a QR number created, scanned, disconnected and deleted, a connect link completed on its page, the refusals and the four signed `device.*` events):
+The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx funnelchat-sandbox --meta-connect`, or while it runs:
+
+```bash
+curl -s -X POST http://127.0.0.1:4010/_sandbox/numbers -H 'Content-Type: application/json' -d '{"meta_connect": true}'
+```
+
+The SDK's end-to-end tests run against it, version 0.2.0 or later (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`; a QR number created, scanned, disconnected and deleted, a connect link completed on its page, `country`, the refusals and the four signed `device.*` events). The tests of a `meta` link turn the Meta sign-up on by themselves:
 
 ```bash
 npx funnelchat-sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet

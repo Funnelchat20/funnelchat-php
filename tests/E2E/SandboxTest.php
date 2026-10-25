@@ -242,7 +242,8 @@ final class SandboxTest extends TestCase
         $qr = $this->funnelchat->devices->qr($number['id'])['data'];
         self::assertFalse($qr['connected']);
         self::assertStringStartsWith('data:image/png;base64,', (string) $qr['qr_code']);
-        self::assertGreaterThan(0, $qr['expires_in']);
+        // 5 seconds, like production (accounts #1335): an older QR no longer links.
+        self::assertSame(5, $qr['expires_in']);
 
         $this->sandbox('POST', "/_sandbox/devices/{$number['id']}/connect", ['number' => '5491155550000']);
         [$connected, $connectedDevice] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.connected');
@@ -280,6 +281,7 @@ final class SandboxTest extends TestCase
     {
         $hook = $this->startReceiver();
         $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['device.connected']])['secret'];
+        $this->turnMetaOn();
 
         $link = $this->funnelchat->connectLinks->create([
             'type' => 'meta',
@@ -345,6 +347,7 @@ final class SandboxTest extends TestCase
 
     public function testAPoolNumberMustBeDedicatedAndCannotReconnect(): void
     {
+        $this->turnMetaOn();
         foreach ([
             ['type' => 'meta', 'allowed_connection_types' => ['coexistence'], 'provision_us_number' => true],
             ['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'provision_us_number' => true, 'device_id' => self::OFFICIAL_DEVICE],
@@ -364,6 +367,7 @@ final class SandboxTest extends TestCase
 
     public function testAMetaLinkSurvivesFourFailuresAndEndsFailedAtTheFifth(): void
     {
+        $this->turnMetaOn();
         $link = $this->funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['dedicated']])['data'];
         $url = (string) ($link['url'] ?? '');
 
@@ -445,6 +449,32 @@ final class SandboxTest extends TestCase
         }
     }
 
+    public function testCountryGoesOnAQrNumberAndOnAQrLinkThatCreatesOne(): void
+    {
+        $number = $this->funnelchat->devices->create(['connection' => 'qr', 'country' => 'AR'])['data'];
+        self::assertSame('qr', $number['connection'] ?? null);
+
+        // The link keeps it in lower case, as accounts does.
+        $link = $this->funnelchat->connectLinks->create(['type' => 'qr', 'country' => 'AR'])['data'];
+        self::assertSame('ar', $link['country']);
+        self::assertSame('ar', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['country']);
+        self::assertNull($this->funnelchat->connectLinks->create(['type' => 'qr'])['data']['country']);
+
+        $this->turnMetaOn();
+        foreach ([
+            ['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'country' => 'AR'],
+            ['type' => 'qr', 'device_id' => $number['id'], 'country' => 'AR'],
+        ] as $body) {
+            try {
+                $this->funnelchat->connectLinks->create($body);
+                self::fail('should have thrown');
+            } catch (UnprocessableEntityException $exception) {
+                self::assertSame('invalid_request', $exception->errorCode);
+                self::assertArrayHasKey('country', $exception->errors ?? []);
+            }
+        }
+    }
+
     public function testTooManyOpenLinksAndTheMetaSwitchAreNotRetried(): void
     {
         $sleeps = [];
@@ -465,8 +495,8 @@ final class SandboxTest extends TestCase
             self::assertTrue($exception->isDeviceError());
         }
 
+        // The Meta sign-up starts off in the sandbox, like production until the domain is registered with Meta.
         $this->sandbox('POST', '/_sandbox/reset');
-        $this->sandbox('POST', '/_sandbox/numbers', ['meta_connect' => false]);
         try {
             $funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['coexistence']], ['idempotencyKey' => 'e2e-php-meta-off']);
             self::fail('should have thrown');
@@ -606,6 +636,12 @@ final class SandboxTest extends TestCase
             usleep(100_000);
         }
         self::fail("fewer than {$count} deliveries arrived");
+    }
+
+    /** The Meta sign-up by link starts off, like production: the tests of a `meta` link turn it on. */
+    private function turnMetaOn(): void
+    {
+        $this->sandbox('POST', '/_sandbox/numbers', ['meta_connect' => true]);
     }
 
     /**
