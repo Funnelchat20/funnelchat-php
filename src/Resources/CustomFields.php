@@ -26,7 +26,7 @@ final class CustomFields extends AbstractResource
     /**
      * `GET /api/v1/custom-fields`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param array{
      *     name?: string,
@@ -54,7 +54,7 @@ final class CustomFields extends AbstractResource
     /**
      * `POST /api/v1/custom-fields`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     name: string,
@@ -76,7 +76,7 @@ final class CustomFields extends AbstractResource
     /**
      * `GET /api/v1/custom-fields/{customField}`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $customField
      * @param RequestOptions $options
@@ -94,7 +94,7 @@ final class CustomFields extends AbstractResource
     /**
      * `PUT /api/v1/custom-fields/{customField}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param int $customField
      * @param array{
@@ -116,7 +116,7 @@ final class CustomFields extends AbstractResource
     /**
      * `POST /api/v1/custom-fields/delete`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     customFieldIds: list<string>,

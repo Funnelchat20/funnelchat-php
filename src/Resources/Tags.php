@@ -26,7 +26,7 @@ final class Tags extends AbstractResource
     /**
      * `GET /api/v1/tags`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param array{
      *     name?: string,
@@ -52,7 +52,7 @@ final class Tags extends AbstractResource
     /**
      * `POST /api/v1/tags`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     name: string,
@@ -74,7 +74,7 @@ final class Tags extends AbstractResource
     /**
      * `GET /api/v1/tags/{tag}`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $tag
      * @param RequestOptions $options
@@ -92,7 +92,7 @@ final class Tags extends AbstractResource
     /**
      * `PUT /api/v1/tags/{tag}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param int $tag
      * @param array{
@@ -115,7 +115,7 @@ final class Tags extends AbstractResource
     /**
      * `POST /api/v1/tags/delete`: deletes the tags in `tagIds`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     tagIds: list<string>,
@@ -135,7 +135,7 @@ final class Tags extends AbstractResource
     /**
      * `GET /api/v1/tags/{tag}/contacts`, paginated: the contacts with a tag.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $tag
      * @param array{

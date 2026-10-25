@@ -18,11 +18,11 @@ use Funnelchat\Pagination\Paginator;
  * Messages to one contact (conversations area): send text, files and buttons, read the history or
  * one message by id, forward, react.
  *
- * Sending with an API key needs the `conversations:send` permission and is subject to the WhatsApp
- * rules: `422 window_closed`, `422 antiblock_*`, `422 recipient_*`, `422 device_unavailable`, `429
- * rate_limited` (with `retryAfter`) and `429 mac_lockout_24h`. A rejected send goes nowhere (see
- * `Funnelchat\Exception\SendErrors`). Send operations are never retried automatically unless you
- * pass `retrySend: true`.
+ * Sending with an API key needs the **Contacts and conversations → Send** permission
+ * (`conversations:send`) and is subject to the WhatsApp rules: `422 window_closed`, `422
+ * antiblock_*`, `422 recipient_*`, `422 device_unavailable`, `429 rate_limited` (with `retryAfter`)
+ * and `429 mac_lockout_24h`. A rejected send goes nowhere (see `Funnelchat\Exception\SendErrors`).
+ * Send operations are never retried automatically unless you pass `retrySend: true`.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ConversationsMessageResource from Schemas
@@ -47,7 +47,7 @@ final class Messages extends AbstractResource
      * with its extension. `client_reference` comes back in the message, the history and
      * `message.status_changed`.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`,
      * `file_type`, `file_name`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
@@ -104,7 +104,7 @@ final class Messages extends AbstractResource
      * (`contact_id`, required). Returns `['message' => …]`, as `send()`. It is a send: same rules
      * as `send()`.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`,
      * `file_type`, `file_name`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
@@ -145,7 +145,7 @@ final class Messages extends AbstractResource
      * …]` with `type` `whatsapp_form`; the answers arrive by `whatsapp_form.completed`. It is a
      * send: same rules as `send()`.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $contact
@@ -178,7 +178,7 @@ final class Messages extends AbstractResource
      * `GET /api/v1/contacts/{contactId}/messages`, paginated by cursor: the history of a contact,
      * with the `client_reference` of each send.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contactId
      * @param array{
@@ -204,7 +204,7 @@ final class Messages extends AbstractResource
      * webhook gave you (`message_id` of `message.status_changed`), with its current `status` and
      * `error`. Any refusal is a `404`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-send` in spec/pending.json).
      *
      * @param int $contact
@@ -225,7 +225,7 @@ final class Messages extends AbstractResource
      * `POST /api/v1/contacts/{contact}/message/contact-card`: sends up to 5 contact cards. Returns
      * `['messages' => […]]`, one registered message per card, in order.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
@@ -254,7 +254,7 @@ final class Messages extends AbstractResource
      * contacts. Returns one item per target, in order: `status` `queued` or `blocked` (with
      * `reason`) and its `message`.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
@@ -276,7 +276,7 @@ final class Messages extends AbstractResource
     /**
      * `PUT /api/v1/contacts/{contact}/messages/{message}/reaction`: reacts with an emoji.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
@@ -294,7 +294,7 @@ final class Messages extends AbstractResource
     /**
      * `DELETE /api/v1/contacts/{contact}/messages/{message}/reaction`: removes your reaction.
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact

@@ -44,6 +44,21 @@ final class Generator
     private const RESOURCES_FILE = 'spec/resources.json';
     private const GENERATED_DIRS = ['src/Generated', 'src/Resources'];
     private const MARKER = 'GENERATED FILE — do not edit. Run `composer generate`.';
+    /** Each permission as the panel shows it ("Developers" → "Create API key"): area → box. */
+    private const PERMISSION_LABELS = [
+        'conversations:read' => 'Contacts and conversations → View',
+        'conversations:write' => 'Contacts and conversations → Edit',
+        'conversations:send' => 'Contacts and conversations → Send',
+        'communities:read' => 'Groups and campaigns → View',
+        'communities:write' => 'Groups and campaigns → Edit',
+        'communities:send' => 'Groups and campaigns → Send',
+        'communities:operate' => 'Groups and campaigns → Manage groups',
+        'accounts:read' => 'WhatsApp numbers → View',
+        'accounts:write' => 'WhatsApp numbers → Edit',
+        'accounts:operate' => 'WhatsApp numbers → Create, connect and delete',
+        'webhooks:read' => 'Notifications (webhooks) → View',
+        'webhooks:write' => 'Notifications (webhooks) → Manage',
+    ];
 
     private string $root;
 
@@ -981,7 +996,9 @@ final class Generator
         $notes = [];
         $permission = self::str($op['x-fc-permission'] ?? null);
         if ($permission !== null) {
-            $notes[] = "Permission: `{$permission}`.";
+            $label = self::PERMISSION_LABELS[$permission]
+                ?? throw new GeneratorError("The permission `{$permission}` has no panel name in PERMISSION_LABELS.");
+            $notes[] = "Permission: **{$label}** (`{$permission}`).";
         }
         $pending = $op['x-fc-pending'] ?? null;
         if ($pending !== null) {

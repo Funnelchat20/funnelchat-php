@@ -29,7 +29,7 @@ final class Templates extends AbstractResource
     /**
      * `GET /api/v1/templates`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param array{
      *     name?: string|null,
@@ -61,7 +61,7 @@ final class Templates extends AbstractResource
     /**
      * `POST /api/v1/templates`: creates a template and submits it to Meta.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param StoreMessageTemplateRequest $body
      * @param RequestOptions $options
@@ -79,7 +79,7 @@ final class Templates extends AbstractResource
     /**
      * `GET /api/v1/templates/{template}`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $template
      * @param RequestOptions $options
@@ -97,7 +97,7 @@ final class Templates extends AbstractResource
     /**
      * `PUT /api/v1/templates/{template}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $template
@@ -114,7 +114,7 @@ final class Templates extends AbstractResource
     /**
      * `GET /api/v1/templates/{template}/quick-reply-buttons`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $template
      * @param RequestOptions $options
@@ -141,7 +141,7 @@ final class Templates extends AbstractResource
      * are required; `template_variables.body` fills the body variables in order. Returns
      * `['message' => …]`, the registered message (`type` `template`).
      *
-     * Permission: `conversations:send`.
+     * Permission: **Contacts and conversations → Send** (`conversations:send`).
      * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
@@ -176,7 +176,7 @@ final class Templates extends AbstractResource
     /**
      * `DELETE /api/v1/devices/{device}/templates/{template}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $device

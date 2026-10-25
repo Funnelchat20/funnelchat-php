@@ -34,7 +34,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups`, paginated.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param array{
      *     name?: string,
@@ -63,7 +63,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/{group}`.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $group
      * @param RequestOptions $options
@@ -82,7 +82,7 @@ final class Groups extends AbstractResource
      * `GET /api/v1/devices/{device}/groups`, paginated (`page`, `pageSize`): the groups of one
      * number.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param int $device
      * @param array{
@@ -107,7 +107,7 @@ final class Groups extends AbstractResource
      * `GET /api/v1/groups/{groupUid}/metadata`: live metadata of a group by its WhatsApp uid, read
      * through one number.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $groupUid
      * @param array{
@@ -130,7 +130,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/participants`, paginated: the participants of one group (`groupUid`).
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param array{
      *     groupUid: string,
@@ -158,7 +158,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/{group}/participant-events`, paginated: joins and leaves.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $group
      * @param array{
@@ -190,7 +190,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/{group}/messages`, paginated.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $group
      * @param array{
@@ -212,7 +212,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/{group}/scheduled-messages`, paginated.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $group
      * @param array{
@@ -238,7 +238,7 @@ final class Groups extends AbstractResource
     /**
      * `GET /api/v1/groups/{group}/actions`, paginated.
      *
-     * Permission: `communities:read`.
+     * Permission: **Groups and campaigns → View** (`communities:read`).
      *
      * @param string $group
      * @param array{

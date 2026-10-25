@@ -33,7 +33,7 @@ final class Devices extends AbstractResource
      * reference with `external_reference` (exact match). The call of 0.1, `list($options)`, still
      * works.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
      * `external_reference`.
      *
@@ -66,7 +66,7 @@ final class Devices extends AbstractResource
      * quota: see `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to
      * repeat it safely.
      *
-     * Permission: `accounts:operate`.
+     * Permission: **WhatsApp numbers → Create, connect and delete** (`accounts:operate`).
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
      * @param PendingDeviceCreate $body
@@ -91,7 +91,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}`.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param RequestOptions $options
@@ -109,7 +109,7 @@ final class Devices extends AbstractResource
     /**
      * `PUT /api/v1/devices/{device}`.
      *
-     * Permission: `accounts:write`.
+     * Permission: **WhatsApp numbers → Edit** (`accounts:write`).
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
      * `external_reference`.
      *
@@ -145,7 +145,7 @@ final class Devices extends AbstractResource
      * official number loses the app subscription but stays registered with Meta; a QR number's
      * session is closed. It emits `device.deleted`. There is no undo.
      *
-     * Permission: `accounts:operate`.
+     * Permission: **WhatsApp numbers → Create, connect and delete** (`accounts:operate`).
      * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
      * change.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
@@ -163,7 +163,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/status`: connection status.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param RequestOptions $options
@@ -184,7 +184,7 @@ final class Devices extends AbstractResource
      * it and scan it right away; 3 while it starts; 0 once connected), or wait for
      * `device.connected`. An official number answers `422 provider_unsupported`.
      *
-     * Permission: `accounts:operate`.
+     * Permission: **WhatsApp numbers → Create, connect and delete** (`accounts:operate`).
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
      * @param int $device
@@ -209,7 +209,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/health`.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param RequestOptions $options
@@ -227,7 +227,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/me`: the WhatsApp profile of the number.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param RequestOptions $options
@@ -245,7 +245,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/check-phone`: whether a phone has WhatsApp.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param array{
@@ -266,7 +266,7 @@ final class Devices extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/connection-history`, paginated.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param int $device
      * @param array{

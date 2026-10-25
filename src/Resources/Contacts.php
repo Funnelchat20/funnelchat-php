@@ -32,7 +32,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/contacts`, paginated. Filter by `phone` without the `+`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param array{
      *     name?: string,
@@ -97,7 +97,7 @@ final class Contacts extends AbstractResource
     /**
      * `POST /api/v1/contacts`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param StoreContactRequest $body
      * @param RequestOptions $options
@@ -116,7 +116,7 @@ final class Contacts extends AbstractResource
      * `POST /api/v1/contacts/update-or-create`: creates the contact or updates the one with that
      * phone.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     phone: string,
@@ -138,7 +138,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/contacts/{contact}`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contact
      * @param RequestOptions $options
@@ -244,7 +244,7 @@ final class Contacts extends AbstractResource
     /**
      * `PUT /api/v1/contacts/{contact}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param int $contact
      * @param UpdateContactRequest $body
@@ -263,7 +263,7 @@ final class Contacts extends AbstractResource
     /**
      * `POST /api/v1/contacts/delete`: deletes the contacts of the body (`contactIds`, or a filter).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param array{
      *     all?: bool,
@@ -311,7 +311,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/contacts/{contact}/tags`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contact
      * @param array{
@@ -334,7 +334,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/contacts/{contact}/custom-fields`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contact
      * @param array{
@@ -358,7 +358,7 @@ final class Contacts extends AbstractResource
     /**
      * `POST /api/v1/contacts/attach-custom-field`: sets a custom field on contacts.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param list<array{
      *     customFieldId: int,
@@ -394,7 +394,7 @@ final class Contacts extends AbstractResource
     /**
      * `POST /api/v1/contacts/detach-custom-field`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param list<array{
      *     customFieldId: int,
@@ -422,7 +422,7 @@ final class Contacts extends AbstractResource
      * `GET /api/v1/contacts/{contact}/meta-window`: whether the 24-hour window with the contact is
      * open on a WhatsApp Cloud number (`is_open`). Outside it, only templates can be sent.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contact
      * @param array{
@@ -457,7 +457,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/devices/{device}/contacts`, paginated: the contacts of one number.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $device
      * @param array{
@@ -568,7 +568,7 @@ final class Contacts extends AbstractResource
     /**
      * `GET /api/v1/contacts/{contact}/notes`, paginated.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      *
      * @param int $contact
      * @param array{
@@ -592,7 +592,7 @@ final class Contacts extends AbstractResource
     /**
      * `POST /api/v1/contacts/{contact}/notes`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      *
      * @param int $contact
      * @param StoreContactNoteRequest $body
@@ -611,7 +611,7 @@ final class Contacts extends AbstractResource
     /**
      * `DELETE /api/v1/contacts/{contact}/notes/{note}`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact

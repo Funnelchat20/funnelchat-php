@@ -18,10 +18,12 @@ use Funnelchat\Webhooks\WebhookHelpers;
 /**
  * Webhook subscriptions (accounts area) and the verification of deliveries.
  *
- * The subscription routes need `webhooks:read` / `webhooks:write`, and a key only sees and manages
- * subscriptions whose events are of areas it can read (`{area}:read`). The catalog (`events()`)
- * needs `accounts:read`. PENDING OF THE SPEC: the subscription routes come from accounts v1.4.24,
- * not from the snapshot; their types are in spec/pending.json until a snapshot brings them.
+ * The subscription routes need **Notifications (webhooks) → View** (`webhooks:read`) /
+ * **Notifications (webhooks) → Manage** (`webhooks:write`), and a key only sees and manages
+ * subscriptions whose events are of areas it can read (the area's **View**, `{area}:read`). The
+ * catalog (`events()`) needs **WhatsApp numbers → View** (`accounts:read`). PENDING OF THE SPEC:
+ * the subscription routes come from accounts v1.4.24, not from the snapshot; their types are in
+ * spec/pending.json until a snapshot brings them.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingWebhookSubscription from Schemas
@@ -38,7 +40,7 @@ final class Webhooks extends AbstractResource
     /**
      * `GET /api/v1/webhooks/events`: the event types you can subscribe to, each with `status`.
      *
-     * Permission: `accounts:read`.
+     * Permission: **WhatsApp numbers → View** (`accounts:read`).
      *
      * @param RequestOptions $options
      *
@@ -76,7 +78,7 @@ final class Webhooks extends AbstractResource
      * `GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only
      * yours, except those with events of an area your key cannot read.
      *
-     * Permission: `webhooks:read`.
+     * Permission: **Notifications (webhooks) → View** (`webhooks:read`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param array{
@@ -99,7 +101,7 @@ final class Webhooks extends AbstractResource
     /**
      * `POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`.
      *
-     * Permission: `webhooks:write`.
+     * Permission: **Notifications (webhooks) → Manage** (`webhooks:write`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param PendingWebhookSubscriptionCreate $body
@@ -118,7 +120,7 @@ final class Webhooks extends AbstractResource
     /**
      * `GET /api/v1/webhooks/{id}` (without the secret).
      *
-     * Permission: `webhooks:read`.
+     * Permission: **Notifications (webhooks) → View** (`webhooks:read`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -138,7 +140,7 @@ final class Webhooks extends AbstractResource
      * `PUT /api/v1/webhooks/{id}`: replaces `url`, `events`, `description` and `filters`. The
      * secret stays.
      *
-     * Permission: `webhooks:write`.
+     * Permission: **Notifications (webhooks) → Manage** (`webhooks:write`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -158,7 +160,7 @@ final class Webhooks extends AbstractResource
     /**
      * `DELETE /api/v1/webhooks/{id}`.
      *
-     * Permission: `webhooks:write`.
+     * Permission: **Notifications (webhooks) → Manage** (`webhooks:write`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
@@ -177,7 +179,7 @@ final class Webhooks extends AbstractResource
      * working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available`
      * (rotate it in the panel).
      *
-     * Permission: `webhooks:write`.
+     * Permission: **Notifications (webhooks) → Manage** (`webhooks:write`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -196,7 +198,7 @@ final class Webhooks extends AbstractResource
     /**
      * `POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`.
      *
-     * Permission: `webhooks:write`.
+     * Permission: **Notifications (webhooks) → Manage** (`webhooks:write`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
@@ -215,7 +217,7 @@ final class Webhooks extends AbstractResource
     /**
      * `GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first.
      *
-     * Permission: `webhooks:read`.
+     * Permission: **Notifications (webhooks) → View** (`webhooks:read`).
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id

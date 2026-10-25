@@ -19,8 +19,10 @@ use Funnelchat\Pagination\Paginator;
  * and read the answers. To send one to a contact, `messages->sendForm()`.
  *
  * A form has versions: the `{id}` routes take a VERSION id, the `families/{familyId}` routes the
- * form's id (`family_id`). Reading needs `conversations:read`, changing `conversations:write` and
- * sending `conversations:send`. The answers also arrive by `whatsapp_form.completed`.
+ * form's id (`family_id`). Reading needs **Contacts and conversations → View**
+ * (`conversations:read`), changing **Contacts and conversations → Edit** (`conversations:write`)
+ * and sending **Contacts and conversations → Send** (`conversations:send`). The answers also
+ * arrive by `whatsapp_form.completed`.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingForm from Schemas
@@ -32,7 +34,7 @@ final class Forms extends AbstractResource
     /**
      * `GET /api/v1/forms`, paginated: one row per form, with its current version.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param array{
@@ -58,7 +60,7 @@ final class Forms extends AbstractResource
     /**
      * `GET /api/v1/forms/templates`: the templates to start a form from (`blank` is an empty one).
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param RequestOptions $options
@@ -92,7 +94,7 @@ final class Forms extends AbstractResource
     /**
      * `POST /api/v1/forms`: creates a draft from a template (`template_key`) for a number.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param array{
@@ -126,7 +128,7 @@ final class Forms extends AbstractResource
      * `GET /api/v1/forms/{id}`: one version (`id` is the version id), with its lint issues,
      * versions and numbers.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -168,7 +170,7 @@ final class Forms extends AbstractResource
      * `PUT /api/v1/forms/{id}`: saves a draft. A published version answers `409 PUBLISHED`; with
      * `expected_updated_at`, someone else's change answers `409 STALE`.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -200,7 +202,7 @@ final class Forms extends AbstractResource
     /**
      * `DELETE /api/v1/forms/{id}`: deletes a draft (a published form is deprecated, not deleted).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
@@ -218,7 +220,7 @@ final class Forms extends AbstractResource
      * `POST /api/v1/forms/{id}/versions`: a new draft from this version, or the draft that already
      * existed (`created: false`).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -250,7 +252,7 @@ final class Forms extends AbstractResource
      * `POST /api/v1/forms/{id}/sync`: validates the version in Meta (`502 META` when Meta rejects
      * it).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -279,7 +281,7 @@ final class Forms extends AbstractResource
     /**
      * `POST /api/v1/forms/{id}/publish`: publishes the version (`422 LINT` with errors).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -308,7 +310,7 @@ final class Forms extends AbstractResource
     /**
      * `GET /api/v1/forms/{id}/numbers`: the numbers of the form and their state.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -333,7 +335,7 @@ final class Forms extends AbstractResource
     /**
      * `POST /api/v1/forms/{id}/numbers`: adds a number.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -361,7 +363,7 @@ final class Forms extends AbstractResource
     /**
      * `DELETE /api/v1/forms/{id}/numbers/{deviceId}`: removes a number (not the primary one).
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -387,7 +389,7 @@ final class Forms extends AbstractResource
     /**
      * `POST /api/v1/forms/{id}/numbers/retry`: retries the numbers that failed.
      *
-     * Permission: `conversations:write`.
+     * Permission: **Contacts and conversations → Edit** (`conversations:write`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $id
@@ -413,7 +415,7 @@ final class Forms extends AbstractResource
      * `GET /api/v1/forms/families/{familyId}/definition`: the published definition of a form
      * (`familyId`), or `data: null`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $familyId
@@ -452,7 +454,7 @@ final class Forms extends AbstractResource
     /**
      * `GET /api/v1/forms/families/{familyId}/versions`, paginated: the versions of a form.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $familyId
@@ -503,7 +505,7 @@ final class Forms extends AbstractResource
      * `GET /api/v1/forms/families/{familyId}/responses`, paginated: the answers to a form, with
      * `columns`.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $familyId
@@ -569,7 +571,7 @@ final class Forms extends AbstractResource
     /**
      * `GET /api/v1/forms/families/{familyId}/responses/{runId}`: one answer in detail.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $familyId
@@ -624,7 +626,7 @@ final class Forms extends AbstractResource
      * `GET /api/v1/forms/families/{familyId}/metrics`: the funnel: sent, delivered, read, completed
      * and the rates.
      *
-     * Permission: `conversations:read`.
+     * Permission: **Contacts and conversations → View** (`conversations:read`).
      * Pending of the spec (`conversations-forms` in spec/pending.json).
      *
      * @param int $familyId
