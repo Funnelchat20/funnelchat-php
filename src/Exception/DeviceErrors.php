@@ -9,8 +9,8 @@ namespace Funnelchat\Exception;
  * `devices->qr()` and `connectLinks`. When the API answers one of these, nothing was created.
  *
  * Source: the contract `1022-alta-de-numeros` v0.2 (23-10, its "Enmienda v0.1" and "Enmienda v0.2",
- * which describe accounts `feat/alta-de-numeros-api` @ 52d49b319 and @ 8852b3fad), not the code:
- * these codes are not in production yet. The quota codes are the ones the panel already answers.
+ * which describe accounts `feat/alta-de-numeros-api` @ 52d49b319 and @ 8852b3fad), not the code.
+ * The quota codes are the ones the panel already answers.
  */
 final class DeviceErrors
 {
@@ -39,7 +39,7 @@ final class DeviceErrors
      *
      * Connect links:
      * - `too_many_open_links` (429): the account has 20 open links. Revoke one or let them expire.
-     * - `meta_connect_disabled` (503): the official signup by link (`type: 'meta'`) is off. QR links still work.
+     * - `meta_connect_disabled` (503): the official signup by link (`type: 'meta'`) is off. It is off in production until Funnelchat registers its domain with Meta. QR links still work.
      * - `link_not_pending` (409): the link to revoke is no longer `pending`.
      * - `credentials_not_allowed` (403): the hosted page (`/connect/...`) was opened with an API key. The page is for your customer's browser, never with a key.
      */

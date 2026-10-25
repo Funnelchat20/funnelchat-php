@@ -1712,6 +1712,7 @@ namespace Funnelchat\Generated;
  *     alias?: string|null,
  *     external_reference?: PendingExternalReference,
  *     same_number_as?: int|null,
+ *     country?: string|null,
  * }
  * @phpstan-type PendingDeviceQr array{
  *     connected: bool,
@@ -1725,6 +1726,7 @@ namespace Funnelchat\Generated;
  *     provision_us_number?: bool,
  *     device_id?: int|null,
  *     same_number_as?: int|null,
+ *     country?: string|null,
  *     external_reference?: PendingExternalReference,
  *     return_url?: string|null,
  *     expires_in_minutes?: int,
@@ -1739,6 +1741,7 @@ namespace Funnelchat\Generated;
  *     provision_us_number: bool,
  *     device_id: int|null,
  *     external_reference: PendingExternalReference,
+ *     country: string|null,
  *     return_url: string|null,
  *     error_code: PendingConnectLinkErrorCode,
  *     created_at: string,

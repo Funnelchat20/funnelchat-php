@@ -170,7 +170,7 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 
 ## Creating and connecting numbers
 
-> **Not in production yet.** This follows the contract of the API (v0.2, 23-10); accounts is building it. Until it ships, the API refuses these routes. Try it against [the sandbox](#testing-against-the-sandbox).
+> **The official signup by link (`'type' => 'meta'`) is not available in production yet:** it answers `503 meta_connect_disabled` until Funnelchat registers its domain with Meta. QR numbers and QR links work. Try the Meta flow against [the sandbox](#testing-against-the-sandbox), turning it on there.
 
 A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need `accounts:operate`; reading links, `accounts:read`. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
 
@@ -178,15 +178,17 @@ A number belongs to the account of the API key and uses the plan's quota, with t
 
 ```php
 $number = $funnelchat->devices->create(
-    ['connection' => 'qr', 'alias' => 'Store 12', 'external_reference' => 'customer-8841'],
+    ['connection' => 'qr', 'alias' => 'Store 12', 'external_reference' => 'customer-8841', 'country' => 'AR'],
     ['idempotencyKey' => 'customer-8841-number'],
 )['data'];
 
 $qr = $funnelchat->devices->qr($number['id'])['data'];
 // $qr['qr_code'] is a PNG data URI: <img src="…">. Ask again after $qr['expires_in'] seconds
-// (20 with a QR, 3 while the session starts, 0 once connected), or wait for device.connected.
+// (5 with a QR, 3 while the session starts, 0 once connected), or wait for device.connected.
 ```
 
+- The QR lasts 5 seconds: ask for it every 5 seconds, show it at once and scan it right away. An older QR reaches WhatsApp expired and it refuses to link the phone.
+- `country` (optional, two letters) is the country of the phone: the WhatsApp session is opened from there.
 - The account has at most one QR number not connected yet: creating another answers `409 pending_number_exists` with its `device_id`. Connect that one, or delete it, first.
 - `same_number_as` adds QR to an official number in coexistence, without using quota.
 - A QR number is not official: WhatsApp can ban it.
@@ -197,7 +199,7 @@ A single-use page for your customer, with no Funnelchat session. The number is c
 
 ```php
 $link = $funnelchat->connectLinks->create([
-    'type' => 'meta',                                          // or 'qr'
+    'type' => 'meta',                                          // or 'qr'; 'meta' is off in production for now
     'allowed_connection_types' => ['coexistence', 'dedicated'], // only with 'meta'; with both, your customer chooses
     'external_reference' => 'customer-8841',
     'return_url' => 'https://app.example.com/numbers/done',    // https, up to 2048 characters
@@ -207,6 +209,8 @@ $link = $funnelchat->connectLinks->create([
 sendToYourCustomer($link['url']); // the URL comes only in this answer
 ```
 
+- `'type' => 'meta'` answers `503 meta_connect_disabled` in production until Funnelchat registers its domain with Meta. A `qr` link works: its page renews the QR every 5 seconds.
+- With `'type' => 'qr'`, `country` (two letters) is the country of the phone, as in `devices->create()`. It does not go with `device_id`, and the link returns it.
 - With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. A pool number is always dedicated: it needs `dedicated` in `allowed_connection_types` and does not go with `device_id`; otherwise `422 invalid_request`. Your customer pays Meta directly, with a payment method in their WhatsApp account.
 - `'device_id' => 41` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
 - The page claims the link when your customer presses its button, not when it opens: a messenger's link preview does not use it up.
@@ -515,7 +519,7 @@ All of it comes from the code of the domains at the tags running in production o
 | The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
 | Webhook subscriptions (`/api/v1/webhooks…`, with `webhooks:*`), the accounts events and four communities ones | accounts `v1.4.24` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
-| **Not in production yet:** creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`) and the fields and events of `device.*` | the contract `1022-alta-de-numeros` v0.2 (23-10), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
+| Creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`, `country`) and the fields and events of `device.*`. In production since 25-10, except `type: 'meta'` (`503 meta_connect_disabled`) | the contract `1022-alta-de-numeros` v0.2 (23-10) and the changes of 25-10 (the QR every 5 seconds, accounts #1335; `meta` off; `country`), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
 
 The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`, from the contract.
 

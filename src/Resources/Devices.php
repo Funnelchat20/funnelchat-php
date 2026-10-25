@@ -60,10 +60,11 @@ final class Devices extends AbstractResource
     /**
      * `POST /api/v1/devices`: creates a QR number (`connection: 'qr'`), not connected yet. Returns
      * `['data' => <number>]`; then scan its QR with `qr()`, or send your customer a link with
-     * `connectLinks->create()`. The account has at most one QR number not connected yet: another
-     * one answers `409 pending_number_exists` with its `device_id`. It uses the plan's quota: see
-     * `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to repeat it
-     * safely.
+     * `connectLinks->create()`. `country` (two letters, optional) is the country of the phone,
+     * where the WhatsApp session is opened. The account has at most one QR number not connected
+     * yet: another one answers `409 pending_number_exists` with its `device_id`. It uses the plan's
+     * quota: see `Funnelchat\Exception\DeviceErrors`. Pass `idempotencyKey` in the options to
+     * repeat it safely.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
@@ -179,9 +180,9 @@ final class Devices extends AbstractResource
 
     /**
      * `GET /api/v1/devices/{device}/qr`: the QR to scan, as a PNG data URI in `data.qr_code`
-     * (`null` once `data.connected`). Ask again after `data.expires_in` seconds (20 with a QR, 3
-     * while it starts, 0 once connected), or wait for `device.connected`. An official number
-     * answers `422 provider_unsupported`.
+     * (`null` once `data.connected`). Ask again after `data.expires_in` seconds (5 with a QR: show
+     * it and scan it right away; 3 while it starts; 0 once connected), or wait for
+     * `device.connected`. An official number answers `422 provider_unsupported`.
      *
      * Permission: `accounts:operate`.
      * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).

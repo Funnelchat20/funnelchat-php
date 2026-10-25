@@ -64,6 +64,7 @@ final class NumberOnboardingTest extends TestCase
             'provision_us_number' => false,
             'device_id' => null,
             'external_reference' => 'customer-8841',
+            'country' => null,
             'return_url' => 'https://app.example/done',
             'error_code' => null,
             'created_at' => '2026-10-23T12:00:00Z',
@@ -102,9 +103,25 @@ final class NumberOnboardingTest extends TestCase
         self::assertSame(['connection' => 'qr', 'same_number_as' => 3], self::jsonBody($http->lastRequest()));
     }
 
+    public function testCountryGoesInTheBodyOfBothCreatesAndTheLinkReturnsIt(): void
+    {
+        $http = new MockHttpClient(
+            Reply::json(201, ['data' => self::device(42)]),
+            Reply::json(201, ['data' => ['type' => 'qr', 'allowed_connection_types' => null, 'country' => 'AR'] + self::link(9, withUrl: true)]),
+        );
+        $client = $this->client($http);
+
+        $client->devices->create(['connection' => 'qr', 'country' => 'AR']);
+        self::assertSame(['connection' => 'qr', 'country' => 'AR'], self::jsonBody($http->lastRequest()));
+
+        $link = $client->connectLinks->create(['type' => 'qr', 'country' => 'AR'])['data'];
+        self::assertSame(['type' => 'qr', 'country' => 'AR'], self::jsonBody($http->lastRequest()));
+        self::assertSame('AR', $link['country']);
+    }
+
     public function testDevicesQrAnswersTheImageAndWhenToAskAgain(): void
     {
-        $qr = ['connected' => false, 'qr_code' => 'data:image/png;base64,iVBORw0KGgo=', 'expires_in' => 20];
+        $qr = ['connected' => false, 'qr_code' => 'data:image/png;base64,iVBORw0KGgo=', 'expires_in' => 5];
         $http = new MockHttpClient(Reply::ok(['data' => $qr]));
 
         $result = $this->client($http)->devices->qr(41);
