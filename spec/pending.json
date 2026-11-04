@@ -1705,7 +1705,7 @@
     "message.status_changed": {
       "post": {
         "summary": "message.status_changed",
-        "description": "The delivery status of a sent 1:1 message changed. One notice per transition, never one that goes backward; `queued` never arrives here. You must request it explicitly in `events` (`*` does not include it).",
+        "description": "The delivery status of a sent 1:1 message changed. One notice per transition, never one that goes backward; `queued` never arrives here. Request it by name in `events`: a subscription lists its types, with no wildcard.",
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",

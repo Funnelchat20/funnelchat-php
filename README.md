@@ -532,7 +532,7 @@ $subscription = $funnelchat->webhooks->create([
 - They belong to the workspace of the key: `list()` (paginated) also brings the ones of other integrations of that workspace, except those with events of an area your key cannot read. A subscription receives only the events of its workspace. At most 50 per workspace.
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
 - `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
-- `message.status_changed` must be requested by name: `*` does not include it.
+- List every type you want by name: there is no wildcard (`*` answers `422`, accounts v1.5.97 accepts only the subscribable types of `events()`).
 - The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**).
 
 ## Pagination
