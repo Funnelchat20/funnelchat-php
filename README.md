@@ -1,27 +1,164 @@
 # funnelchat-php
 
-The official PHP SDK for the Funnelchat public API: contacts, conversations and messages, templates, WhatsApp forms, tags, custom fields, groups, numbers and webhooks, with the resources and their types generated from the OpenAPI spec.
-
-- PHP 8.1 or later, PSR-4.
-- Any PSR-18 HTTP client with PSR-17 factories, which the SDK finds by itself. With Guzzle (7 or 8) it also applies the timeout.
-- Retries with exponential backoff, pagination with `foreach` (generators), typed exceptions, the `X-Request-Id` of every response and webhook signature verification.
-- Responses are arrays (the decoded JSON) typed with PHPDoc: PHPStan understands them and PhpStorm 2025.1 or later completes their keys.
-
-> **Status: v0.** The public API is at v0 and may change. The full reference is on the [developers portal](https://developers-portal.funnelchat.app/docs/). Some types come from the code of the API in production rather than from the published spec: they are listed in [Pending of the spec](#pending-of-the-spec).
-
-## Installation
+The official PHP SDK for the Funnelchat API: connect a WhatsApp number, send messages, know when they were read, receive messages and work with your groups, from PHP.
 
 ```bash
 composer require funnelchat/funnelchat-php guzzlehttp/guzzle
 ```
 
-Guzzle is not required: any PSR-18 client with PSR-17 factories works (for example `symfony/http-client` with `nyholm/psr7`). The SDK finds them with [php-http/discovery](https://docs.php-http.org/en/latest/discovery.html); if Composer asks about its plugin, you can say no.
+PHP 8.1 or later. The API reference is on the [developers portal](https://developers-portal.funnelchat.app/docs/).
 
-The package is published on [Packagist](https://packagist.org/packages/funnelchat/funnelchat-php).
+## First use
 
-## First call
+### 1. Create your key
 
-You need an API key (`<id>|fc_live_...`) created in the panel, in "Developers" → "Create API key", with the permissions for what you are going to use. The panel groups them by area, one box per permission. There are twelve and a key can have all of them; there is no wildcard:
+In Funnelchat, go to **Developers** → **Create key**. The key (`<id>|fc_live_...`) is shown only once: keep it in the `FUNNELCHAT_API_KEY` environment variable, where the client reads it.
+
+```php
+$funnelchat = new Funnelchat\Funnelchat(); // reads FUNNELCHAT_API_KEY
+```
+
+For the four steps, tick **WhatsApp numbers → Create, connect and delete**, **Contacts and conversations → Send** and **Notifications (webhooks) → View** and **Manage** (all of them: [API keys and permissions](#api-keys-and-permissions)).
+
+### 2. Connect a number
+
+```php
+$number = $funnelchat->devices->create(['connection' => 'qr', 'alias' => 'My first number'])['data'];
+
+do {
+    $qr = $funnelchat->devices->qr($number['id'])['data'];
+    if ($qr['qr_code'] !== null) {
+        file_put_contents('qr.html', "<img src=\"{$qr['qr_code']}\">"); // open it and scan it: WhatsApp → Linked devices
+    }
+    sleep(max(1, $qr['expires_in']));
+} while (!$qr['connected']);
+```
+
+The QR changes every 5 seconds: show it and scan it right away. `$number['id']` is the `device_id` you send with. To let your customer connect their own number on a page of ours, send them a [connect link](#a-connect-link).
+
+### 3. Send a message
+
+```php
+$contact = $funnelchat->contacts->create(['phone' => '5491100000000', 'name' => 'Ana']);
+
+$sent = $funnelchat->messages->send($contact['id'], [
+    'device_id' => $number['id'],
+    'phone' => '5491100000000', // the same phone, without +
+    'text' => 'Hi Ana! This is my first message from the API.',
+]);
+echo $sent['message']['id'], ' ', $sent['message']['status']; // 9001 queued
+```
+
+If a contact with that phone already exists, `contacts->create()` returns it. **Queued is not sent**: the next statuses arrive in step 4. With an official (WhatsApp Cloud) number you can write free text only within 24 hours of the contact's last message; after that, an [approved template](#closed-window-an-approved-template).
+
+### 4. Know when it was read
+
+Subscribe a URL of yours, once:
+
+```php
+$subscription = $funnelchat->webhooks->create([
+    'url' => 'https://your-server.example/hooks/funnelchat',
+    'events' => ['message.status_changed', 'message.received'],
+]);
+// $subscription['secret'] (whsec_…) is shown only once: keep it in FUNNELCHAT_WEBHOOK_SECRET.
+```
+
+At that URL, verify the signature and read the status:
+
+```php
+use Funnelchat\Webhook;
+
+$event = Webhook::constructEvent(
+    file_get_contents('php://input'),               // the raw body, as it arrived
+    $_SERVER['HTTP_X_FUNNELCHAT_SIGNATURE'] ?? null,
+    getenv('FUNNELCHAT_WEBHOOK_SECRET') ?: null,
+);
+
+if ($event['type'] === 'message.status_changed' && $event['data']['status'] === 'read') {
+    // $event['data']['message_id'] is the $sent['message']['id'] of step 3.
+}
+http_response_code(200);
+```
+
+`status` goes `sent` → `delivered` → `read`, or `failed` (with `error`). A wrong signature throws `WebhookVerificationException`: answer `400`. Without a server, ask for the message: `$funnelchat->messages->get($contact['id'], $sent['message']['id'])['status']`.
+
+The four steps put together, ready to run: [examples/plain-php/first-use.php](examples/plain-php/first-use.php).
+
+## Receive messages
+
+The same subscription brings `message.received` when someone writes to one of your numbers:
+
+```php
+if ($event['type'] === 'message.received') {
+    $contactId = $event['data']['contact']['id'];
+    $text = $event['data']['message']['text'];
+    $deviceId = $event['data']['device_id'] ?? null; // the number that received it: reply from that one
+
+    $funnelchat->messages->send($contactId, ['device_id' => $deviceId, 'phone' => ltrim($event['data']['contact']['phone'], '+'), 'text' => 'Got it, thanks!']);
+}
+```
+
+On an official number, a message received opens the 24-hour window for free text. Answer the webhook with a `2xx` within 10 seconds and do the slow work after (in Laravel, a queued job: [Receiving webhooks with Laravel](#receiving-webhooks-with-laravel)).
+
+## Groups
+
+```php
+foreach ($funnelchat->groups->list(['deviceId' => $number['id']]) as $group) {
+    echo $group['uid'], ' ', $group['name'], "\n"; // 120363000000000001@g.us Customers
+}
+
+$accepted = $funnelchat->groups->sendMessage('120363000000000001@g.us', [
+    'device_id' => $number['id'],
+    'type' => 'text',
+    'text' => 'Hi, everyone!',
+]);
+
+$action = $funnelchat->groups->retrieveAction($accepted['action_id'])['data'];
+echo $action['status']; // queued, running, completed or failed
+```
+
+- Reading groups needs **Groups and campaigns → View**; sending to a group, **Groups and campaigns → Send**.
+- Sending is asynchronous: `sendMessage()` answers `['action_id' => …, 'status' => 'queued']` and the message goes out right after, at the number's pace. Learn how it ended with `retrieveAction()` (`result.message.uid` is the message's id in WhatsApp; a failure has its `reason`) or with the `group_action.completed` and `group_action.failed` events, whose `action.uuid` is the same `action_id`.
+- A file: `type` `image`, `video`, `audio` or `document`, with `media_url` (a public `https` URL, up to 255 characters); `caption` with an image or a video, `file_name` with a document.
+- A QR number must be an admin of the group; an official number, the group's own number. Otherwise `422 device_not_group_admin` or `422 device_not_group_number`.
+- A send to a group is never retried by itself and has no idempotency key: after a timeout or a `5xx`, read the group's messages (`groups->listMessages()`) before sending it again.
+- While sending to groups by API is not enabled, the API answers `403 route_not_available`.
+
+Who joins and who leaves a group arrives in `group_participant.joined` and `group_participant.left` (subscribe to them like any other, with **Groups and campaigns → View** in the key):
+
+```php
+if ($event['type'] === 'group_participant.joined') {
+    $groupUid = $event['data']['group']['uid'];
+    $who = $event['data']['participant']['identity']; // the phone, or the WhatsApp id when there is no phone
+    $campaign = $event['data']['campaign'];           // null when the group is not in a campaign
+}
+```
+
+More about groups: [Groups](#groups-reference).
+
+## Workspaces
+
+- Each key belongs to the workspace where it was created, and sees and operates only that workspace: its numbers, contacts, groups and subscriptions. A record of another workspace answers `404`, as if it did not exist.
+- A subscription receives only the events of its workspace, and every event says which one in `data.workspace_id`.
+- An agency gives each customer a workspace and uses one key per workspace. Workspaces are created in the panel, not through the API.
+- With a single workspace nothing changes: `data.workspace_id` is the id of your default workspace.
+
+```php
+$workspaceId = $event['data']['workspace_id']; // the same for every event of one subscription
+```
+
+---
+
+The rest is reference.
+
+- [API keys and permissions](#api-keys-and-permissions) · [The client](#the-client) · [The resources](#the-resources)
+- [Sending a message](#sending-a-message) · [Groups](#groups-reference) · [Creating and connecting numbers](#creating-and-connecting-numbers)
+- [Receiving webhooks with Laravel](#receiving-webhooks-with-laravel) · [Pagination](#pagination) · [Errors](#errors) · [Retries](#retries) · [Any route](#any-route)
+- [Regenerating](#regenerating) · [Pending of the spec](#pending-of-the-spec) · [Development](#development) · [Testing against the sandbox](#testing-against-the-sandbox)
+
+## API keys and permissions
+
+The key (`<id>|fc_live_...`) is created in the panel, in **Developers** → **Create key**, with the permissions for what you are going to use. The panel groups them by area, one box per permission. There are twelve and a key can have all of them; there is no wildcard:
 
 | Area | Permissions |
 |---|---|
@@ -32,7 +169,9 @@ You need an API key (`<id>|fc_live_...`) created in the panel, in "Developers" �
 
 This README names each one as the panel does: **WhatsApp numbers → View** is the **View** box of the **WhatsApp numbers** area.
 
-Within each area, **Send** includes **Edit** and **Edit** includes **View**; **Manage groups** and **Create, connect and delete** are separate. Keep the key in an environment variable: the client reads it from `FUNNELCHAT_API_KEY` when you do not pass it.
+Within each area, **Send** includes **Edit** and **Edit** includes **View**; **Manage groups** and **Create, connect and delete** are separate. Keep the key in an environment variable: the client reads it from `FUNNELCHAT_API_KEY` when you do not pass it. A key acts only in the workspace where it was created ([Workspaces](#workspaces)).
+
+## The client
 
 ```php
 use Funnelchat\Funnelchat;
@@ -46,6 +185,11 @@ foreach ($funnelchat->devices->list() as $device) {
     var_dump($device['capabilities']['messages']['templates'], $device['capabilities']['statuses']);
 }
 ```
+
+- Any PSR-18 HTTP client with PSR-17 factories, which the SDK finds by itself. With Guzzle (7 or 8) it also applies the timeout. Guzzle is not required: any PSR-18 client with PSR-17 factories works (for example `symfony/http-client` with `nyholm/psr7`). The SDK finds them with [php-http/discovery](https://docs.php-http.org/en/latest/discovery.html); if Composer asks about its plugin, you can say no.
+- Retries with exponential backoff, pagination with `foreach` (generators), typed exceptions, the `X-Request-Id` of every response and webhook signature verification.
+- Responses are arrays (the decoded JSON) typed with PHPDoc: PHPStan understands them and PhpStorm 2025.1 or later completes their keys.
+- The package is published on [Packagist](https://packagist.org/packages/funnelchat/funnelchat-php).
 
 Client options (named arguments):
 
@@ -78,7 +222,7 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | [Read only](#groups): `list`, `retrieve`, `listByDevice`, `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages` and `listActions`. |
+| `$funnelchat->groups` | `list`, `retrieve`, `listByDevice`, `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages`, `listActions`, `sendMessage` (to a group, now) and `retrieveAction` (how a send ended). See [Groups](#groups-reference). |
 | `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `delete`, `status`, `health`, `me`, `checkPhone`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
 | `$funnelchat->connectLinks` | `create`, `retrieve`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
 | `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
@@ -129,7 +273,9 @@ $funnelchat->messages->send(2001, [
 
 If one is missing, the API answers `422` with the field in `errors` (`file_type`, `file_name` or `file`), or `415` (`UnsupportedMediaTypeException`, with `supportedFileTypes`) when the extension cannot be sent.
 
-**Closed window: an approved template.** The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`:
+### Closed window: an approved template
+
+The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`:
 
 ```php
 $funnelchat->templates->send(3, '45', [
@@ -153,12 +299,12 @@ $funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'butto
 | `422 antiblock_duplicate_content` | The same content repeated to the same contact. | Change the text or wait. |
 | `422 antiblock_unanswered_limit` | Too many messages in a row to someone who does not answer. | Wait until they answer. |
 | `422 recipient_mismatch` | The `phone` or `whatsapp_id` is not the one of the contact of the route. | Use that contact's details. |
-| `422 recipient_unsupported` | The contact is a group, a broadcast list or a channel. | Through the API you can only write to people. |
+| `422 recipient_unsupported` | The contact is a group, a broadcast list or a channel. | Write to a group with `groups->sendMessage()`. |
 | `422 device_unavailable` | The number is not connected to WhatsApp. | Connect it and retry. |
 | `429 rate_limited` | You went over your number's pace. It always has `retryAfter`. | Wait those seconds and retry. |
 | `429 mac_lockout_24h` | The account is in the 24-hour lockout for using up its MACs (also for a contact that is inactive by MAC). No `retryAfter`. | Do not retry: wait for the lockout to end. |
 
-`$exception->isSendRuleError()` tells you whether the exception is one of these rules or one of the other refusals of a send (`not_sent`, `template_not_found`, `form_not_published`, `provider_unsupported`…; the list is in `Funnelchat\Exception\SendErrors::CODES`). A send is **never retried by itself**, because a retry can deliver the same message twice. If a `429 rate_limited` sent nothing and you want the SDK to retry for you, ask for it in that call (a `mac_lockout_24h` is never retried):
+`$exception->isSendRuleError()` tells you whether the exception is one of these rules or one of the other refusals of a send (`not_sent`, `template_not_found`, `form_not_published`, `provider_unsupported`, the refusals of a send to a group…; the list is in `Funnelchat\Exception\SendErrors::CODES`). A send is **never retried by itself**, because a retry can deliver the same message twice. If a `429 rate_limited` sent nothing and you want the SDK to retry for you, ask for it in that call (a `mac_lockout_24h` is never retried):
 
 ```php
 $funnelchat->messages->send(2001, $body, ['retrySend' => true]);
@@ -166,9 +312,9 @@ $funnelchat->messages->send(2001, $body, ['retrySend' => true]);
 
 The full example is in [examples/plain-php/send-message.php](examples/plain-php/send-message.php).
 
-## Groups
+## Groups (reference)
 
-Groups are read only through the API, with **Groups and campaigns → View**: the account's groups, their participants, joins and leaves, the messages sent to them and their scheduled messages.
+With **Groups and campaigns → View**: the groups of your key's workspace, their participants, joins and leaves, the messages sent to them and their scheduled messages. With **Groups and campaigns → Send**: a message to a group, now.
 
 ```php
 foreach ($funnelchat->groups->list(['deviceId' => 4]) as $group) {
@@ -179,11 +325,29 @@ $participants = $funnelchat->groups->listParticipants(['groupUid' => '1203630000
 $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id' => 4, 'group_uid' => '120363000000000001@g.us']);
 ```
 
+**Sending to a group.** `groups->sendMessage($groupUid, $body)` and `groups->retrieveAction($actionId)`, as in [Groups](#groups) above. The refusals, with nothing sent (all of them in `SendErrors::CODES`, so `isSendRuleError()` is `true`):
+
+| Error | What happened |
+|---|---|
+| `404 group_not_found`, `404 device_not_found` | The group or the number is not of your key's workspace. |
+| `422 device_not_connected` | The number is not connected. |
+| `422 device_not_group_admin` | A QR number that is not an admin of the group. |
+| `422 device_not_group_number` | An official number that is not the group's own number. |
+| `422 unsupported_group_type` | A community or a channel, not a group. |
+| `422 unsupported_type`, `422 provider_unsupported` | The number cannot send that type, or the account lacks what it needs (`requires` says what). |
+| `422 window_closed`, `422 number_restricted` | Official number: the 24-hour window is closed, or its quality does not let it send. |
+| `429 too_many_pending_actions` | The number already has 50 group actions open. Never retried. |
+| `403 route_not_available` | Sending to groups by API is not enabled. |
+
+A QR number sends at the pace of the Low-speed scheduled messages; there is no volume cap of the plan. The `result` of `retrieveAction()` for a send is `['message' => ['uid' => …]]`.
+
+**The group events.** `group_participant.joined` and `group_participant.left`: `group` (`uid`, `name`), `campaign` (`uuid`, or `null` for a group without a campaign) and `participant` (`identity`, `identity_type` `phone` or `whatsapp_user`, `name`). Also `group_action.completed` and `group_action.failed` (the result of a send), `group.message_received`, `group.reaction_added` and the other group events of `Funnelchat\Generated\WebhookEvents::CATALOG`.
+
 ## Creating and connecting numbers
 
 > **The official signup by link (`'type' => 'meta'`) is not available in production yet:** it answers `503 meta_connect_disabled` until Funnelchat registers its domain with Meta. QR numbers and QR links work. Try the Meta flow against [the sandbox](#testing-against-the-sandbox), turning it on there.
 
-A number belongs to the account of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need **WhatsApp numbers → Create, connect and delete**; reading links, **WhatsApp numbers → View**. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
+A number belongs to the workspace of the API key and uses the plan's quota, with the same rules as the panel. Creating, deleting, asking for the QR and creating or revoking links need **WhatsApp numbers → Create, connect and delete**; reading links, **WhatsApp numbers → View**. Tag each number with your own `external_reference` (your customer's id, for example): it comes back in the number, in every `device.*` event, and filters the list.
 
 ### A QR number
 
@@ -263,12 +427,12 @@ Deleting is physical and frees the quota: an official number loses the app subsc
 | `device.deleted` | `device`, `deleted_at`, `connect_link_id` |
 | `device.health_changed` | `device`, `previous_state`, `state` (`available`, `limited`, `blocked` or `unknown`), `changed_at`, `connect_link_id` |
 
-`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence`, `dedicated` or `null`) and `external_reference`. `connect_link_id` is, in `device.connected`, the link of that connection; in the other three, the last link that connected the number; `null` when no link did. The fields that production does not send yet (`device.connection`, `device.external_reference`, `connect_link_id` and `reason`) are optional in the types: read them with `?? null`. The types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
+`device` is `id`, `name`, `number`, `connection` (`qr`, `coexistence`, `dedicated` or `null`) and `external_reference`. `connect_link_id` is, in `device.connected`, the link of that connection; in the other three, the last link that connected the number; `null` when no link did. Like every event, they carry `workspace_id`. The types are `DeviceConnectedEvent`, `DeviceDisconnectedEvent`, `DeviceDeletedEvent` and `DeviceHealthChangedEvent` in `Funnelchat\Generated\WebhookEvents`.
 
 ```php
 $event = $funnelchat->webhooks->constructEvent($body, $signature, $secret);
 if ($event['type'] === 'device.connected') {
-    markConnected($event['data']['device']['external_reference'] ?? null, $event['data']['device']['id']);
+    markConnected($event['data']['device']['external_reference'], $event['data']['device']['id']);
 }
 ```
 
@@ -353,7 +517,7 @@ final class FunnelchatEvents
 }
 ```
 
-The catalog of events the SDK knows, with their status, is `Funnelchat\Generated\WebhookEvents::CATALOG`.
+Every event's `data` carries `workspace_id`, the workspace it belongs to ([Workspaces](#workspaces)). The catalog of events the SDK knows, with their status, is `Funnelchat\Generated\WebhookEvents::CATALOG`.
 
 ### Subscribing
 
@@ -366,12 +530,12 @@ $subscription = $funnelchat->webhooks->create([
 // Store $subscription['id'] and $subscription['secret']: the secret is shown only once.
 ```
 
-- Subscriptions need **Notifications (webhooks) → View** and **Notifications (webhooks) → Manage**, and for each event type, the **View** of the event's area: **Contacts and conversations → View** for `message.received`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
-- They belong to the account: `list()` (paginated) also brings the ones of other integrations, except those with events of an area your key cannot read.
+- Subscriptions need **Notifications (webhooks) → View** and **Notifications (webhooks) → Manage**, and for each event type, the **View** of the event's area: **Contacts and conversations → View** for `message.received` and `message.status_changed`, **Groups and campaigns → View** for the group events, **WhatsApp numbers → View** for `device.*`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
+- They belong to the workspace of the key: `list()` (paginated) also brings the ones of other integrations of that workspace, except those with events of an area your key cannot read. A subscription receives only the events of its workspace. At most 50 per workspace.
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
 - `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
 - `message.status_changed` must be requested by name: `*` does not include it.
-- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**). Since 21-10 it includes, among others, `message.status_changed`, `whatsapp_form.completed`, `group.message_received`, `group.reaction_added` and `group_join_request.created`.
+- The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**).
 
 ## Pagination
 
@@ -435,7 +599,7 @@ try {
 }
 ```
 
-A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
+A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission. A record of another workspace answers `404`, the same as one that does not exist.
 
 The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
 
@@ -459,10 +623,10 @@ An id you send yourself in `X-Request-Id` is not used: the API sets its own. The
 - A request is retried on a `429`, a `5xx` or a network error (also when the timeout ran out), up to `maxRetries` times (2 by default), with the exceptions below.
 - With `Retry-After`, the SDK waits exactly what it asks for. If it asks for more than 60 seconds, it does not wait: the exception is thrown right away with its `retryAfter` and you decide.
 - Without `Retry-After`, the wait is exponential: 0.5 s, 1 s, 2 s… up to 8 s, with some jitter.
-- **A send is never retried by itself**: the `POST`s that need a **Send** permission (**Contacts and conversations → Send** or **Groups and campaigns → Send**: messages, contact cards, forwards, templates and forms). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
+- **A send is never retried by itself**: the `POST`s that need a **Send** permission (**Contacts and conversations → Send** or **Groups and campaigns → Send**: messages, contact cards, forwards, templates, forms and messages to a group). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
 - **A write that may have been applied is not repeated by itself**: a `POST` or a `PATCH` is retried only on a `429` or a `503`, when it was certainly not applied. On a `500`, `502` or `504`, a timeout or a dropped connection, the exception is thrown right away (a `502 origin_unreachable` does not guarantee the area did not get it): read the state before repeating it. `retrySend` does not change this. Reads, `PUT`s and `DELETE`s are retried on any transient failure. It is the same rule as in the Node SDK.
 - **A create with an `idempotencyKey`** (`devices->create()`, `connectLinks->create()`) is retried like a `PUT`: the API answers the same resource to the same key. A send is not, key or no key.
-- `429 mac_lockout_24h`, `429 mac_limit_reached`, `429 too_many_open_links` and `503 meta_connect_disabled` are never retried.
+- `429 mac_lockout_24h`, `429 mac_limit_reached`, `429 too_many_pending_actions`, `429 too_many_open_links` and `503 meta_connect_disabled` are never retried.
 - Per call you can change `maxRetries` and the headers, and with Guzzle the `timeout`:
 
 ```php
@@ -512,7 +676,7 @@ What it does (`scripts/generate.php`):
 
 `spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**The current snapshot** is the portal's, branch `feat/openapi-unificada` @ `0ef4abb`, of 15-10: 191 paths and 230 operations of conversations `9d723d52c`, communities `fab0bb10` and accounts `c234b6f8` (13-10). It predates what reached production on 21-10: what is new is in the pending layer. The details are in `spec/procedencia.json`. The snapshot's own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current snapshot** is the portal's, branch `feat/openapi-unificada` @ `0ef4abb`, of 15-10: 191 paths and 230 operations of conversations `9d723d52c`, communities `fab0bb10` and accounts `c234b6f8` (13-10). It predates what is in production: what is new is in the pending layer. The details are in `spec/procedencia.json`. The snapshot's own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
 ## Pending of the spec
 
@@ -520,19 +684,22 @@ The spec snapshot is from 13-10. What reached production afterwards is in a sepa
 
 - `spec/pending.json`: paths, fields, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`).
 
-All of it comes from the code of the domains at the tags running in production on 22-10 (read only, `git show <tag>:<file>`): conversations `v1.18.10` (`a580a3d0`), communities `v2.34.52` (`6f32f0b4`) and accounts `v1.4.24` (`300cc843`), plus the API entrypoint, api-edge `v0.3.0` (`a1c5b350`).
+All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `v0.3.0` (`a1c5b350`). The entries written on 22-10 (conversations `v1.18.10`, communities `v2.34.52`, accounts `v1.4.24`) were checked again against those tags.
 
 | What | Where it comes from |
 |---|---|
-| What the API-key sends answer (`200` with the queued message, never `204`), `messages->get`, `client_reference` (also in the history), `file_type` and `file_name` | conversations `v1.18.10` |
+| What the API-key sends answer (`200` with the queued message, never `204`), `messages->get`, `client_reference` (also in the history), `file_type` and `file_name` | conversations `v1.18.10`, the same in `v1.19.7` |
 | WhatsApp forms (`/api/v1/forms…`), sending one to a contact and `whatsapp_form.completed` | conversations `v1.18.10` |
-| The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10` |
-| The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52` |
-| Webhook subscriptions (`/api/v1/webhooks…`, with the **Notifications (webhooks)** permissions), the accounts events and four communities ones | accounts `v1.4.24` |
+| The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10`, the same in `v1.19.7` |
+| Sending a message to a group (`groups->sendMessage`), reading how it ended (`groups->retrieveAction`), `group_action.completed` and `group_action.failed` | communities `v2.35.5` |
+| `group_participant.joined` and `group_participant.left` for any group of the account (`campaign` can be `null`) | communities `v2.35.5` |
+| The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52`, the same in `v2.35.5` |
+| `data.workspace_id` in every event | accounts `v1.5.97` |
+| Webhook subscriptions (`/api/v1/webhooks…`, with the **Notifications (webhooks)** permissions, per workspace), the accounts events and four communities ones | accounts `v1.4.24` and `v1.5.97` |
 | `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
-| Creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`, `country`) and the fields and events of `device.*`. In production since 25-10, except `type: 'meta'` (`503 meta_connect_disabled`) | the contract `1022-alta-de-numeros` v0.2 (23-10) and the changes of 25-10 (the QR every 5 seconds, accounts #1335; `meta` off; `country`), source `accounts-number-onboarding`; to be checked against accounts' OpenAPI |
+| Creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`, `country`) and the fields and events of `device.*`, except `type: 'meta'` (`503 meta_connect_disabled`) | accounts `v1.5.97` |
 
-The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`, from the contract.
+The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`.
 
 ## Development
 
@@ -549,22 +716,24 @@ The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), wi
 
 ### Testing against the sandbox
 
-[funnelchat-sandbox](https://github.com/Funnelchat20/funnelchat-sandbox) imitates the API and sends signed webhooks, with no real effects. Point the client at it with `baseUrl` and any well-formed key:
+[funnelchat-sandbox](https://github.com/Funnelchat20/funnelchat-sandbox) (`@funnelchat-hq/sandbox` on npm) imitates the API and sends signed webhooks, with no real effects. Point the client at it with `baseUrl` and any well-formed key:
 
 ```php
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx funnelchat-sandbox --meta-connect`, or while it runs:
+The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. The published sandbox (0.2.0) does not have sending to a group yet, and its events do not carry `workspace_id`.
+
+The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx @funnelchat-hq/sandbox --meta-connect`, or while it runs:
 
 ```bash
 curl -s -X POST http://127.0.0.1:4010/_sandbox/numbers -H 'Content-Type: application/json' -d '{"meta_connect": true}'
 ```
 
-The SDK's end-to-end tests run against it, version 0.2.0 or later (a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`; a QR number created, scanned, disconnected and deleted, a connect link completed on its page, `country`, the refusals and the four signed `device.*` events). The tests of a `meta` link turn the Meta sign-up on by themselves:
+The SDK's end-to-end tests run against it, version 0.2.0 or later: the first use (a QR number connected, a contact, a send and its signed `read`), a send and its signed notices, which a receiver on PHP's built-in server verifies; the refusals; `messages->get`; a form from build to answer; `X-Request-Id`; a QR number created, scanned, disconnected and deleted, a connect link completed on its page, `country`, the refusals and the four signed `device.*` events; and the signed participant events of a group. The tests of a `meta` link turn the Meta sign-up on by themselves:
 
 ```bash
-npx funnelchat-sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet
+npx @funnelchat-hq/sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet
 FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010 composer test:e2e
 ```
 
@@ -578,7 +747,7 @@ src/Pagination/    Paginator and Page
 src/Exception/     the exceptions and the error codes of the sends and of the numbers
 src/ResponseInfo.php  the status, headers and X-Request-Id of a response
 src/Webhook.php    signature and events
-examples/          Laravel and plain PHP
+examples/          the first use, Laravel and plain PHP
 tests/             PHPUnit; tests/E2E, against the sandbox
 ```
 

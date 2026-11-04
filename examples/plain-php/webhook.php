@@ -23,6 +23,8 @@ require __DIR__ . '/../../vendor/autoload.php'; // in your project: vendor/autol
  * @phpstan-import-type WebhookEvent from WebhookEvents
  * @phpstan-import-type MessageReceivedEvent from WebhookEvents
  * @phpstan-import-type MessageStatusChangedEvent from WebhookEvents
+ * @phpstan-import-type GroupParticipantJoinedEvent from WebhookEvents
+ * @phpstan-import-type GroupParticipantLeftEvent from WebhookEvents
  */
 final class FunnelchatEvents
 {
@@ -47,6 +49,12 @@ final class FunnelchatEvents
                 self::statusChanged($event);
                 break;
 
+            case 'group_participant.joined':
+            case 'group_participant.left':
+                /** @var GroupParticipantJoinedEvent|GroupParticipantLeftEvent $event */
+                self::participant($event);
+                break;
+
             default:
                 // A type your code does not know yet: not an error, the answer is still 2xx.
                 break;
@@ -66,7 +74,23 @@ final class FunnelchatEvents
      */
     private static function statusChanged(array $event): void
     {
+        // `read` is the moment the contact opened it; `failed` comes with `error`.
         error_log(sprintf('message %d: %s (%s)', $event['data']['message_id'], $event['data']['status'], $event['data']['client_reference'] ?? 'no reference'));
+    }
+
+    /**
+     * @param GroupParticipantJoinedEvent|GroupParticipantLeftEvent $event
+     */
+    private static function participant(array $event): void
+    {
+        // `campaign` is null for a group without a campaign; `workspace_id` is the workspace of the subscription.
+        error_log(sprintf(
+            '%s %s %s (workspace %s)',
+            $event['data']['participant']['identity'],
+            $event['type'] === 'group_participant.joined' ? 'joined' : 'left',
+            $event['data']['group']['name'] ?? $event['data']['group']['uid'],
+            $event['data']['workspace_id'] ?? 'none',
+        ));
     }
 
     private static function alreadySeen(string $eventId): bool
