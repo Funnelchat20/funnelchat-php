@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -227,8 +227,8 @@ final class Groups extends AbstractResource
      * @param string $group
      * @param array{
      *     name?: string,
-     *     orderBy?: string,
-     *     orderByMethod?: string,
+     *     orderBy?: 'send_at'|'name'|'status'|'id'|'created_at'|'updated_at',
+     *     orderByMethod?: 'ASC'|'DESC',
      *     perPage?: int,
      *     page?: int,
      *     cursor?: string,

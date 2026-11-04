@@ -1,7 +1,7 @@
 {
   "x-fc-pending": {
     "title": "Pending of the spec",
-    "description": "Routes, fields, schemas, responses and events that the production API already has but the spec/funnelchat.json snapshot (13-10) does not include yet. The generator (`composer generate`, scripts/generate.php) adds them to the spec before generating the resources and types, only while the snapshot lacks them: when a new snapshot includes them, generation uses the snapshot's version and reports which entries in this file can be deleted. Every entry comes from the code of the tags running in production (`origin` and `sources` say which).",
+    "description": "Routes, fields, schemas, responses and events that the production API already has but the spec/funnelchat.json snapshot (the portal's full unified spec of 04-11) does not include, or includes with a shape production does not answer. The generator (`composer generate`, scripts/generate.php) adds them to the spec before generating the resources and types, only while the snapshot lacks them: when a new snapshot includes them, generation uses the snapshot's version and reports which entries in this file can be deleted. Every entry comes from the code of the tags running in production (`origin` and `sources` say which).",
     "rules": {
       "paths": "An operation (method + route) is added only if the snapshot does not have it.",
       "operationPatches": "A patch adds properties to the body of a snapshot operation only while that operation meets the `while` condition.",
@@ -10,21 +10,23 @@
       "webhookPatches": "A patch adds properties to the `data` of an event (of every event with `type: \"*\"`, the ones of this layer included) only while the event does not include them (neither in its schema nor in its example); `required` makes them required in the type.",
       "components.schemas": "The schemas in this layer start with `Pending` so they do not clash with the snapshot's.",
       "schemaPatches": "A patch adds properties to a snapshot schema only while the schema does not include them.",
-      "parameterPatches": "A patch adds query parameters to a snapshot operation only while that operation does not declare them."
+      "parameterPatches": "A patch adds query parameters to a snapshot operation only while that operation does not declare them.",
+      "conditions": "`while` and `x-fc-replace-while` take top-level keys of the snapshot's operation or event, or JSON pointers into it (`/responses/200/content/application~1json/schema/type`), where `null` means absent or null: a correction stops by itself, and is reported as obsolete, once the snapshot changes the very thing it corrects."
     },
-    "origin": "Reviewed on 22-10 against the code of the tags running in production, read with `git show <tag>:<archivo>` (read-only): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 and api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). It started from the funnelchat-node layer (spec/pending.json on feat/inicial @ 88557ce); the accounts webhook entries from 16-10 were reviewed against v1.4.24. Reviewed again on 04-11 against the tags in production that day: accounts v1.5.97 @ 558332bc, conversations v1.19.7 @ 4e35ddb8, communities v2.35.5 @ 2be913d4, platform-gate v0.9.1 @ cc2cee4b and api-edge v0.3.0 @ a1c5b350 (still its latest tag). What changed for the first use (connecting a number, sending, knowing when it was read, receiving, groups and workspaces): the numbers by API now come from accounts' code, sending to a group and reading its action are in, the participant events say that `campaign` can be `null`, and every event carries `data.workspace_id`.",
+    "origin": "Reviewed on 22-10 against the code of the tags running in production, read with `git show <tag>:<archivo>` (read-only): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 and api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). It started from the funnelchat-node layer (spec/pending.json on feat/inicial @ 88557ce); the accounts webhook entries from 16-10 were reviewed against v1.4.24. Reviewed again on 04-11 against the tags in production that day: accounts v1.5.97 @ 558332bc, conversations v1.19.7 @ 4e35ddb8, communities v2.35.5 @ 2be913d4, platform-gate v0.9.1 @ cc2cee4b and api-edge v0.3.0 @ a1c5b350 (still its latest tag; production runs its main @ 975d8154, deployed on 25-10, which also routes `/connect-links` and `/connect`). What changed for the first use (connecting a number, sending, knowing when it was read, receiving, groups and workspaces): the numbers by API now come from accounts' code, sending to a group and reading its action are in, the participant events say that `campaign` can be `null`, and every event carries `data.workspace_id`. Phase 2, the same day: the snapshot became the portal's full unified spec (developers-portal main @ c90565e4, the merge of PR #33 deployed as v0.6.0, the same tree as feat/primer-uso @ 4838fb5 where it was built; generated/specs/funnelchat-completa.json), made of accounts v1.5.97, conversations v1.19.7 and communities v2.35.5. What it brings was deleted from here. What stays is what it lacks (the forms routes, rotate-secret, sending to a group, the events accounts delivers that are not in its `webhooks`, `data.workspace_id`) and corrections where its shapes, inferred by Scramble, are not what production answers; each correction carries the condition that ends it.",
     "sources": {
-      "accounts-webhooks": "accounts v1.4.24 @ 300cc843, checked again against v1.5.97 @ 558332bc (in production on 04-11; routes/api/webhooks.php L98-117, config/platform-gate.php L259-278: the same routes and shapes; since workspaces, a key sees, counts and changes only the subscriptions of its workspace, and the limit of 50 is per workspace). v1.4.24: back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is NOT open to API keys (403 route_not_available).",
+      "accounts-webhooks": "accounts v1.4.24 @ 300cc843, checked again against v1.5.97 @ 558332bc (in production on 04-11; routes/api/webhooks.php L98-117, config/platform-gate.php L259-278: the same routes and shapes; since workspaces, a key sees, counts and changes only the subscriptions of its workspace, and the limit of 50 is per workspace). v1.4.24: back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is NOT open to API keys (403 route_not_available). In the full spec of 04-11 the routes come from accounts' own OpenAPI; what stays here is `rotate-secret` (not in it), the query parameters production accepts and it lacks (`perPage` of the list, PublicApiListings::CANONICAL; `per_page`, `event_type` and `event_id` of the history, WebhookSubscriptionDeliveryController.php L74-95) and the answer of `PUT`, which it types as an empty object.",
       "communities-group-actions": "Left out on purpose (22-10, confirmed 04-11): the other group actions by API (create, participants, admins, name, description, photo, settings, invite link) and the join requests (list, approve, reject). They share the switch of sending to a group (`communities-group-messages`), on in production since 04-11, so they answer; they stay out of the SDK's resources because the portal does not offer them, and can be called with `request()`. The group reads stay.",
       "accounts-devices": "accounts v1.4.24 @ 300cc843: back/app/Modules/Device/Http/Resources/DeviceResource.php L63-123 and Support/DeviceCapabilities.php L82-194.",
       "communities-participant-events": "communities v2.35.5 @ 2be913d4 (in production on 04-11): Shared/Services/GroupWebhookService.php L217-282 (`recordParticipantEvent`: `campaign` is `null` for a group without a campaign, and the event goes out for any group of the account, not only campaign ones), Shared/Support/PlatformEvents/PlatformEventCatalog.php L164-173 (`?campaign`) and PlatformEventParticipant.php L26-44 (`identity_type` `phone` or `whatsapp_user`). accounts v1.5.97 @ 558332bc delivers them (Catalogs/Areas/CommunitiesEvents.php L83-97, `active`).",
       "communities-group-messages": "communities v2.35.5 @ 2be913d4 (in production on 04-11): GroupManagement/routes.php L351-373, Controllers/Api/V2/ApiGroupActionController.php L48-62, L127-140 and L193-200, Requests/ApiGroupActions/SendGroupMessageRequest.php, Resources/ApiGroupActionAcceptedResource.php, Resources/ApiGroupActionResource.php, Services/ApiGroupActions/ApiGroupActionTargetResolver.php L60-128, Shared/Catalog/ApiRouteCatalog.php L103-121, L405 and L417, Docs/GroupActionsDocumentation.php and Shared/Services/ApiGroupActionEventPublisher.php L47-110 (`group_action.completed` and `group_action.failed`). The routes sit behind communities' switch `API_GROUP_ACTIONS_ENABLED` (config/api_group_actions.php), which is on in communities-api production (`true`, confirmed by the user on 04-11): they are open to API keys (`openToKeysInV0`, ApiRouteCatalog L417).",
       "communities-events": "communities v2.34.52 @ 6f32f0b4, unchanged in v2.35.5 @ 2be913d4 (except the workspace, which travels to accounts apart): Services/GroupMessageReceivedEventPublisher.php L63-85, Services/GroupJoinRequestNoticePublisher.php, Shared/Support/PlatformEvents/PlatformEventCatalog.php L250-309; accounts delivers them (unified catalog v1.4.24, Catalogs/Areas/CommunitiesEvents.php, all `active`).",
-      "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still says 204. Checked again against v1.19.7 @ 4e35ddb8 (in production on 04-11): the same answers; the routes now act in the key's workspace.",
-      "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 and L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php and Webhook/Payloads/WhatsappFormCompletedPayload.php.",
-      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136. The payloads are the same in v1.19.7 @ 4e35ddb8 (in production on 04-11).",
+      "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still said 204. Checked again against v1.19.7 @ 4e35ddb8 (in production on 04-11): the same answers; the routes now act in the key's workspace. The full spec of 04-11 types `message` as nullable: for an API key it never is (ApiKeySendResponse.php L38-43), so the four sends keep `message` required here.",
+      "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 and L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php and Webhook/Payloads/WhatsappFormCompletedPayload.php. In production on 04-11 (conversations v1.19.7; api-edge routes `forms` to conversations, src/routes.ts L45 on main 975d8154), but the portal's full spec leaves the `/api/v1/forms` routes out (`x-fc-excluded-routes`, `edge_domain: null`): its config/borde.json lacks `forms`.",
+      "conversations-listings": "conversations v1.19.7 @ 4e35ddb8 (in production on 04-11): Message/Http/Controllers/MessageTemplateController.php `templates()` answers `TemplateResource::collection` and Contact/Http/Controllers/TagController.php `contacts()` answers the contacts as `ContactResource` (through `listContacts()`); the full spec types their items as `object` and as `string`.",
+      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136. The payloads are the same in v1.19.7 @ 4e35ddb8 (in production on 04-11). The full spec of 04-11 types these events only by an example (every id an `int`, `error` and `client_reference` always there, `answers[].value` a string): message.status_changed, message.received (MessageReceivedPayload.php L130-158, `shape()`) and whatsapp_form.completed stay typed from production here while it does.",
       "accounts-workspace-id": "accounts v1.5.97 @ 558332bc (in production on 04-11, decision Q35 of 04-11): Webhook/Services/EventWorkspaceRouting.php L54-85 writes `data.workspace_id` = the workspace the event is routed to, on every event it delivers: its own (WebhookEventDispatcher.php L188-189), the ones conversations and communities relay (PlatformEventIngestor.php L132-133) and `webhook.test` (Http/Controllers/WebhookSubscriptionTestController.php L95-99); Catalogs/WebhookEventCatalog.php L338-360 puts it in every example. `WorkspaceRoute::target()` is `?int`. platform-gate v0.9.1 @ cc2cee4b lets `workspace_id` through in `data`.",
-      "accounts-number-onboarding": "accounts v1.5.97 @ 558332bc (in production on 04-11), read from its code: routes/api/devices.php L437-441, routes/api/connect-links.php L16-26, config/platform-gate.php L119-133, Device/Http/Requests/StoreDeviceRequest.php L30-48, StoreConnectLinkRequest.php L30-58, Http/Resources/ConnectLinkResource.php L34-56, Http/Controllers/DeviceProvisioningController.php L110-140 (`qr()`) and Services/QrCodeReader.php L28-49 (`expires_in` 5 with a QR), Http/Controllers/DeviceController.php L351-353 (the `external_reference` filter), Services/ConnectLinkService.php L115-117 (`503 meta_connect_disabled` while the Meta sign-up by link is off) and Webhook/Services/DeviceWebhookEmitter.php L355-552 (the `device.*` events, which always carry `device.connection`, `device.external_reference`, `connect_link_id` and, when disconnected, `reason`). They match accounts' own OpenAPI of 26-10 (the developers portal's snapshots/accounts/openapi.json, accounts @ 4e11bbb6). First written on 23-10 from the contract `1022-alta-de-numeros` v0.2 and the coordinator's changes of 25-10 (the QR every 5 seconds, `meta` off, `country`). `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Since workspaces, the numbers and the links a key sees and creates are those of its workspace."
+      "accounts-number-onboarding": "accounts v1.5.97 @ 558332bc (in production on 04-11), read from its code: routes/api/devices.php L437-441, routes/api/connect-links.php L16-26, config/platform-gate.php L119-133, Device/Http/Requests/StoreDeviceRequest.php L30-48, StoreConnectLinkRequest.php L30-58, Http/Resources/ConnectLinkResource.php L34-56, Http/Controllers/DeviceProvisioningController.php L110-140 (`qr()`) and Services/QrCodeReader.php L28-49 (`expires_in` 5 with a QR), Http/Controllers/DeviceController.php L351-353 (the `external_reference` filter), Services/ConnectLinkService.php L115-117 (`503 meta_connect_disabled` while the Meta sign-up by link is off) and Webhook/Services/DeviceWebhookEmitter.php L355-552 (the `device.*` events, which always carry `device.connection`, `device.external_reference`, `connect_link_id` and, when disconnected, `reason`). They match accounts' own OpenAPI of 26-10 (the developers portal's snapshots/accounts/openapi.json, accounts @ 4e11bbb6). First written on 23-10 from the contract `1022-alta-de-numeros` v0.2 and the coordinator's changes of 25-10 (the QR every 5 seconds, `meta` off, `country`). `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Since workspaces, the numbers and the links a key sees and creates are those of its workspace. In the full spec of 04-11 these routes come from accounts' own OpenAPI; what stays here corrects it: the QR answer (always `{data}`; DeviceProvisioningController.php L128-140), a link read (`url` always there and `null`; ConnectLinkResource.php L10-29 and L44), the revoke and the delete of a number (an empty body), and `perPage` of the links list."
     }
   },
   "components": {
@@ -47,40 +49,7 @@
           }
         }
       },
-      "PendingWebhookSubscription": {
-        "type": "object",
-        "description": "A unified webhook subscription. It never includes the secret.",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Subscription ID. Save it when you create the subscription: it is what identifies yours."
-          },
-          "url": { "type": "string" },
-          "description": { "type": ["string", "null"] },
-          "events": { "type": "array", "items": { "type": "string" } },
-          "filters": { "$ref": "#/components/schemas/PendingWebhookSubscriptionFilters" },
-          "status": { "type": "string", "enum": ["active", "paused", "disabled"] },
-          "disabled_reason": { "type": ["string", "null"], "enum": ["too_many_failures", "key_revoked", null] },
-          "last_delivery_at": { "type": ["string", "null"], "format": "date-time" },
-          "last_success_at": { "type": ["string", "null"], "format": "date-time" },
-          "secret_rotated_at": { "type": ["string", "null"], "format": "date-time" },
-          "created_at": { "type": ["string", "null"], "format": "date-time" },
-          "updated_at": { "type": ["string", "null"], "format": "date-time" },
-          "migration": {
-            "type": ["object", "null"],
-            "properties": {
-              "origin": { "type": "string" },
-              "status": { "type": "string" },
-              "activated_via": { "type": ["string", "null"] },
-              "activated_at": { "type": ["string", "null"], "format": "date-time" },
-              "last_result": {}
-            },
-            "required": ["origin", "status", "activated_via", "activated_at", "last_result"]
-          }
-        },
-        "required": ["id", "url", "description", "events", "filters", "status", "disabled_reason", "last_delivery_at", "last_success_at", "secret_rotated_at", "created_at", "updated_at", "migration"]
-      },
+      "PendingWebhookSubscription": {"$ref": "#/components/schemas/WebhookSubscriptionResource", "description": "Kept so `@phpstan-import-type PendingWebhookSubscription` keeps working: since the full spec of 04-11 it is the snapshot's `WebhookSubscriptionResource`."},
       "PendingWebhookSubscriptionWithSecret": {
         "allOf": [
           { "$ref": "#/components/schemas/PendingWebhookSubscription" },
@@ -94,48 +63,9 @@
           }
         ]
       },
-      "PendingWebhookSubscriptionCreate": {
-        "type": "object",
-        "properties": {
-          "url": { "type": "string", "maxLength": 2048, "description": "`https`, public, and without a username or password." },
-          "description": { "type": ["string", "null"], "maxLength": 160 },
-          "events": {
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 50,
-            "items": { "type": "string" },
-            "description": "Types from the catalog (`GET /api/v1/webhooks/events`). The API key needs the `{area}:read` permission for each type's area."
-          },
-          "filters": { "anyOf": [{ "$ref": "#/components/schemas/PendingWebhookSubscriptionFilters" }, { "type": "null" }] }
-        },
-        "required": ["url", "events"]
-      },
-      "PendingWebhookSubscriptionUpdate": {
-        "allOf": [
-          { "$ref": "#/components/schemas/PendingWebhookSubscriptionCreate" },
-          {
-            "type": "object",
-            "properties": { "status": { "type": "string", "enum": ["active", "paused"], "description": "Optional. You cannot request `disabled`." } }
-          }
-        ]
-      },
-      "PendingWebhookSubscriptionDelivery": {
-        "type": "object",
-        "description": "A delivery attempt. Attempts for the same event share `event_id`.",
-        "properties": {
-          "id": { "type": "integer" },
-          "event_id": { "type": "string" },
-          "event_type": { "type": "string" },
-          "attempt": { "type": "integer" },
-          "url": { "type": "string" },
-          "response_status": { "type": ["integer", "null"] },
-          "succeeded": { "type": "boolean" },
-          "error": { "type": ["string", "null"] },
-          "duration_ms": { "type": ["integer", "null"] },
-          "attempted_at": { "type": ["string", "null"], "format": "date-time" }
-        },
-        "required": ["id", "event_id", "event_type", "attempt", "url", "response_status", "succeeded", "error", "duration_ms", "attempted_at"]
-      },
+      "PendingWebhookSubscriptionCreate": {"$ref": "#/components/schemas/StoreWebhookSubscriptionRequest", "description": "Kept so `@phpstan-import-type PendingWebhookSubscriptionCreate` keeps working: since the full spec of 04-11 it is the snapshot's `StoreWebhookSubscriptionRequest`."},
+      "PendingWebhookSubscriptionUpdate": {"description": "Kept so `@phpstan-import-type PendingWebhookSubscriptionUpdate` keeps working: the snapshot's `UpdateWebhookSubscriptionRequest`.", "$ref": "#/components/schemas/UpdateWebhookSubscriptionRequest"},
+      "PendingWebhookSubscriptionDelivery": {"$ref": "#/components/schemas/WebhookSubscriptionDeliveryResource", "description": "Kept so `@phpstan-import-type PendingWebhookSubscriptionDelivery` keeps working: since the full spec of 04-11 it is the snapshot's `WebhookSubscriptionDeliveryResource`."},
       "PendingWebhookSubscriptionTestResult": {
         "type": "object",
         "description": "Result of the test delivery (`webhook.test`). It responds 200 even if your server fails: check `succeeded`.",
@@ -148,36 +78,7 @@
         },
         "required": ["succeeded", "response_status", "error", "duration_ms", "delivery_id"]
       },
-      "PendingPublicMessage": {
-        "type": "object",
-        "description": "A message as an API key sees it: always these ten fields.",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "description": "The message ID in the contact's history: the same `message_id` as in `message.status_changed`."
-          },
-          "contact_id": { "type": ["integer", "null"] },
-          "device_id": { "type": ["integer", "null"] },
-          "direction": { "type": "string", "enum": ["outbound", "inbound"] },
-          "type": {
-            "type": "string",
-            "enum": ["text", "image", "video", "document", "sticker", "contact", "audio", "note", "action", "invalid", "interactive", "location", "voice_call", "video_call", "event", "button", "template", "notification", "option_list", "template_button_reply", "poll", "whatsapp_form", "call_permission_request", "call_permission_reply", "request_contact_info"]
-          },
-          "status": {
-            "type": ["string", "null"],
-            "enum": ["queued", "sent", "delivered", "read", "failed", null],
-            "description": "A newly accepted send is `queued`; queued does not mean sent. `null` on a received message, on a note, or when it is unknown."
-          },
-          "error": {
-            "anyOf": [{ "$ref": "#/components/schemas/PendingMessageError" }, { "type": "null" }],
-            "description": "Only when `status` is `failed`."
-          },
-          "client_reference": { "type": ["string", "null"] },
-          "created_at": { "type": ["string", "null"], "format": "date-time" },
-          "updated_at": { "type": ["string", "null"], "format": "date-time" }
-        },
-        "required": ["id", "contact_id", "device_id", "direction", "type", "status", "error", "client_reference", "created_at", "updated_at"]
-      },
+      "PendingPublicMessage": {"$ref": "#/components/schemas/PublicMessageResource", "description": "Kept so `@phpstan-import-type PendingPublicMessage` keeps working: since the full spec of 04-11 it is the snapshot's `PublicMessageResource`."},
       "PendingForwardResult": {
         "type": "object",
         "description": "A forward destination, in the requested order.",
@@ -321,20 +222,7 @@
         "enum": ["qr", "coexistence", "dedicated", null],
         "description": "How the number is connected: `qr` (WhatsApp Web session, not official), `coexistence` (WhatsApp Cloud API alongside the WhatsApp Business app), `dedicated` (WhatsApp Cloud API only), or `null` when it cannot be told."
       },
-      "PendingDeviceCreate": {
-        "type": "object",
-        "properties": {
-          "connection": { "type": "string", "enum": ["qr"], "description": "Only `qr` for now: an official number is created with a connect link." },
-          "alias": { "type": ["string", "null"], "maxLength": 255 },
-          "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" },
-          "same_number_as": {
-            "type": ["integer", "null"],
-            "description": "The `id` of an official number in coexistence: adds the QR method to that same phone number without using quota."
-          },
-          "country": { "type": ["string", "null"], "minLength": 2, "maxLength": 2, "description": "The country of the phone, two letters (for example `AR`): the WhatsApp session is opened from there. Optional." }
-        },
-        "required": ["connection"]
-      },
+      "PendingDeviceCreate": {"$ref": "#/components/schemas/StoreDeviceRequest", "description": "Kept so `@phpstan-import-type PendingDeviceCreate` keeps working: since the full spec of 04-11 it is the snapshot's `StoreDeviceRequest`."},
       "PendingDeviceQr": {
         "type": "object",
         "properties": {
@@ -349,39 +237,7 @@
         "enum": ["link_expired", "already_used", "revoked", "quota_exceeded", "trial_number_blocked", "facebook_auth_failed", "meta_error", "number_not_owned", "qr_timeout", "provider_error", null],
         "description": "Why the link did not complete, or `null`."
       },
-      "PendingConnectLinkCreate": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string", "enum": ["meta", "qr"], "description": "`meta`: WhatsApp Cloud API with Meta's Embedded Signup; off in production until Funnelchat registers its domain with Meta (`503 meta_connect_disabled`). `qr`: a page that shows the QR and renews it every 5 seconds." },
-          "allowed_connection_types": {
-            "type": "array",
-            "items": { "type": "string", "enum": ["coexistence", "dedicated"] },
-            "minItems": 1,
-            "uniqueItems": true,
-            "description": "Required when `type` is `meta`, forbidden when it is `qr`. With both, your customer chooses on the page."
-          },
-          "provision_us_number": {
-            "type": "boolean",
-            "default": false,
-            "description": "Only `meta` (forbidden with `qr`): offers a US number from the pool (3 per account, 1 on trial accounts, held 15 minutes). A pool number is always dedicated: it needs `dedicated` in `allowed_connection_types` and does not go with `device_id`; otherwise `422 invalid_request`."
-          },
-          "device_id": {
-            "type": ["integer", "null"],
-            "description": "Reconnects this existing number instead of creating one: it uses no new quota. `type` must match the number's method. It revokes the previous reconnect links of that number."
-          },
-          "same_number_as": { "type": ["integer", "null"], "description": "Only `qr`, and not with `device_id`: adds QR to a number in coexistence." },
-          "country": { "type": ["string", "null"], "minLength": 2, "maxLength": 2, "description": "Only `qr`, and not with `device_id`. The country of the phone, two letters (for example `AR`): the WhatsApp session is opened from there. Optional." },
-          "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" },
-          "return_url": {
-            "type": ["string", "null"],
-            "format": "uri",
-            "maxLength": 2048,
-            "description": "`https` only. When the page ends it redirects to `return_url?connect_link_id=<id>&status=<completed|failed>&device_id=<id?>&error_code=<code?>`, nothing else."
-          },
-          "expires_in_minutes": { "type": "integer", "minimum": 30, "maximum": 10080, "default": 1440 }
-        },
-        "required": ["type"]
-      },
+      "PendingConnectLinkCreate": {"$ref": "#/components/schemas/StoreConnectLinkRequest", "description": "Kept so `@phpstan-import-type PendingConnectLinkCreate` keeps working: since the full spec of 04-11 it is the snapshot's `StoreConnectLinkRequest`."},
       "PendingConnectLink": {
         "type": "object",
         "description": "A single-use link where your customer creates or reconnects a number, without a Funnelchat session. A `meta` link tolerates retries: after a Facebook or Meta failure it stays `pending` so your customer can try again on the page, and the fifth failure makes it `failed` (`facebook_auth_failed` or `meta_error`); `quota_exceeded`, `trial_number_blocked` and `number_not_owned` close it at the first attempt.",
@@ -389,11 +245,7 @@
           "id": { "type": "integer" },
           "type": { "type": "string", "enum": ["meta", "qr"] },
           "status": { "type": "string", "enum": ["pending", "completed", "failed", "expired", "revoked"] },
-          "url": {
-            "type": "string",
-            "format": "uri",
-            "description": "`https://<public host>/connect/<token>`. Only in the answer of the create: the token is not stored, so the link cannot be read again."
-          },
+          "url": {"type": ["string", "null"], "description": "`https://<public host>/connect/<token>` in the answer of the create; `null` when you read the link (the token is not stored)."},
           "expires_at": { "type": "string", "format": "date-time" },
           "allowed_connection_types": {
             "type": ["array", "null"],
@@ -408,7 +260,7 @@
           "created_at": { "type": "string", "format": "date-time" },
           "completed_at": { "type": ["string", "null"], "format": "date-time" }
         },
-        "required": ["id", "type", "status", "expires_at", "allowed_connection_types", "provision_us_number", "device_id", "external_reference", "country", "return_url", "error_code", "created_at", "completed_at"]
+        "required": ["id", "type", "status", "url", "expires_at", "allowed_connection_types", "provision_us_number", "device_id", "external_reference", "country", "return_url", "error_code", "created_at", "completed_at"]
       },
       "PendingWebhookDevice": {
         "type": "object",
@@ -534,142 +386,6 @@
     }
   },
   "paths": {
-    "/api/v1/webhooks": {
-      "get": {
-        "operationId": "pendingWebhookSubscription.index",
-        "summary": "List webhook subscriptions",
-        "description": "All the account's subscriptions (50 at most), including those created by other integrations. Account owner only.\n\n**Pending of the spec** (accounts v1.5.97).\n\nWith an API key, the list is paginated (`data`, `links`, `meta`) and leaves out subscriptions with events from an area the key cannot read.",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:read",
-        "x-fc-pending": "accounts-webhooks",
-        "responses": {
-          "200": {
-            "description": "The account's subscriptions, page by page.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/PendingWebhookSubscription" } },
-                    "links": {
-                      "type": "object",
-                      "properties": {
-                        "first": { "type": ["string", "null"] },
-                        "last": { "type": ["string", "null"] },
-                        "prev": { "type": ["string", "null"] },
-                        "next": { "type": ["string", "null"] }
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "current_page": { "type": "integer" },
-                        "last_page": { "type": "integer" },
-                        "per_page": { "type": "integer" },
-                        "total": { "type": "integer" }
-                      },
-                      "required": ["current_page", "last_page", "per_page", "total"]
-                    }
-                  },
-                  "required": ["data", "links", "meta"]
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "perPage",
-            "in": "query",
-            "required": false,
-            "schema": { "type": "integer", "minimum": 1, "maximum": 100 },
-            "description": "From 1 to 100; 25 by default."
-          },
-          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1 } }
-        ]
-      },
-      "post": {
-        "operationId": "pendingWebhookSubscription.store",
-        "summary": "Create a webhook subscription",
-        "description": "Returns the `secret` only once. Limit: 50 subscriptions per account (the next one responds 422).\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:write",
-        "x-fc-pending": "accounts-webhooks",
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionCreate" } } }
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionWithSecret" } } }
-          },
-          "422": {
-            "description": "URL rejected, invalid event types, or limit reached",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingMessage" } } }
-          }
-        }
-      }
-    },
-    "/api/v1/webhooks/{id}": {
-      "get": {
-        "operationId": "pendingWebhookSubscription.show",
-        "summary": "Retrieve a webhook subscription",
-        "description": "It does not include the secret. If you lost it, rotate it.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:read",
-        "x-fc-pending": "accounts-webhooks",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscription" } } }
-          },
-          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
-        }
-      },
-      "put": {
-        "operationId": "pendingWebhookSubscription.update",
-        "summary": "Update a webhook subscription",
-        "description": "Replaces `url`, `events`, `description` and `filters`; `status` is optional (`active` or `paused`). The secret does not change.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:write",
-        "x-fc-pending": "accounts-webhooks",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionUpdate" } } }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscription" } } }
-          },
-          "422": {
-            "description": "Validation. If a type in `events` belongs to an area the API key cannot read, the error comes in `errors.events`, with no `error` code."
-          },
-          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
-        }
-      },
-      "delete": {
-        "operationId": "pendingWebhookSubscription.destroy",
-        "summary": "Delete a webhook subscription",
-        "description": "Deletes the subscription along with its delivery history.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:write",
-        "x-fc-pending": "accounts-webhooks",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "204": { "description": "No Content" },
-          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
-        }
-      }
-    },
     "/api/v1/webhooks/{id}/rotate-secret": {
       "post": {
         "operationId": "pendingWebhookSubscription.rotateSecret",
@@ -687,155 +403,6 @@
           },
           "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
         }
-      }
-    },
-    "/api/v1/webhooks/{id}/test": {
-      "post": {
-        "operationId": "pendingWebhookSubscription.test",
-        "summary": "Send a test event now",
-        "description": "A signed delivery of `webhook.test`, with no retries. It is recorded in the history.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:write",
-        "x-fc-pending": "accounts-webhooks",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingWebhookSubscriptionTestResult" } } }
-          },
-          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
-        }
-      }
-    },
-    "/api/v1/webhooks/{id}/deliveries": {
-      "get": {
-        "operationId": "pendingWebhookSubscription.deliveries",
-        "summary": "List the delivery history",
-        "description": "One record per attempt, most recent first. Paginate with `page` and `per_page` (25 by default, 100 at most).\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Webhooks"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "webhooks:read",
-        "x-fc-pending": "accounts-webhooks",
-        "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
-          { "name": "per_page", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 } },
-          { "name": "event_type", "in": "query", "schema": { "type": "string" } },
-          { "name": "event_id", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/PendingWebhookSubscriptionDelivery" } },
-                    "links": {
-                      "type": "object",
-                      "properties": {
-                        "first": { "type": ["string", "null"] },
-                        "last": { "type": ["string", "null"] },
-                        "prev": { "type": ["string", "null"] },
-                        "next": { "type": ["string", "null"] }
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "current_page": { "type": "integer" },
-                        "last_page": { "type": "integer" },
-                        "per_page": { "type": "integer" },
-                        "total": { "type": "integer" }
-                      },
-                      "required": ["current_page", "last_page", "per_page", "total"]
-                    }
-                  },
-                  "required": ["data", "links", "meta"]
-                }
-              }
-            }
-          },
-          "403": { "description": "`permission_denied` if the subscription has events from an area the API key cannot read." }
-        }
-      }
-    },
-    "/api/v1/contacts/{contact}/messages/{message}": {
-      "get": {
-        "operationId": "message.showPublic",
-        "summary": "Retrieve a message",
-        "description": "**Required permission:** `conversations:read`\n\nA message by the ID you got from a send or a notice (`message_id` in `message.status_changed`). Any rejection is a `404`.",
-        "tags": ["Conversation"],
-        "parameters": [
-          { "name": "contact", "in": "path", "required": true, "schema": { "type": "integer" } },
-          { "name": "message", "in": "path", "required": true, "schema": { "type": "integer" } }
-        ],
-        "responses": {
-          "200": {
-            "description": "The message, with no wrapper.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingPublicMessage" } } }
-          },
-          "404": { "description": "`Object not found.`" }
-        },
-        "x-fc-domain": "conversations",
-        "x-fc-permission": "conversations:read",
-        "x-fc-pending": "conversations-send"
-      }
-    },
-    "/api/v1/contacts/{contact}/message/form": {
-      "post": {
-        "operationId": "whatsappForm.send",
-        "summary": "Send a form to a contact",
-        "description": "**Required permission:** `conversations:send`\n\nSends a published WhatsApp form as a message with a button that opens it. Responses arrive through `whatsapp_form.completed`.",
-        "tags": ["Formularios"],
-        "parameters": [{ "name": "contact", "in": "path", "required": true, "schema": { "type": "integer" } }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "form_id": { "type": "integer", "minimum": 1, "description": "The form ID (the family, `family_id`)." },
-                  "device_id": { "type": "integer", "minimum": 1 },
-                  "text": { "type": "string", "minLength": 1, "maxLength": 1024, "description": "The message text; defaults to the form's." },
-                  "button_text": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 30,
-                    "description": "The button text, without emojis; defaults to \"Abrir\" (\"Open\" for an account in English)."
-                  },
-                  "client_reference": { "$ref": "#/components/schemas/PendingClientReference" }
-                },
-                "required": ["form_id", "device_id"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The form was recorded as a message (`type: whatsapp_form`).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "message": { "$ref": "#/components/schemas/PendingPublicMessage" } },
-                  "required": ["message"]
-                }
-              }
-            }
-          },
-          "404": { "description": "`form_not_found`, or a contact that is not yours." },
-          "422": {
-            "description": "`number_not_eligible`, `form_not_published`, `form_not_on_number`, `recipient_unreachable`, `window_closed`, `antiblock_*`, `device_unavailable`, `not_sent`."
-          },
-          "429": { "description": "`rate_limited` (with `Retry-After`) or `mac_lockout_24h`." }
-        },
-        "x-fc-domain": "conversations",
-        "x-fc-permission": "conversations:send",
-        "x-fc-pending": "conversations-forms"
       }
     },
     "/api/v1/forms": {
@@ -1665,195 +1232,6 @@
         "x-fc-pending": "conversations-forms"
       }
     },
-    "/api/v1/devices": {
-      "post": {
-        "operationId": "pendingDevice.store",
-        "summary": "Create a number by QR",
-        "description": "Creates a number of the account, not connected yet: then ask for its QR with `GET /api/v1/devices/{device}/qr`, or send your customer a connect link (`POST /api/v1/connect-links`). An official (WhatsApp Cloud) number is created only with a connect link. It uses the plan's quota, counted by phone number, with the same refusals and the same trial-account rule as the panel; the provider is the one the system assigns.\n\n`Idempotency-Key` (optional, up to 255 characters, kept 24 hours per account): the same key with the same body answers the same number without creating another (only successful answers are replayed, with `Idempotent-Replayed: true`; a refusal is evaluated again); with a different body, `422 idempotency_key_mismatch`; while the first one runs, `409 operation_in_progress`.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Device"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:operate",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "Idempotency-Key", "in": "header", "schema": { "type": "string", "minLength": 1, "maxLength": 255 } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingDeviceCreate" } } }
-        },
-        "responses": {
-          "201": {
-            "description": "The number, with `connected: false`, `connection: \"qr\"` and its `external_reference`.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/DeviceResource" } },
-                  "required": ["data"]
-                }
-              }
-            }
-          },
-          "403": { "description": "`numbers_not_included` (the plan includes no numbers), `number_limit_reached` (the plan's quota is full; with `limit`, `used` and `pending_device_ids`) or `connect_not_allowed`. Without an active plan, `403` without `error`." },
-          "409": { "description": "`pending_number_exists` (the account already has a QR number not connected yet, in `device_id`: connect or delete it first) or `operation_in_progress`." },
-          "422": { "description": "`invalid_request` (with `errors`), `invalid_reference_device`, `qr_requires_coexistence` (`same_number_as` is an official number not in coexistence), `method_already_present` (with `device_id`), `number_suspended_by_plan`, `idempotency_key_mismatch` or `invalid_idempotency_key`." },
-          "500": { "description": "`provider_error`." }
-        }
-      }
-    },
-    "/api/v1/devices/{device}/qr": {
-      "get": {
-        "operationId": "pendingDevice.qr",
-        "summary": "Get the QR of a number",
-        "description": "Starts the number's WhatsApp session if needed and answers its QR to scan. Ask again after `expires_in` seconds (5 with a QR: show it and scan it right away), until `connected` is `true` (or wait for `device.connected`). Only QR numbers: an official number answers `422 provider_unsupported`. It needs `accounts:operate` because scanning the QR gives control of a WhatsApp.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["Device"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:operate",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "device", "in": "path", "required": true, "schema": { "type": "integer" } }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/PendingDeviceQr" } },
-                  "required": ["data"]
-                }
-              }
-            }
-          },
-          "403": { "description": "`number_limit_reached`, `connect_not_allowed` or `payment_required`." },
-          "409": { "description": "`trial_number_blocked`, `qr_requires_coexistence`, `number_suspended_by_plan`, `device_inactive` or `provisioning_quota_exceeded`." },
-          "422": { "description": "`provider_unsupported`: the number is not a QR number." },
-          "502": { "description": "`provider_error`." }
-        }
-      }
-    },
-    "/api/v1/connect-links": {
-      "post": {
-        "operationId": "pendingConnectLink.store",
-        "summary": "Create a connect link",
-        "description": "A single-use page where your customer connects a number, with no Funnelchat session: `type: \"qr\"` shows the QR and renews it; `type: \"meta\"` runs Meta's Embedded Signup. The number is created when the page ends (or the existing one is reconnected, with `device_id`). The quota is checked now and again at the end: the link does not hold a place. Learn the result by `device.connected` (with `connect_link_id` and `external_reference`), by `return_url`, or by reading the link. The raw token is only in `url` of this answer.\n\nAt most 20 open links per account (`429 too_many_open_links`), and a per-minute limit. The official signup (`type: \"meta\"`) is off in production until Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. The page claims the link when your customer presses its button, not when it opens, so a messenger's preview does not burn it. `Idempotency-Key` works as in `POST /api/v1/devices`.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["ConnectLink"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:operate",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "Idempotency-Key", "in": "header", "schema": { "type": "string", "minLength": 1, "maxLength": 255 } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingConnectLinkCreate" } } }
-        },
-        "responses": {
-          "201": {
-            "description": "The link, with its `url`.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/PendingConnectLink" } },
-                  "required": ["data"]
-                }
-              }
-            }
-          },
-          "403": { "description": "The quota refusals of `POST /api/v1/devices` (not for a reconnect)." },
-          "409": { "description": "`pending_number_exists` or `operation_in_progress`." },
-          "422": { "description": "`invalid_request` (with `errors`), `invalid_reference_device`, `connection_type_mismatch` (`device_id` is a number of the other method), `qr_requires_coexistence`, `method_already_present` (with `device_id`), `idempotency_key_mismatch` or `invalid_idempotency_key`." },
-          "429": { "description": "`too_many_open_links` (20 open links per account), or the per-minute limit (10 links; `Too Many Attempts.` without `error`)." },
-          "503": { "description": "`meta_connect_disabled`: the official signup by link is off (in production, until Funnelchat registers its domain with Meta)." }
-        }
-      },
-      "get": {
-        "operationId": "pendingConnectLink.index",
-        "summary": "List connect links",
-        "description": "The links of the account, paginated, newest first, without their token.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["ConnectLink"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:read",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "completed", "failed", "expired", "revoked"] } },
-          { "name": "external_reference", "in": "query", "schema": { "type": "string", "maxLength": 255 } },
-          { "name": "perPage", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/PendingConnectLink" } },
-                    "links": {
-                      "type": "object",
-                      "properties": {
-                        "first": { "type": ["string", "null"] },
-                        "last": { "type": ["string", "null"] },
-                        "prev": { "type": ["string", "null"] },
-                        "next": { "type": ["string", "null"] }
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "properties": {
-                        "current_page": { "type": "integer" },
-                        "last_page": { "type": "integer" },
-                        "per_page": { "type": "integer" },
-                        "total": { "type": "integer" }
-                      }
-                    }
-                  },
-                  "required": ["data"]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/connect-links/{link}": {
-      "get": {
-        "operationId": "pendingConnectLink.show",
-        "summary": "Retrieve a connect link",
-        "description": "The link and its `status`, without the token.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["ConnectLink"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:read",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": "integer" } }],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": { "data": { "$ref": "#/components/schemas/PendingConnectLink" } },
-                  "required": ["data"]
-                }
-              }
-            }
-          },
-          "404": { "description": "The link does not exist." }
-        }
-      },
-      "delete": {
-        "operationId": "pendingConnectLink.destroy",
-        "summary": "Revoke a connect link",
-        "description": "Revokes a `pending` link: `204`. A link that is no longer `pending` answers `409 link_not_pending`.\n\n**Pending of the spec** (accounts v1.5.97).",
-        "tags": ["ConnectLink"],
-        "x-fc-domain": "accounts",
-        "x-fc-permission": "accounts:operate",
-        "x-fc-pending": "accounts-number-onboarding",
-        "parameters": [{ "name": "link", "in": "path", "required": true, "schema": { "type": "integer" } }],
-        "responses": {
-          "204": { "description": "No Content" },
-          "404": { "description": "The link does not exist." },
-          "409": { "description": "`link_not_pending`: the link is no longer `pending`." }
-        }
-      }
-    },
     "/api/v1/groups/{group}/messages": {
       "post": {
         "operationId": "pendingGroupMessage.send",
@@ -1912,137 +1290,103 @@
     }
   },
   "operationPatches": [
-    {
-      "method": "post",
-      "path": "/api/v1/contacts/{contact}/message",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
-      "requestBodyProperties": {
-        "client_reference": { "$ref": "#/components/schemas/PendingClientReference" },
-        "file_type": {
-          "type": ["string", "null"],
-          "enum": ["image", "video", "audio", "document", "sticker", null],
-          "description": "The file type of `file`. Required if the format cannot be told from the URL (a signed URL or one without an extension): if it is missing, `422` in `errors.file_type`."
-        },
-        "file_name": {
-          "type": ["string", "null"],
-          "minLength": 1,
-          "maxLength": 255,
-          "description": "The name a document arrives with, including its extension (`factura.pdf`). Required for a document whose URL does not end in a supported extension (`422` in `errors.file_name`)."
-        }
-      }
-    },
-    {
-      "method": "post",
-      "path": "/api/v1/message/send-message",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
-      "requestBodyProperties": {
-        "client_reference": { "$ref": "#/components/schemas/PendingClientReference" },
-        "file_type": {
-          "type": ["string", "null"],
-          "enum": ["image", "video", "audio", "document", "sticker", null],
-          "description": "The file type of `file`. Required if the format cannot be told from the URL (a signed URL or one without an extension): if it is missing, `422` in `errors.file_type`."
-        },
-        "file_name": {
-          "type": ["string", "null"],
-          "minLength": 1,
-          "maxLength": 255,
-          "description": "The name a document arrives with, including its extension (`factura.pdf`). Required for a document whose URL does not end in a supported extension (`422` in `errors.file_name`)."
-        }
-      }
-    },
-    {
-      "method": "post",
-      "path": "/api/v1/devices/{device}/templates/{template}/send-template",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
-      "requestBodyProperties": { "client_reference": { "$ref": "#/components/schemas/PendingClientReference" } }
-    },
-    {
-      "method": "post",
-      "path": "/api/v1/contacts/{contact}/message/contact-card",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
-      "requestBodyProperties": { "client_reference": { "$ref": "#/components/schemas/PendingClientReference" } }
-    },
-    {
-      "method": "post",
-      "path": "/api/v1/contacts/{contact}/messages/{message}/forward",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
-      "requestBodyProperties": { "client_reference": { "$ref": "#/components/schemas/PendingClientReference" } }
-    },
-    {
-      "method": "put",
-      "path": "/api/v1/devices/{device}",
-      "x-fc-pending": "accounts-number-onboarding",
-      "requestBodyProperties": { "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" } }
-    }
+
   ],
   "parameterPatches": [
     {
       "method": "get",
-      "path": "/api/v1/devices",
+      "path": "/api/v1/webhooks",
+      "x-fc-pending": "accounts-webhooks",
+      "parameters": [
+        {
+          "name": "perPage",
+          "in": "query",
+          "description": "Page size (25 by default, 100 at most), as every listing with an API key (PublicApiListings::CANONICAL).",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        }
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/api/v1/webhooks/{id}/deliveries",
+      "x-fc-pending": "accounts-webhooks",
+      "parameters": [
+        {
+          "name": "per_page",
+          "in": "query",
+          "description": "Page size (25 by default, 100 at most).",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        {
+          "name": "event_type",
+          "in": "query",
+          "description": "Only the attempts of this event type.",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "event_id",
+          "in": "query",
+          "description": "Only the attempts of this event (`id` of the delivery).",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    {
+      "method": "get",
+      "path": "/api/v1/connect-links",
       "x-fc-pending": "accounts-number-onboarding",
       "parameters": [
         {
-          "name": "external_reference",
+          "name": "perPage",
           "in": "query",
-          "description": "Only the numbers with exactly this `external_reference`.",
-          "schema": { "type": "string", "maxLength": 255 }
+          "description": "Page size (25 by default, 100 at most).",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
         }
       ]
     }
   ],
   "schemaPatches": [
-    {
-      "schema": "DeviceResource",
-      "x-fc-pending": "accounts-devices",
-      "properties": {
-        "number_key": { "type": ["string", "null"] },
-        "number_key_confirmed": { "type": "boolean" },
-        "is_coexistence": { "type": "boolean" },
-        "slot_state": { "type": "string", "enum": ["free", "reserved", "pending", "held"] },
-        "pool_suspended": { "type": "boolean" },
-        "pool_suspension_reason": { "type": ["string", "null"], "enum": ["over_pool", "payment_lapse", null] },
-        "pool_keep": { "type": "boolean" },
-        "qr_allowed": { "type": "boolean" },
-        "can_change_to_meta": { "type": "boolean" },
-        "capabilities": { "$ref": "#/components/schemas/PendingDeviceCapabilities" }
-      },
-      "required": ["number_key", "number_key_confirmed", "is_coexistence", "slot_state", "pool_suspended", "pool_suspension_reason", "pool_keep", "qr_allowed", "can_change_to_meta", "capabilities"]
-    },
-    {
-      "schema": "ConversationsMessageResource",
-      "x-fc-pending": "conversations-send",
-      "properties": { "client_reference": { "type": ["string", "null"], "description": "The send's `client_reference`, or `null`." } },
-      "required": ["client_reference"]
-    },
-    {
-      "schema": "DeviceResource",
-      "x-fc-pending": "accounts-number-onboarding",
-      "properties": {
-        "connection": { "$ref": "#/components/schemas/PendingConnectionType" },
-        "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" }
-      }
-    }
+
   ],
   "responsePatches": [
     {
       "method": "post",
       "path": "/api/v1/contacts/{contact}/message",
-      "while": { "x-portal-v0": "send_pending" },
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/message/anyOf/1/type": "null"
+      },
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "The message was recorded (`status: queued`) and goes out from the queue; if it could not be queued, it arrives as `failed` with `error.reason` `not_queued`. A note arrives with `type: note` and `status: null`.",
+          "description": "The registered message (`status: queued`), never `null` for an API key: `ApiKeySendResponse::message()` always answers `{\"message\": <object>}` (a message that could not be queued arrives as `failed` with `error.reason` `not_queued`; one that could not be registered is a `500`).",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "message": { "$ref": "#/components/schemas/PendingPublicMessage" } },
-                "required": ["message"]
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/PublicMessageResource"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
               }
             }
           }
@@ -2052,17 +1396,53 @@
     {
       "method": "post",
       "path": "/api/v1/message/send-message",
-      "while": { "x-portal-v0": "send_pending" },
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/message/anyOf/1/type": "null"
+      },
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "The recorded message, as in `POST /api/v1/contacts/{contact}/message`.",
+          "description": "The registered message, as in `POST /api/v1/contacts/{contact}/message`.",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "message": { "$ref": "#/components/schemas/PendingPublicMessage" } },
-                "required": ["message"]
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/PublicMessageResource"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "post",
+      "path": "/api/v1/contacts/{contact}/message/form",
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/message/anyOf/1/type": "null"
+      },
+      "x-fc-pending": "conversations-send",
+      "responses": {
+        "200": {
+          "description": "The registered form message (`type: whatsapp_form`).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/PublicMessageResource"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
               }
             }
           }
@@ -2072,17 +1452,25 @@
     {
       "method": "post",
       "path": "/api/v1/devices/{device}/templates/{template}/send-template",
-      "while": { "x-portal-v0": "send_pending" },
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/message/anyOf/1/type": "null"
+      },
       "x-fc-pending": "conversations-send",
       "responses": {
         "200": {
-          "description": "The template was recorded as a message (`type: template`).",
+          "description": "The registered template message (`type: template`).",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "message": { "$ref": "#/components/schemas/PendingPublicMessage" } },
-                "required": ["message"]
+                "properties": {
+                  "message": {
+                    "$ref": "#/components/schemas/PublicMessageResource"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
               }
             }
           }
@@ -2090,19 +1478,27 @@
       }
     },
     {
-      "method": "post",
-      "path": "/api/v1/contacts/{contact}/message/contact-card",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
+      "method": "get",
+      "path": "/api/v1/devices/{device}/qr",
+      "while": {
+        "/responses/200/content/application~1json/schema/anyOf/4/type": "string"
+      },
+      "x-fc-pending": "accounts-number-onboarding",
       "responses": {
         "200": {
-          "description": "One message per card, in the order of `contact_card_ids`.",
+          "description": "Always `{\"data\": …}` (DeviceProvisioningController::qr). The bare and string variants of the snapshot are inferred from inner returns that never reach the answer.",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "messages": { "type": "array", "items": { "$ref": "#/components/schemas/PendingPublicMessage" } } },
-                "required": ["messages"]
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/PendingDeviceQr"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
               }
             }
           }
@@ -2110,37 +1506,192 @@
       }
     },
     {
-      "method": "post",
-      "path": "/api/v1/contacts/{contact}/messages/{message}/forward",
-      "while": { "x-portal-v0": "send_pending" },
-      "x-fc-pending": "conversations-send",
+      "method": "get",
+      "path": "/api/v1/connect-links",
+      "while": {
+        "/operationId": "connectLink.index"
+      },
+      "x-fc-pending": "accounts-number-onboarding",
       "responses": {
         "200": {
-          "description": "One item per destination, in the requested order.",
-          "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PendingForwardResult" } } } }
+          "description": "The links, paginated, newest first. `url` is always there and `null`: it carries the token, which is only in the answer of the create (ConnectLinkResource).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PendingConnectLink"
+                    }
+                  },
+                  "links": {
+                    "type": "object"
+                  },
+                  "meta": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/api/v1/connect-links/{link}",
+      "while": {
+        "/operationId": "connectLink.show"
+      },
+      "x-fc-pending": "accounts-number-onboarding",
+      "responses": {
+        "200": {
+          "description": "The link. `url` is always there and `null`: it carries the token, which is only in the answer of the create (ConnectLinkResource).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "$ref": "#/components/schemas/PendingConnectLink"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/api/v1/connect-links/{link}",
+      "while": {
+        "/responses/204/content/application~1json/schema/type": "string"
+      },
+      "x-fc-pending": "accounts-number-onboarding",
+      "responses": {
+        "204": {
+          "description": "Revoked: an empty body."
         }
       }
     },
     {
       "method": "delete",
       "path": "/api/v1/devices/{device}",
+      "while": {
+        "/responses/200/content/application~1json/schema/type": "string"
+      },
       "x-fc-pending": "accounts-number-onboarding",
       "responses": {
-        "200": { "description": "Empty body. The deletion is physical and frees the quota; it emits `device.deleted`." }
+        "200": {
+          "description": "Empty body. The deletion is physical and frees the quota; it emits `device.deleted`."
+        }
+      }
+    },
+    {
+      "method": "put",
+      "path": "/api/v1/webhooks/{id}",
+      "while": {
+        "/responses/200/content/application~1json/schema/properties": null
+      },
+      "x-fc-pending": "accounts-webhooks",
+      "responses": {
+        "200": {
+          "description": "The subscription, as `GET /api/v1/webhooks/{id}` answers it.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSubscriptionResource"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/api/v1/templates",
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/data/items/$ref": null
+      },
+      "x-fc-pending": "conversations-listings",
+      "responses": {
+        "200": {
+          "description": "The templates, paginated: `TemplateResource::collection` (MessageTemplateController::templates).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/TemplateResource"
+                    }
+                  },
+                  "links": {
+                    "type": "object"
+                  },
+                  "meta": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "get",
+      "path": "/api/v1/tags/{tag}/contacts",
+      "while": {
+        "/responses/200/content/application~1json/schema/properties/data/items/type": "string"
+      },
+      "x-fc-pending": "conversations-listings",
+      "responses": {
+        "200": {
+          "description": "The contacts with the tag, paginated: `ContactResource` items (TagController::contacts → listContacts).",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ContactResource"
+                    }
+                  },
+                  "links": {
+                    "type": "object"
+                  },
+                  "meta": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+        }
       }
     }
   ],
   "webhookPatches": [
-    {
-      "type": "message.received",
-      "x-fc-pending": "conversations-events",
-      "dataProperties": {
-        "device_id": {
-          "type": ["integer", "null"],
-          "description": "The number on your account that received the message: the same `device_id` you use to reply from that number. `null` if the message has no number."
-        }
-      }
-    },
     {
       "type": "*",
       "x-fc-pending": "accounts-workspace-id",
@@ -2158,7 +1709,7 @@
         "x-fc-status": "live",
         "x-fc-domain": "conversations",
         "x-fc-pending": "conversations-events",
-        "x-fc-replace-while": { "x-fc-status": "planned" },
+        "x-fc-replace-while": {"/requestBody/content/application~1json/schema/properties": null},
         "requestBody": {
           "content": {
             "application/json": {
@@ -2606,7 +2157,7 @@
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-participant-events",
-        "x-fc-replace-while": { "description": "Una persona entró a un grupo de una campaña." },
+        "x-fc-replace-while": {"/requestBody/content/application~1json/schema/properties": null},
         "requestBody": {
           "content": {
             "application/json": {
@@ -2640,7 +2191,7 @@
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-participant-events",
-        "x-fc-replace-while": { "description": "Una persona salió de un grupo de una campaña." },
+        "x-fc-replace-while": {"/requestBody/content/application~1json/schema/properties": null},
         "requestBody": {
           "content": {
             "application/json": {
@@ -2965,6 +2516,156 @@
                       "occurred_at": { "type": "string", "format": "date-time" }
                     },
                     "required": ["form", "message_id", "contact_id", "device_id", "answers", "occurred_at"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-fc-replace-while": {"/requestBody/content/application~1json/schema/properties": null}
+      }
+    },
+    "message.received": {
+      "post": {
+        "summary": "message.received",
+        "description": "A contact wrote to one of the account's WhatsApp numbers. `device_id` is the number that received it: the same `device_id` you send with to answer from that number, `null` if the message has no number.",
+        "x-fc-status": "live",
+        "x-fc-domain": "conversations",
+        "x-fc-pending": "conversations-events",
+        "x-fc-replace-while": {
+          "/requestBody/content/application~1json/schema/properties/data/properties/device_id": null
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "The message's `id` in the contact's history."
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "text",
+                              "image",
+                              "video",
+                              "document",
+                              "sticker",
+                              "contact",
+                              "audio",
+                              "note",
+                              "action",
+                              "invalid",
+                              "interactive",
+                              "location",
+                              "voice_call",
+                              "video_call",
+                              "event",
+                              "button",
+                              "template",
+                              "notification",
+                              "option_list",
+                              "template_button_reply",
+                              "poll",
+                              "whatsapp_form",
+                              "call_permission_request",
+                              "call_permission_reply",
+                              "request_contact_info"
+                            ]
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "The text or the caption; `null` when there is none."
+                          },
+                          "media": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "description": "Files only: `file` is its URL.",
+                            "properties": {
+                              "file": {}
+                            },
+                            "required": [
+                              "file"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "text",
+                          "media"
+                        ]
+                      },
+                      "contact": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "E.164, with `+`."
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "phone"
+                        ]
+                      },
+                      "receiver": {
+                        "type": "object",
+                        "properties": {
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Your number that received it, E.164."
+                          }
+                        },
+                        "required": [
+                          "phone"
+                        ]
+                      },
+                      "device_id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "message",
+                      "contact",
+                      "receiver",
+                      "device_id"
+                    ]
                   }
                 }
               }

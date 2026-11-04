@@ -9,9 +9,9 @@ use Funnelchat\Tests\Support\Reply;
 use Funnelchat\Tests\Support\TestCase;
 
 /**
- * What the sends return, as conversations v1.18.10 answers an API key (`ApiKeySendResponse`,
- * `PublicMessageResource`): `200` with the registered message, never `204`. In spec/pending.json
- * (`conversations-send`) until a snapshot brings them.
+ * What the sends return, as conversations v1.19.7 answers an API key (`ApiKeySendResponse`,
+ * `PublicMessageResource`): `200` with the registered message, never `204` and never `null`. The
+ * full spec of 04-11 brings them; spec/pending.json (`conversations-send`) keeps `message` required.
  */
 final class SendResultTest extends TestCase
 {

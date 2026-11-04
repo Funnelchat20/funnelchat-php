@@ -24,14 +24,14 @@ use Psr\Http\Message\ResponseInterface;
 /**
  * Creating and connecting numbers by API: `devices->create()`, `devices->qr()`, the
  * `external_reference` filter, `connectLinks`, the `idempotencyKey` option, the refusals and the
- * `device.*` events. From the contract 1022-alta-de-numeros (`accounts-number-onboarding` in
- * spec/pending.json), not from production.
+ * `device.*` events, as accounts v1.5.97 (in production on 04-11) answers them: the full spec of
+ * 04-11, and `accounts-number-onboarding` in spec/pending.json for what it gets wrong.
  */
 final class NumberOnboardingTest extends TestCase
 {
     /**
-     * A number as `GET /api/v1/devices/{device}` answers it, with the fields of the contract.
-     * `connected` is an integer in the 13-10 snapshot; the contract writes `connected: false`.
+     * A number as `GET /api/v1/devices/{device}` answers it.
+     * `connected` is an integer in the spec (`DeviceResource`).
      *
      * @return array<string, mixed>
      */
@@ -222,7 +222,7 @@ final class NumberOnboardingTest extends TestCase
             'return_url' => 'https://app.example/done',
             'expires_in_minutes' => 1440,
         ], self::jsonBody($request));
-        self::assertSame('https://api.funnelchat.com/connect/tok_abc', $result['data']['url'] ?? null);
+        self::assertSame('https://api.funnelchat.com/connect/tok_abc', $result['data']['url']);
         self::assertSame('pending', $result['data']['status']);
     }
 

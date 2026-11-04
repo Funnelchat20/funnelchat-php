@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;

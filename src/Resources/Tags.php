@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -136,11 +136,12 @@ final class Tags extends AbstractResource
      * `GET /api/v1/tags/{tag}/contacts`, paginated: the contacts with a tag.
      *
      * Permission: **Contacts and conversations → View**.
+     * Response: pending of the spec (`conversations-listings` in spec/pending.json); it may change.
      *
      * @param int $tag
      * @param array{
      *     perPage?: int,
-     *     orderBy?: 'name'|'last_message_time',
+     *     orderBy?: 'name'|'last_message_time'|'follow_up_date',
      *     orderByMethod?: 'asc'|'desc',
      *     sortBy?: 'asc'|'desc',
      *     page?: int,

@@ -92,9 +92,9 @@ The same subscription brings `message.received` when someone writes to one of yo
 if ($event['type'] === 'message.received') {
     $contactId = $event['data']['contact']['id'];
     $text = $event['data']['message']['text'];
-    $deviceId = $event['data']['device_id'] ?? null; // the number that received it: reply from that one
+    $deviceId = $event['data']['device_id']; // the number that received it (null if none): reply from that one
 
-    $funnelchat->messages->send($contactId, ['device_id' => $deviceId, 'phone' => ltrim($event['data']['contact']['phone'], '+'), 'text' => 'Got it, thanks!']);
+    $funnelchat->messages->send($contactId, ['device_id' => $deviceId, 'phone' => ltrim((string) $event['data']['contact']['phone'], '+'), 'text' => 'Got it, thanks!']);
 }
 ```
 
@@ -656,8 +656,9 @@ The query is built the way Laravel reads it: arrays go as `key[]=a&key[]=b`, nes
 Everything generated comes from a single script, in PHP:
 
 ```bash
-# With the portal's new unified spec:
-composer generate -- --spec ../developers-portal-worktrees/<branch>/out/specs/funnelchat.json
+# With the portal's full unified spec (built by `npm run build` in developers-portal; not the published /specs/,
+# which carries only the operations the portal shows):
+composer generate -- --spec ../developers-portal/generated/specs/funnelchat-completa.json
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -668,34 +669,33 @@ composer generate:check
 
 What it does (`scripts/generate.php`):
 
-1. With `--spec`, it copies the spec to `spec/funnelchat.json` and writes `spec/procedencia.json`: repository, branch, commit, date and `sha256` of the file.
-2. It adds `spec/pending.json` (the [pending of the spec](#pending-of-the-spec) layer), but **only what the snapshot does not bring**. At the end it lists what the new snapshot already brings, so you can delete it from `spec/pending.json`.
+1. With `--spec`, it copies the spec to `spec/funnelchat.json` and writes `spec/procedencia.json`: repository, branch, commit, date and `sha256` of the file, and what the spec says of each domain.
+2. It adds `spec/pending.json` (the [pending of the spec](#pending-of-the-spec) layer), but **only what the snapshot does not bring, or brings with a shape production does not answer**. At the end it lists the entries the new snapshot made obsolete, so you can delete them from `spec/pending.json`.
 3. It writes `src/Generated/Routes.php` (every operation), `src/Generated/Schemas.php` (every schema as a PHPStan alias), `src/Generated/WebhookEvents.php` (the catalog and the shape of each event, taken from the schema or from the example), `src/Resources/*.php` (one method per operation, with its types) and `src/Generated/ResourceProperties.php` (the client's properties).
 
 `spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**The current snapshot** is the portal's, branch `feat/openapi-unificada` @ `0ef4abb`, of 15-10: 191 paths and 230 operations of conversations `9d723d52c`, communities `fab0bb10` and accounts `c234b6f8` (13-10). It predates what is in production: what is new is in the pending layer. The details are in `spec/procedencia.json`. The snapshot's own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current snapshot** is the portal's full unified spec of 04-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `c90565e4` (the merge of PR #33, deployed as v0.6.0), the same tree as `feat/primer-uso` @ `4838fb5`, where it was built and imported from (that is what `spec/procedencia.json` records). 203 paths, 248 operations and 29 events, from the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `v1.19.7` (`4e35ddb83`) and communities `v2.35.5` (`2be913d4`), the tags in production that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
 ## Pending of the spec
 
-The spec snapshot is from 13-10. What reached production afterwards is in a separate layer, marked as such in the code, which the next regeneration replaces by itself once a snapshot brings it (and it tells you which entries can be deleted):
+What production has and the snapshot does not, or has with another shape, is in a separate layer, marked as such in the code (`pending` in `Routes::ALL` and in `WebhookEvents::CATALOG`, and "Pending of the spec" in the method's PHPDoc):
 
-- `spec/pending.json`: paths, fields, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`).
+- `spec/pending.json`: paths, fields, query parameters, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`, explained in its `sources`).
+- Each correction carries the condition that ends it (`while`, `x-fc-replace-while`): a top-level key, or a JSON pointer into the snapshot's operation or event (`/responses/200/content/application~1json/schema/type`). When a new snapshot changes the very thing a correction corrects, the generation stops applying it and lists it as obsolete.
 
-All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `v0.3.0` (`a1c5b350`). The entries written on 22-10 (conversations `v1.18.10`, communities `v2.34.52`, accounts `v1.4.24`) were checked again against those tags.
+All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `main` @ `975d8154` (deployed to production on 25-10; its latest tag is `v0.3.0`).
 
-| What | Where it comes from |
+| What stays in the pending layer | Why |
 |---|---|
-| What the API-key sends answer (`200` with the queued message, never `204`), `messages->get`, `client_reference` (also in the history), `file_type` and `file_name` | conversations `v1.18.10`, the same in `v1.19.7` |
-| WhatsApp forms (`/api/v1/forms…`), sending one to a contact and `whatsapp_form.completed` | conversations `v1.18.10` |
-| The shape of `message.status_changed` (with `error.reason`), now `live`, and `device_id` in `message.received` | conversations `v1.18.10`, the same in `v1.19.7` |
-| Sending a message to a group (`groups->sendMessage`), reading how it ended (`groups->retrieveAction`), `group_action.completed` and `group_action.failed` | communities `v2.35.5` |
-| `group_participant.joined` and `group_participant.left` for any group of the account (`campaign` can be `null`) | communities `v2.35.5` |
-| The `group.message_received`, `group.reaction_added` and `group_join_request.*` events | communities `v2.34.52`, the same in `v2.35.5` |
-| `data.workspace_id` in every event | accounts `v1.5.97` |
-| Webhook subscriptions (`/api/v1/webhooks…`, with the **Notifications (webhooks)** permissions, per workspace), the accounts events and four communities ones | accounts `v1.4.24` and `v1.5.97` |
-| `capabilities` and the other new fields of each number in `devices` | accounts `v1.4.24` |
-| Creating, connecting and deleting numbers (`devices->create`, `devices->qr`, `devices->delete`'s empty answer, the `external_reference` filter and field, `connectLinks`, `Idempotency-Key`, `country`) and the fields and events of `device.*`, except `type: 'meta'` (`503 meta_connect_disabled`) | accounts `v1.5.97` |
+| WhatsApp forms (`/api/v1/forms…`, the `forms` resource) | In production (conversations `v1.19.7`; api-edge routes `forms`), but the portal leaves them out of its spec: its map of the API entrypoint lacks `forms`. |
+| `webhooks->rotateSecret()` | Not open to API keys, so it is not in the spec; the method stays. |
+| Sending a message to a group (`groups->sendMessage`) and reading how it ended (`groups->retrieveAction`) | The portal took communities' snapshot with group actions off; they are on in production. |
+| The events accounts delivers: `device.*`, billing, subscription, MAC and AI quota, `group_action.*`, `group.message_received`, `group.reaction_added`, `group_join_request.*`, `group.full`… | The spec's `webhooks` has only those of conversations and communities' own catalog. |
+| `data.workspace_id` in every event | No event of the spec has it yet. |
+| `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`. |
+| The answer of the four sends (`message` is never `null` for an API key), the QR (`{data}` only), a connect link read (`url` is `null`), `connectLinks->revoke()` and `devices->delete()` (empty body), `webhooks->update()`, `templates->list()` and `tags->listContacts()` | The spec infers them from the code and gets them wrong: a nullable message, three extra QR shapes, a `string` body, an empty object, `object` and `string` items. |
+| `perPage` of `webhooks->list()` and `connectLinks->list()`; `per_page`, `event_type` and `event_id` of `webhooks->listDeliveries()` | Production accepts them; the spec does not declare them. |
 
 The error codes of the sends are in `Funnelchat\Exception\SendErrors`, written by hand from the same sources: the spec does not list them. Those of creating and connecting numbers, in `Funnelchat\Exception\DeviceErrors`.
 

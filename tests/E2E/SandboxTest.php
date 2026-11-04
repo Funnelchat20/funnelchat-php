@@ -291,7 +291,7 @@ final class SandboxTest extends TestCase
             'expires_in_minutes' => 60,
         ], ['idempotencyKey' => 'e2e-php-link'])['data'];
         self::assertSame('pending', $link['status']);
-        self::assertIsString($link['url'] ?? null);
+        self::assertStringContainsString('/connect/', $link['url']);
         self::assertNull($link['device_id']);
 
         // Opening the page does not use the link (a messenger's preview cannot burn it); its button does.
@@ -307,7 +307,8 @@ final class SandboxTest extends TestCase
 
         $read = $this->funnelchat->connectLinks->retrieve($link['id'])['data'];
         self::assertSame('completed', $read['status']);
-        self::assertArrayNotHasKey('url', $read);
+        // Production sends `url: null` once the link is read (accounts v1.5.97); the sandbox 0.2.0 leaves it out.
+        self::assertNull($read['url'] ?? null);
         self::assertIsInt($read['device_id']);
         self::assertSame((string) $read['device_id'], $result['device_id'] ?? null);
 
@@ -369,7 +370,7 @@ final class SandboxTest extends TestCase
     {
         $this->turnMetaOn();
         $link = $this->funnelchat->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['dedicated']])['data'];
-        $url = (string) ($link['url'] ?? '');
+        $url = $link['url'];
 
         for ($attempt = 1; $attempt <= 4; ++$attempt) {
             $this->openPage($url . '/start', ['outcome' => 'failed', 'error_code' => 'meta_error']);
@@ -397,7 +398,7 @@ final class SandboxTest extends TestCase
             self::assertSame('link_not_pending', $exception->errorCode);
             self::assertTrue($exception->isDeviceError());
         }
-        self::assertSame(410, $this->openPage((string) ($link['url'] ?? ''))[0]);
+        self::assertSame(410, $this->openPage($link['url'])[0]);
     }
 
     public function testTheRefusalsOfCreatingNumbersAndLinks(): void

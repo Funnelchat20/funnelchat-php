@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -174,9 +174,13 @@ final class Contacts extends AbstractResource
      *     adviser_id: int|null,
      *     paused_at: string|null,
      *     mac_date: string|null,
+     *     is_mac_inactive?: bool,
      *     ai_assistant_name: string|null,
+     *     ai_assistant_email?: string,
+     *     account_main_email?: string,
      *     stage_since?: string,
      *     is_stagnant?: bool,
+     *     follow_up_date?: string|null,
      *     lead_score?: array{
      *         score: int,
      *         signals_count: int,
@@ -186,6 +190,7 @@ final class Contacts extends AbstractResource
      *         disqualified_at: string|null,
      *         updated_at: string|null,
      *     },
+     *     name_mismatch: list<mixed>|null,
      * }
      */
     public function retrieve(int|string $contact, array $options = []): mixed
@@ -222,9 +227,13 @@ final class Contacts extends AbstractResource
          *     adviser_id: int|null,
          *     paused_at: string|null,
          *     mac_date: string|null,
+         *     is_mac_inactive?: bool,
          *     ai_assistant_name: string|null,
+         *     ai_assistant_email?: string,
+         *     account_main_email?: string,
          *     stage_since?: string,
          *     is_stagnant?: bool,
+         *     follow_up_date?: string|null,
          *     lead_score?: array{
          *         score: int,
          *         signals_count: int,
@@ -234,6 +243,7 @@ final class Contacts extends AbstractResource
          *         disqualified_at: string|null,
          *         updated_at: string|null,
          *     },
+         *     name_mismatch: list<mixed>|null,
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/contacts/{contact}', ['path' => ['contact' => $contact]] + $options);
@@ -433,9 +443,15 @@ final class Contacts extends AbstractResource
      * @return array{
      *     is_open: bool,
      *     meta_device_id: null,
+     *     expires_at: null,
+     * }|array{
+     *     is_open: bool,
+     *     meta_device_id: null,
+     *     expires_at: string|null,
      * }|array{
      *     is_open: bool,
      *     meta_device_id: mixed,
+     *     expires_at: string|null,
      * }
      */
     public function metaWindow(int|string $contact, array $query, array $options = []): mixed
@@ -444,9 +460,15 @@ final class Contacts extends AbstractResource
          * @var array{
          *     is_open: bool,
          *     meta_device_id: null,
+         *     expires_at: null,
+         * }|array{
+         *     is_open: bool,
+         *     meta_device_id: null,
+         *     expires_at: string|null,
          * }|array{
          *     is_open: bool,
          *     meta_device_id: mixed,
+         *     expires_at: string|null,
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/contacts/{contact}/meta-window', ['path' => ['contact' => $contact], 'query' => $query] + $options);
@@ -467,99 +489,11 @@ final class Contacts extends AbstractResource
      * } $query
      * @param RequestOptions $options
      *
-     * @return Paginator<array{
-     *     id: int,
-     *     name: string,
-     *     email: string,
-     *     phone: string,
-     *     whatsapp_id: string,
-     *     whatsapp_username: string|null,
-     *     has_phone: bool,
-     *     country_code: string,
-     *     status: int,
-     *     image: string,
-     *     notes: string|null,
-     *     custom_fields?: list<ContactCustomFieldResource>,
-     *     created_at: string|null,
-     *     active_conversation: int,
-     *     favorite: int,
-     *     unread_messages: int,
-     *     manually_unread?: bool,
-     *     last_message?: array{
-     *         text: string,
-     *         file: string,
-     *         date: string,
-     *         type: string,
-     *         own: string,
-     *         deleted_at: string,
-     *         deleted_scope: string,
-     *     },
-     *     device_id: int|null,
-     *     adviser_id: int|null,
-     *     paused_at: string|null,
-     *     mac_date: string|null,
-     *     ai_assistant_name: string|null,
-     *     stage_since?: string,
-     *     is_stagnant?: bool,
-     *     lead_score?: array{
-     *         score: int,
-     *         signals_count: int,
-     *         category: string,
-     *         confidence: string,
-     *         disqualified: bool,
-     *         disqualified_at: string|null,
-     *         updated_at: string|null,
-     *     },
-     * }>
+     * @return Paginator<ContactResource>
      */
     public function listByDevice(int|string $device, array $query = [], array $options = []): Paginator
     {
-        /**
-         * @var Paginator<array{
-         *     id: int,
-         *     name: string,
-         *     email: string,
-         *     phone: string,
-         *     whatsapp_id: string,
-         *     whatsapp_username: string|null,
-         *     has_phone: bool,
-         *     country_code: string,
-         *     status: int,
-         *     image: string,
-         *     notes: string|null,
-         *     custom_fields?: list<ContactCustomFieldResource>,
-         *     created_at: string|null,
-         *     active_conversation: int,
-         *     favorite: int,
-         *     unread_messages: int,
-         *     manually_unread?: bool,
-         *     last_message?: array{
-         *         text: string,
-         *         file: string,
-         *         date: string,
-         *         type: string,
-         *         own: string,
-         *         deleted_at: string,
-         *         deleted_scope: string,
-         *     },
-         *     device_id: int|null,
-         *     adviser_id: int|null,
-         *     paused_at: string|null,
-         *     mac_date: string|null,
-         *     ai_assistant_name: string|null,
-         *     stage_since?: string,
-         *     is_stagnant?: bool,
-         *     lead_score?: array{
-         *         score: int,
-         *         signals_count: int,
-         *         category: string,
-         *         confidence: string,
-         *         disqualified: bool,
-         *         disqualified_at: string|null,
-         *         updated_at: string|null,
-         *     },
-         * }> $result
-         */
+        /** @var Paginator<ContactResource> $result */
         $result = $this->client->paginate('/api/v1/devices/{device}/contacts', ['path' => ['device' => $device], 'query' => $query] + $options);
 
         return $result;

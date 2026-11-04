@@ -262,12 +262,15 @@ final class Generator
         $domains = [];
         foreach (self::arr($spec['x-fc-sources'] ?? null) as $source) {
             $source = self::obj($source);
-            $domains[] = [
-                'domain' => $source['domain'] ?? null,
-                'sha' => $source['sha'] ?? null,
-                'branch' => $source['branch'] ?? null,
-                'snapshot_at' => $source['snapshot_at'] ?? null,
-            ];
+            // What the spec says of each domain's snapshot: the full spec of the portal carries the
+            // version and the counts, and no longer the commit (that is in the portal's snapshots).
+            $domain = ['domain' => $source['domain'] ?? null];
+            foreach (['sha', 'branch', 'snapshot_at', 'version', 'operations', 'excluded_routes'] as $key) {
+                if (isset($source[$key])) {
+                    $domain[$key] = $source[$key];
+                }
+            }
+            $domains[] = $domain;
         }
 
         $provenance = [
@@ -606,18 +609,52 @@ final class Generator
     }
 
     /**
+     * Whether `$target` meets every entry of `$condition`. A key is a top-level key of the target
+     * (`"x-fc-status": "planned"`), or a JSON pointer (RFC 6901) into it when it starts with `/`
+     * (`"/responses/200/content/application~1json/schema/type": "string"`): the condition then
+     * holds while the value at that pointer is exactly the one given, and `null` stands for
+     * "absent or null". So a correction of the pending layer stops by itself once the snapshot
+     * changes the very thing it corrects.
+     *
      * @param Json $target
      * @param Json $condition
      */
     private static function matches(array $target, array $condition): bool
     {
         foreach ($condition as $key => $value) {
+            $key = (string) $key;
+            if (str_starts_with($key, '/')) {
+                if (self::pointer($target, $key) !== $value) {
+                    return false;
+                }
+
+                continue;
+            }
             if (!\array_key_exists($key, $target) || $target[$key] !== $value) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * The value at a JSON pointer, or `null` when a step is missing.
+     *
+     * @param Json $target
+     */
+    private static function pointer(array $target, string $pointer): mixed
+    {
+        $value = $target;
+        foreach (\array_slice(explode('/', $pointer), 1) as $token) {
+            $token = str_replace(['~1', '~0'], ['/', '~'], $token);
+            if (!\is_array($value) || !\array_key_exists($token, $value)) {
+                return null;
+            }
+            $value = $value[$token];
+        }
+
+        return $value;
     }
 
     /** The event type a `webhooks` key stands for: "webhook.test (conversations)" -> "webhook.test". */

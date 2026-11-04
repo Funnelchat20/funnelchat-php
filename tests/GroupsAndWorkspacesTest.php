@@ -19,7 +19,7 @@ use Funnelchat\Webhook;
  * Sending a message to a group and reading how it ended (communities v2.35.5, `ApiGroupActionController`),
  * the participant events and the workspace of every event (accounts v1.5.97, `EventWorkspaceRouting`).
  * In spec/pending.json (`communities-group-messages`, `communities-participant-events`,
- * `accounts-workspace-id`) until a snapshot brings them.
+ * `accounts-workspace-id`): the full spec of 04-11 does not bring them yet.
  */
 final class GroupsAndWorkspacesTest extends TestCase
 {

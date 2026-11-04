@@ -104,9 +104,30 @@ final class GeneratedTest extends TestCase
         }
     }
 
-    public function testFlagsThePatchedOperationsWhileTheSnapshotSaysSendPending(): void
+    /**
+     * The condition of a patch, as the generator reads it: top-level keys, or JSON pointers
+     * (`/responses/200/…`) where `null` stands for "absent or null".
+     *
+     * @param array<array-key, mixed> $target
+     * @param array<array-key, mixed> $condition
+     */
+    private static function holds(array $target, array $condition): bool
+    {
+        foreach ($condition as $key => $expected) {
+            $key = (string) $key;
+            $tokens = str_starts_with($key, '/') ? array_map(static fn(string $token): string => str_replace(['~1', '~0'], ['/', '~'], $token), \array_slice(explode('/', $key), 1)) : [$key];
+            if (self::at($target, ...$tokens) !== $expected) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function testEveryCorrectionOfTheSnapshotThatStillHoldsFlagsItsRoute(): void
     {
         $spec = self::readJson('funnelchat.json');
+        $pending = self::readJson('pending.json');
         $routes = [];
         foreach (self::constant(Routes::class, 'ALL') as $route) {
             self::assertIsArray($route);
@@ -114,18 +135,41 @@ final class GeneratedTest extends TestCase
             self::assertIsString($route['path']);
             $routes["{$route['method']} {$route['path']}"] = $route;
         }
-        $patches = self::readJson('pending.json')['operationPatches'] ?? [];
-        self::assertIsArray($patches);
-        foreach ($patches as $patch) {
-            self::assertIsArray($patch);
-            self::assertIsString($patch['method']);
-            self::assertIsString($patch['path']);
-            $op = self::at($spec, 'paths', $patch['path'], $patch['method']);
-            $label = strtoupper($patch['method']) . " {$patch['path']}";
-            if (\is_array($op) && ($op['x-portal-v0'] ?? null) === 'send_pending') {
-                self::assertTrue(($routes[$label] ?? [])['pending'] ?? false, "{$label} is patched with client_reference");
+        $checked = 0;
+        foreach (['operationPatches', 'responsePatches'] as $kind) {
+            $patches = $pending[$kind] ?? [];
+            self::assertIsArray($patches);
+            foreach ($patches as $patch) {
+                self::assertIsArray($patch);
+                self::assertIsString($patch['method']);
+                self::assertIsString($patch['path']);
+                $label = strtoupper($patch['method']) . " {$patch['path']}";
+                $op = self::at($spec, 'paths', $patch['path'], $patch['method']);
+                self::assertIsArray($op, "{$label}: the operation of a {$kind} entry is in the snapshot");
+                $while = $patch['while'] ?? [];
+                self::assertIsArray($while);
+                if (!self::holds($op, $while)) {
+                    continue;
+                }
+                self::assertTrue(($routes[$label] ?? [])['pending'] ?? false, "{$label} is corrected by spec/pending.json");
+                ++$checked;
             }
         }
+        // The full spec of 04-11 still needs the corrections: the four sends, the QR, the links…
+        self::assertGreaterThanOrEqual(4, $checked);
+    }
+
+    public function testTheSendsAnswerTheMessageNeverNull(): void
+    {
+        // conversations v1.19.7 (ApiKeySendResponse::message): `{"message": <object>}` for an API key.
+        foreach (['send', 'sendDirect', 'sendForm'] as $method) {
+            $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Messages::class, $method))->getDocComment();
+            self::assertMatchesRegularExpression('/@return array\{\s*\*\s*message: PublicMessageResource,\s*\*\s*\}/', $doc, $method);
+        }
+        $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Templates::class, 'send'))->getDocComment();
+        self::assertMatchesRegularExpression('/@return array\{\s*\*\s*message: PublicMessageResource,\s*\*\s*\}/', $doc);
+        $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Devices::class, 'qr'))->getDocComment();
+        self::assertMatchesRegularExpression('/@return array\{\s*\*\s*data: PendingDeviceQr,\s*\*\s*\}/', $doc);
     }
 
     public function testNoResourceMethodDropsTheAnswer(): void
@@ -141,39 +185,6 @@ final class GeneratedTest extends TestCase
                 $type = $method->getReturnType();
                 self::assertNotSame('void', $type instanceof \ReflectionNamedType ? $type->getName() : null, "{$class}::{$method->getName()}");
             }
-        }
-    }
-
-    public function testTypesTheAnswerOfTheSendsWhileTheSnapshotSaysSendPending(): void
-    {
-        $spec = self::readJson('funnelchat.json');
-        $patches = self::at(self::readJson('pending.json'), 'responsePatches');
-        self::assertIsArray($patches);
-        $routes = [];
-        foreach (self::constant(Routes::class, 'ALL') as $route) {
-            self::assertIsArray($route);
-            self::assertIsString($route['method']);
-            self::assertIsString($route['path']);
-            $routes["{$route['method']} {$route['path']}"] = $route;
-        }
-        foreach ($patches as $patch) {
-            self::assertIsArray($patch);
-            self::assertIsString($patch['method']);
-            self::assertIsString($patch['path']);
-            if (self::at($spec, 'paths', $patch['path'], $patch['method'], 'x-portal-v0') !== 'send_pending') {
-                continue;
-            }
-            $route = $routes[strtoupper($patch['method']) . " {$patch['path']}"] ?? null;
-            self::assertIsArray($route, $patch['path']);
-            self::assertTrue($route['pending'], $patch['path']);
-            if (!\is_string($route['sdk'])) {
-                continue;
-            }
-            // The resource method documents the pending answer, not "no body".
-            [$property, $name] = explode('->', $route['sdk']);
-            $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
-            self::assertStringContainsString('`conversations-send`', $doc, $route['sdk']);
-            self::assertStringContainsString('Pending', $doc, $route['sdk']);
         }
     }
 
