@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
  * End to end against funnelchat-sandbox (`composer test:e2e`): the SDK over real HTTP, with a
  * webhook receiver on PHP's built-in server. Nothing leaves this machine.
  *
- *   npx funnelchat-sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet
+ *   npx @funnelchat-hq/sandbox --port 4010 --status-delays 0.2,0.2,0.2 --quiet
  *   FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010 composer test:e2e
  *
  * Skipped when FUNNELCHAT_SANDBOX_URL is not set. Each test starts from `POST /_sandbox/reset`.
@@ -527,6 +527,76 @@ final class SandboxTest extends TestCase
             self::assertGreaterThan(0, $exception->retryAfter);
         }
         self::assertCount(1, $sleeps);
+    }
+
+    /** The four steps of the README's first use, as they are written there. */
+    public function testTheFirstUseConnectsANumberSendsAMessageAndLearnsItWasRead(): void
+    {
+        $hook = $this->startReceiver();
+        $subscription = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['message.status_changed', 'message.received']]);
+        $secret = $subscription['secret'];
+
+        // 2. Connect a number: create it, ask for its QR until it is scanned.
+        $number = $this->funnelchat->devices->create(['connection' => 'qr', 'alias' => 'My first number'])['data'];
+        $qr = $this->funnelchat->devices->qr($number['id'])['data'];
+        self::assertFalse($qr['connected']);
+        self::assertStringStartsWith('data:image/png;base64,', (string) $qr['qr_code']);
+        $this->sandbox('POST', "/_sandbox/devices/{$number['id']}/connect", ['number' => '5491155550101']);
+        self::assertTrue($this->funnelchat->devices->qr($number['id'])['data']['connected']);
+
+        // 3. Send a message: the contact first, then the text from that number.
+        // (In production, creating it again answers the same contact; the sandbox 0.2.0 answers 422.)
+        $contact = $this->funnelchat->contacts->create(['phone' => '5491155550199', 'name' => 'Ana']);
+        $sent = $this->funnelchat->messages->send($contact['id'], [
+            'device_id' => $number['id'],
+            'phone' => '5491155550199',
+            'text' => 'Hi Ana! This is my first message from the API.',
+        ]);
+        self::assertSame('queued', $sent['message']['status']);
+        self::assertSame($number['id'], $sent['message']['device_id']);
+
+        // 4. Know when it was read: the signed statuses, then the same answer when asked.
+        $statuses = [];
+        foreach ($this->waitForDeliveries(3) as $delivery) {
+            $event = Webhook::constructEvent($delivery['body'], $delivery['signature'], $secret);
+            self::assertSame('message.status_changed', $event['type']);
+            self::assertIsArray($event['data']);
+            self::assertSame($sent['message']['id'], $event['data']['message_id']);
+            $statuses[] = $event['data']['status'];
+        }
+        self::assertSame(['sent', 'delivered', 'read'], $statuses);
+        self::assertSame('read', $this->funnelchat->messages->get($contact['id'], $sent['message']['id'])['status']);
+
+        // Receive messages: the contact answers, on the number it wrote to.
+        $this->sandbox('POST', '/_sandbox/inbound/message', ['phone' => '5491155550199', 'device_id' => $number['id'], 'text' => 'Thanks!']);
+        $received = $this->waitForDeliveries(4)[3];
+        $event = Webhook::constructEvent($received['body'], $received['signature'], $secret);
+        self::assertSame('message.received', $event['type']);
+        self::assertIsArray($event['data']);
+        self::assertIsArray($event['data']['contact']);
+        self::assertSame($contact['id'], $event['data']['contact']['id']);
+        self::assertSame($number['id'], $event['data']['device_id'] ?? null);
+    }
+
+    public function testWhoJoinsAndWhoLeavesAGroupArrivesSigned(): void
+    {
+        $hook = $this->startReceiver();
+        $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['group_participant.joined', 'group_participant.left']])['secret'];
+        $group = ['uid' => '120363000000000001@g.us', 'name' => 'Customers'];
+
+        $this->sandbox('POST', '/_sandbox/groups/participant-joined', ['group' => $group, 'participant' => ['phone' => '+5491155550199', 'name' => 'Ana']]);
+        $this->sandbox('POST', '/_sandbox/groups/participant-left', ['group' => $group, 'participant' => ['phone' => '+5491155550199', 'name' => 'Ana']]);
+
+        $types = [];
+        foreach ($this->waitForDeliveries(2) as $delivery) {
+            $event = Webhook::constructEvent($delivery['body'], $delivery['signature'], $secret);
+            self::assertIsArray($event['data']);
+            self::assertSame($group, $event['data']['group']);
+            self::assertSame(['identity' => '5491155550199', 'identity_type' => 'phone', 'name' => 'Ana'], $event['data']['participant']);
+            self::assertArrayHasKey('campaign', $event['data']);
+            $types[] = $event['type'];
+        }
+        self::assertSame(['group_participant.joined', 'group_participant.left'], $types);
     }
 
     /**
