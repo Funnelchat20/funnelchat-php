@@ -10,7 +10,8 @@ namespace Funnelchat\Exception;
  *
  * Source: conversations v1.18.10 (`ApiSendRejection`, `ApiSendGuard`, `ApiSendRateLimiter`,
  * `ApiKeySendResponse`, `FormSendPreflight` and `lang/en/public_api.php`), in production since
- * 21-10.
+ * 21-10 and the same in v1.19.7 (04-11). Sending to a group (`groups->sendMessage()`): communities
+ * v2.35.5 (`ApiGroupActionTargetResolver`, `ApiGroupActionAcceptor` and `GroupActionsDocumentation`).
  */
 final class SendErrors
 {
@@ -32,6 +33,17 @@ final class SendErrors
      * - `template_not_found` (404), `template_unresolved_placeholder` (422, with `placeholders` and `count`).
      * - `form_not_found` (404), `form_not_published`, `form_not_on_number`, `number_not_eligible` (422).
      * - `not_forwardable` (422, with `reason`): the message cannot be forwarded.
+     *
+     * Sending to a group (`groups->sendMessage()`) also has `window_closed`, `provider_unsupported` (with `requires`) and:
+     *
+     * - `group_not_found`, `device_not_found` (404): the group or the number is not of your key's workspace.
+     * - `device_not_connected` (422): the number is not connected.
+     * - `device_not_group_admin` (422): a QR number that is not an admin of the group.
+     * - `device_not_group_number` (422): an official number that is not the group's own number.
+     * - `unsupported_group_type` (422): a community or a channel, not a group.
+     * - `unsupported_type` (422): an official number cannot send that type of message.
+     * - `number_restricted` (422): the quality of the official number does not let it send.
+     * - `too_many_pending_actions` (429): the number already has 50 group actions open. Never retried.
      */
     public const CODES = [
         'rate_limited' => 429,
@@ -53,12 +65,21 @@ final class SendErrors
         'form_not_on_number' => 422,
         'number_not_eligible' => 422,
         'not_forwardable' => 422,
+        'group_not_found' => 404,
+        'device_not_found' => 404,
+        'device_not_connected' => 422,
+        'device_not_group_admin' => 422,
+        'device_not_group_number' => 422,
+        'unsupported_group_type' => 422,
+        'unsupported_type' => 422,
+        'number_restricted' => 422,
+        'too_many_pending_actions' => 429,
     ];
 
     /**
      * Codes that a retry does not fix soon: the SDK never retries them, not even with `retrySend`.
      */
-    public const NOT_RETRYABLE = ['mac_lockout_24h', 'mac_limit_reached'];
+    public const NOT_RETRYABLE = ['mac_lockout_24h', 'mac_limit_reached', 'too_many_pending_actions'];
 
     private function __construct() {}
 

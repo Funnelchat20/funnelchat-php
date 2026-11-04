@@ -1751,11 +1751,61 @@ namespace Funnelchat\Generated;
  *     id: int,
  *     name: string|null,
  *     'number': string|null,
- *     connection?: PendingConnectionType,
- *     external_reference?: PendingExternalReference,
+ *     connection: PendingConnectionType,
+ *     external_reference: PendingExternalReference,
  * }
  * @phpstan-type PendingConnectLinkId int|null
  * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'
+ * @phpstan-type PendingWorkspaceId int|null
+ * @phpstan-type PendingEventGroup array{
+ *     uid: string,
+ *     name: string|null,
+ * }
+ * @phpstan-type PendingEventParticipant array{
+ *     identity: string,
+ *     identity_type: 'phone'|'whatsapp_user',
+ *     name: string|null,
+ * }
+ * @phpstan-type PendingGroupMessageCreate array{
+ *     device_id: int,
+ *     type: 'text'|'image'|'video'|'audio'|'document',
+ *     text?: string,
+ *     media_url?: string,
+ *     caption?: string|null,
+ *     file_name?: string|null,
+ * }
+ * @phpstan-type PendingGroupActionAccepted array{
+ *     action_id: string,
+ *     status: 'queued',
+ * }
+ * @phpstan-type PendingGroupActionResult array{
+ *     message?: array{
+ *         uid: string,
+ *     },
+ *     invite_link?: string,
+ *     participants?: list<array{
+ *         identity: string,
+ *         identity_type: 'phone'|'whatsapp_user',
+ *         status: string,
+ *         reason: string|null,
+ *     }>,
+ * }
+ * @phpstan-type PendingGroupAction array{
+ *     action_id: string,
+ *     type: 'create_group'|'add_participants'|'remove_participants'|'promote_admins'|'demote_admins'|'update_name'|'update_description'|'update_photo'|'update_settings'|'renew_invite_link'|'send_message'|'approve_join_requests'|'reject_join_requests',
+ *     status: 'queued'|'running'|'completed'|'failed',
+ *     device_id: int|null,
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     }|null,
+ *     result: PendingGroupActionResult,
+ *     reason: string|null,
+ *     created_at: string|null,
+ *     started_at: string|null,
+ *     completed_at: string|null,
+ *     failed_at: string|null,
+ * }
  */
 final class Schemas
 {

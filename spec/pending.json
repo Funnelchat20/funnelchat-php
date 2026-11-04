@@ -1,27 +1,30 @@
 {
   "x-fc-pending": {
     "title": "Pending of the spec",
-    "description": "Routes, fields, schemas, responses and events that the production API already has but the spec/funnelchat.json snapshot (13-10) does not include yet. The generator (`composer generate`, scripts/generate.php) adds them to the spec before generating the resources and types, only while the snapshot lacks them: when a new snapshot includes them, generation uses the snapshot's version and reports which entries in this file can be deleted. The entries of a source that names a contract come from that contract, not from the code.",
+    "description": "Routes, fields, schemas, responses and events that the production API already has but the spec/funnelchat.json snapshot (13-10) does not include yet. The generator (`composer generate`, scripts/generate.php) adds them to the spec before generating the resources and types, only while the snapshot lacks them: when a new snapshot includes them, generation uses the snapshot's version and reports which entries in this file can be deleted. Every entry comes from the code of the tags running in production (`origin` and `sources` say which).",
     "rules": {
       "paths": "An operation (method + route) is added only if the snapshot does not have it.",
       "operationPatches": "A patch adds properties to the body of a snapshot operation only while that operation meets the `while` condition.",
       "webhooks": "An event is added if the snapshot does not have it, or replaces the snapshot's while it meets the `x-fc-replace-while` condition.",
       "responsePatches": "A patch replaces the responses of a snapshot operation (all the 2xx ones, and any others it includes by code) only while that operation meets the `while` condition.",
-      "webhookPatches": "A patch adds properties to the `data` of a snapshot event only while the event does not include them (neither in its schema nor in its example).",
+      "webhookPatches": "A patch adds properties to the `data` of an event (of every event with `type: \"*\"`, the ones of this layer included) only while the event does not include them (neither in its schema nor in its example); `required` makes them required in the type.",
       "components.schemas": "The schemas in this layer start with `Pending` so they do not clash with the snapshot's.",
       "schemaPatches": "A patch adds properties to a snapshot schema only while the schema does not include them.",
       "parameterPatches": "A patch adds query parameters to a snapshot operation only while that operation does not declare them."
     },
-    "origin": "Reviewed on 22-10 against the code of the tags running in production, read with `git show <tag>:<archivo>` (read-only): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 and api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). It started from the funnelchat-node layer (spec/pending.json on feat/inicial @ 88557ce); the accounts webhook entries from 16-10 were reviewed against v1.4.24.",
+    "origin": "Reviewed on 22-10 against the code of the tags running in production, read with `git show <tag>:<archivo>` (read-only): conversations v1.18.10 @ a580a3d0, communities v2.34.52 @ 6f32f0b4, accounts v1.4.24 @ 300cc843 and api-edge v0.3.0 @ a1c5b350 (platform-gate v0.8.0 @ eab47f20). It started from the funnelchat-node layer (spec/pending.json on feat/inicial @ 88557ce); the accounts webhook entries from 16-10 were reviewed against v1.4.24. Reviewed again on 04-11 against the tags in production that day: accounts v1.5.97 @ 558332bc, conversations v1.19.7 @ 4e35ddb8, communities v2.35.5 @ 2be913d4, platform-gate v0.9.1 @ cc2cee4b and api-edge v0.3.0 @ a1c5b350 (still its latest tag). What changed for the first use (connecting a number, sending, knowing when it was read, receiving, groups and workspaces): the numbers by API now come from accounts' code, sending to a group and reading its action are in, the participant events say that `campaign` can be `null`, and every event carries `data.workspace_id`.",
     "sources": {
-      "accounts-webhooks": "accounts v1.4.24 @ 300cc843 (in production): back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is NOT open to API keys (403 route_not_available).",
-      "communities-group-actions": "Left out on purpose (22-10): the group actions by API (create, participants, admins, name, description, photo, settings, invite link, send to a group, the action status) and the join requests (list, approve, reject) are off in production: communities v2.34.52 @ 6f32f0b4 ships API_GROUP_ACTIONS_ENABLED=false (config/api_group_actions.php), so they respond 403 route_not_available to any API key, and the portal does not document them. The same goes for `group_action.completed`, which only those actions emit. The group reads stay.",
+      "accounts-webhooks": "accounts v1.4.24 @ 300cc843, checked again against v1.5.97 @ 558332bc (in production on 04-11; routes/api/webhooks.php L98-117, config/platform-gate.php L259-278: the same routes and shapes; since workspaces, a key sees, counts and changes only the subscriptions of its workspace, and the limit of 50 is per workspace). v1.4.24: back/routes/api/webhooks.php L87-111, config/platform-gate.php L233-299, Http/Controllers/WebhookSubscription*Controller.php, Http/Requests/*WebhookSubscriptionRequest.php, Http/Resources/WebhookSubscription*Resource.php, Services/WebhookPermissionRules.php, Catalogs/Areas/*Events.php. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is NOT open to API keys (403 route_not_available).",
+      "communities-group-actions": "Left out on purpose (22-10, confirmed 04-11): the other group actions by API (create, participants, admins, name, description, photo, settings, invite link) and the join requests (list, approve, reject). They are behind the same switch as sending to a group (`communities-group-messages`) and outside what the portal offers. The group reads stay.",
       "accounts-devices": "accounts v1.4.24 @ 300cc843: back/app/Modules/Device/Http/Resources/DeviceResource.php L63-123 and Support/DeviceCapabilities.php L82-194.",
-      "communities-events": "communities v2.34.52 @ 6f32f0b4: Services/GroupMessageReceivedEventPublisher.php L63-85, Services/GroupJoinRequestNoticePublisher.php, Shared/Support/PlatformEvents/PlatformEventCatalog.php L250-309; accounts delivers them (unified catalog v1.4.24, Catalogs/Areas/CommunitiesEvents.php, all `active`).",
-      "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still says 204.",
+      "communities-participant-events": "communities v2.35.5 @ 2be913d4 (in production on 04-11): Shared/Services/GroupWebhookService.php L217-282 (`recordParticipantEvent`: `campaign` is `null` for a group without a campaign, and the event goes out for any group of the account, not only campaign ones), Shared/Support/PlatformEvents/PlatformEventCatalog.php L164-173 (`?campaign`) and PlatformEventParticipant.php L26-44 (`identity_type` `phone` or `whatsapp_user`). accounts v1.5.97 @ 558332bc delivers them (Catalogs/Areas/CommunitiesEvents.php L83-97, `active`).",
+      "communities-group-messages": "communities v2.35.5 @ 2be913d4 (in production on 04-11): GroupManagement/routes.php L351-373, Controllers/Api/V2/ApiGroupActionController.php L48-62, L127-140 and L193-200, Requests/ApiGroupActions/SendGroupMessageRequest.php, Resources/ApiGroupActionAcceptedResource.php, Resources/ApiGroupActionResource.php, Services/ApiGroupActions/ApiGroupActionTargetResolver.php L60-128, Shared/Catalog/ApiRouteCatalog.php L103-121, L405 and L417, Docs/GroupActionsDocumentation.php and Shared/Services/ApiGroupActionEventPublisher.php L47-110 (`group_action.completed` and `group_action.failed`). The routes sit behind communities' switch `API_GROUP_ACTIONS_ENABLED` (config/api_group_actions.php, off when the variable is not set): while it is off they answer `403 route_not_available`. The code does not say whether it is on in production; it was off on 21-10.",
+      "communities-events": "communities v2.34.52 @ 6f32f0b4, unchanged in v2.35.5 @ 2be913d4 (except the workspace, which travels to accounts apart): Services/GroupMessageReceivedEventPublisher.php L63-85, Services/GroupJoinRequestNoticePublisher.php, Shared/Support/PlatformEvents/PlatformEventCatalog.php L250-309; accounts delivers them (unified catalog v1.4.24, Catalogs/Areas/CommunitiesEvents.php, all `active`).",
+      "conversations-send": "conversations v1.18.10 @ a580a3d0 (in production): back/routes/api/messages.php, config/platform-gate.php L57-66 and L106, Modules/Message/Support/ApiKeySendResponse.php, ApiKeySendResponseSurface.php, AcceptedSendAnswer.php, PublicMessageStatus.php, AcceptedSendFailure.php, Http/Resources/PublicMessageResource.php, Http/Controllers/ShowMessageController.php, Support/SendFileType.php, Support/ClientReference.php, Http/Resources/ForwardResultResource.php, Support/ApiSendRejection.php and Shared/PublicApi/Docs/ApiKeySendResponsesOperationExtension.php. Sends made with an API key respond 200 with the message queued; the 13-10 snapshot still says 204. Checked again against v1.19.7 @ 4e35ddb8 (in production on 04-11): the same answers; the routes now act in the key's workspace.",
       "conversations-forms": "conversations v1.18.10 @ a580a3d0: back/routes/api/whatsapp-forms.php L24-95, config/platform-gate.php L159-167 and L227-235, Modules/WhatsappForm/Http/Controllers/WhatsappFormController.php, WhatsappFormSendController.php, Http/Requests/SendWhatsappFormRequest.php, Http/Resources/WhatsappFormResource.php and Webhook/Payloads/WhatsappFormCompletedPayload.php.",
-      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136.",
-      "accounts-number-onboarding": "In production in accounts and api-edge since 25-10, as the coordinator reported (not read from their code). Creating and connecting numbers by API, from the contract `1022-alta-de-numeros.md` v0.2 (23-10: sections A1 and A3, and its \"Enmienda v0.1\" and \"Enmienda v0.2\", which describe accounts `feat/alta-de-numeros-api` @ 52d49b319 and, with part 2 done, @ 8852b3fad, as the coordinator read them) of funnelchat-dev-platform @ 720ee83 (docs/initiatives/api-abierta/contratos), not from accounts' code or OpenAPI, which will be the final source. Plus the coordinator's changes of 25-10: the QR lasts 5 seconds (`expires_in: 5`, accounts #1335), `type: \"meta\"` is off in production (`503 meta_connect_disabled`) until the domain is registered with Meta, and the optional `country`. The new fields of the events are optional in the types. `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Revise every entry with this source against accounts' OpenAPI before publishing."
+      "conversations-events": "conversations v1.18.10 @ a580a3d0: Modules/Webhook/Enums/WebhookEventTypeEnum.php L33-71 (the 15 `live` types), Payloads/MessageStatusChangedPayload.php L161-189, MessageReceivedPayload.php L130-158 and WhatsappFormCompletedPayload.php L118-136. The payloads are the same in v1.19.7 @ 4e35ddb8 (in production on 04-11).",
+      "accounts-workspace-id": "accounts v1.5.97 @ 558332bc (in production on 04-11, decision Q35 of 04-11): Webhook/Services/EventWorkspaceRouting.php L54-85 writes `data.workspace_id` = the workspace the event is routed to, on every event it delivers: its own (WebhookEventDispatcher.php L188-189), the ones conversations and communities relay (PlatformEventIngestor.php L132-133) and `webhook.test` (Http/Controllers/WebhookSubscriptionTestController.php L95-99); Catalogs/WebhookEventCatalog.php L338-360 puts it in every example. `WorkspaceRoute::target()` is `?int`. platform-gate v0.9.1 @ cc2cee4b lets `workspace_id` through in `data`.",
+      "accounts-number-onboarding": "accounts v1.5.97 @ 558332bc (in production on 04-11), read from its code: routes/api/devices.php L437-441, routes/api/connect-links.php L16-26, config/platform-gate.php L119-133, Device/Http/Requests/StoreDeviceRequest.php L30-48, StoreConnectLinkRequest.php L30-58, Http/Resources/ConnectLinkResource.php L34-56, Http/Controllers/DeviceProvisioningController.php L110-140 (`qr()`) and Services/QrCodeReader.php L28-49 (`expires_in` 5 with a QR), Http/Controllers/DeviceController.php L351-353 (the `external_reference` filter), Services/ConnectLinkService.php L115-117 (`503 meta_connect_disabled` while the Meta sign-up by link is off) and Webhook/Services/DeviceWebhookEmitter.php L355-552 (the `device.*` events, which always carry `device.connection`, `device.external_reference`, `connect_link_id` and, when disconnected, `reason`). They match accounts' own OpenAPI of 26-10 (the developers portal's snapshots/accounts/openapi.json, accounts @ 4e11bbb6). First written on 23-10 from the contract `1022-alta-de-numeros` v0.2 and the coordinator's changes of 25-10 (the QR every 5 seconds, `meta` off, `country`). `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr`, the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes, the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`. Since workspaces, the numbers and the links a key sees and creates are those of its workspace."
     }
   },
   "components": {
@@ -417,7 +420,7 @@
           "connection": { "$ref": "#/components/schemas/PendingConnectionType" },
           "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" }
         },
-        "required": ["id", "name", "number"]
+        "required": ["id", "name", "number", "connection", "external_reference"]
       },
       "PendingConnectLinkId": {
         "type": ["integer", "null"],
@@ -426,6 +429,107 @@
       "PendingDeviceHealthState": {
         "type": "string",
         "enum": ["available", "limited", "blocked", "unknown"]
+      },
+      "PendingWorkspaceId": {
+        "type": ["integer", "null"],
+        "description": "The workspace of the event: the one it was routed to, which is the workspace of every subscription that receives it (a subscription receives only the events of its workspace: the one of the API key that created it, or the one chosen in the panel). An account with a single workspace gets the id of its default workspace. `null` only for an account without any workspace."
+      },
+      "PendingEventGroup": {
+        "type": "object",
+        "properties": {
+          "uid": { "type": "string", "description": "The group's WhatsApp id (`…@g.us`): the `{group}` of `POST /api/v1/groups/{group}/messages`." },
+          "name": { "type": ["string", "null"] }
+        },
+        "required": ["uid", "name"]
+      },
+      "PendingEventParticipant": {
+        "type": "object",
+        "properties": {
+          "identity": { "type": "string", "description": "The phone, or the WhatsApp id (`…@lid`) when there is no phone." },
+          "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
+          "name": { "type": ["string", "null"] }
+        },
+        "required": ["identity", "identity_type", "name"]
+      },
+      "PendingGroupMessageCreate": {
+        "type": "object",
+        "description": "A text or a single file, sent to the group now. Polls, events, stickers, contacts and locations are not accepted; fields that are not listed here are ignored.",
+        "properties": {
+          "device_id": {
+            "type": "integer",
+            "description": "The number that sends, connected. A QR number must be an admin of the group (`422 device_not_group_admin`); an official number must be the group's own number (`422 device_not_group_number`)."
+          },
+          "type": { "type": "string", "enum": ["text", "image", "video", "audio", "document"] },
+          "text": { "type": "string", "minLength": 1, "maxLength": 4096, "description": "Required with `type: text`, not allowed with the others." },
+          "media_url": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Required with `image`, `video`, `audio` and `document`, not allowed with `text`: a public `https` URL (default port, no credentials) whose extension WhatsApp accepts for that type."
+          },
+          "caption": { "type": ["string", "null"], "maxLength": 1024, "description": "Only with `image` and `video`." },
+          "file_name": { "type": ["string", "null"], "maxLength": 255, "description": "Only with `document`." }
+        },
+        "required": ["device_id", "type"]
+      },
+      "PendingGroupActionAccepted": {
+        "type": "object",
+        "description": "The action was accepted and runs later, at the number's pace.",
+        "properties": {
+          "action_id": { "type": "string", "format": "uuid", "description": "Read it with `GET /api/v1/groups/actions/{action}`; it is also `action.uuid` in `group_action.completed` and `group_action.failed`." },
+          "status": { "type": "string", "enum": ["queued"] }
+        },
+        "required": ["action_id", "status"]
+      },
+      "PendingGroupActionResult": {
+        "type": "object",
+        "description": "It depends on the action. Sending a message: `message.uid`, the message's id in WhatsApp. Creating a group or renewing its link: `invite_link`. Actions with a list of phones: `participants`, one per person. The others: `{}`.",
+        "properties": {
+          "message": {
+            "type": "object",
+            "properties": { "uid": { "type": "string" } },
+            "required": ["uid"]
+          },
+          "invite_link": { "type": "string" },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "identity": { "type": "string" },
+                "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
+                "status": { "type": "string" },
+                "reason": { "type": ["string", "null"] }
+              },
+              "required": ["identity", "identity_type", "status", "reason"]
+            }
+          }
+        }
+      },
+      "PendingGroupAction": {
+        "type": "object",
+        "description": "An action on a group requested through the API, with its state and its result.",
+        "properties": {
+          "action_id": { "type": "string", "format": "uuid" },
+          "type": {
+            "type": "string",
+            "enum": ["create_group", "add_participants", "remove_participants", "promote_admins", "demote_admins", "update_name", "update_description", "update_photo", "update_settings", "renew_invite_link", "send_message", "approve_join_requests", "reject_join_requests"],
+            "description": "`send_message` for `POST /api/v1/groups/{group}/messages`."
+          },
+          "status": { "type": "string", "enum": ["queued", "running", "completed", "failed"] },
+          "device_id": { "type": ["integer", "null"], "description": "The number that runs it; `null` if it is no longer of the key's workspace." },
+          "group": {
+            "type": ["object", "null"],
+            "properties": { "uid": { "type": "string" }, "name": { "type": ["string", "null"] } },
+            "required": ["uid", "name"]
+          },
+          "result": { "$ref": "#/components/schemas/PendingGroupActionResult" },
+          "reason": { "type": ["string", "null"], "description": "Why it failed (`status: failed`): `window_closed`, `number_restricted`, `device_not_connected`, `provider_error`…; `null` otherwise." },
+          "created_at": { "type": ["string", "null"], "format": "date-time" },
+          "started_at": { "type": ["string", "null"], "format": "date-time" },
+          "completed_at": { "type": ["string", "null"], "format": "date-time" },
+          "failed_at": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "required": ["action_id", "type", "status", "device_id", "group", "result", "reason", "created_at", "started_at", "completed_at", "failed_at"]
       }
     }
   },
@@ -434,7 +538,7 @@
       "get": {
         "operationId": "pendingWebhookSubscription.index",
         "summary": "List webhook subscriptions",
-        "description": "All the account's subscriptions (50 at most), including those created by other integrations. Account owner only.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).\n\nWith an API key, the list is paginated (`data`, `links`, `meta`) and leaves out subscriptions with events from an area the key cannot read.",
+        "description": "All the account's subscriptions (50 at most), including those created by other integrations. Account owner only.\n\n**Pending of the spec** (accounts v1.5.97).\n\nWith an API key, the list is paginated (`data`, `links`, `meta`) and leaves out subscriptions with events from an area the key cannot read.",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -488,7 +592,7 @@
       "post": {
         "operationId": "pendingWebhookSubscription.store",
         "summary": "Create a webhook subscription",
-        "description": "Returns the `secret` only once. Limit: 50 subscriptions per account (the next one responds 422).\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "Returns the `secret` only once. Limit: 50 subscriptions per account (the next one responds 422).\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -513,7 +617,7 @@
       "get": {
         "operationId": "pendingWebhookSubscription.show",
         "summary": "Retrieve a webhook subscription",
-        "description": "It does not include the secret. If you lost it, rotate it.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "It does not include the secret. If you lost it, rotate it.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -530,7 +634,7 @@
       "put": {
         "operationId": "pendingWebhookSubscription.update",
         "summary": "Update a webhook subscription",
-        "description": "Replaces `url`, `events`, `description` and `filters`; `status` is optional (`active` or `paused`). The secret does not change.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "Replaces `url`, `events`, `description` and `filters`; `status` is optional (`active` or `paused`). The secret does not change.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -554,7 +658,7 @@
       "delete": {
         "operationId": "pendingWebhookSubscription.destroy",
         "summary": "Delete a webhook subscription",
-        "description": "Deletes the subscription along with its delivery history.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "Deletes the subscription along with its delivery history.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -570,7 +674,7 @@
       "post": {
         "operationId": "pendingWebhookSubscription.rotateSecret",
         "summary": "Generate a new secret",
-        "description": "Returns the new secret only once; the previous one stops working immediately.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).\n\nNot open to API keys in accounts v1.4.24: it responds `403 route_not_available`. Rotate the secret from the dashboard.",
+        "description": "Returns the new secret only once; the previous one stops working immediately.\n\n**Pending of the spec** (accounts v1.5.97).\n\nNot open to API keys in accounts v1.4.24: it responds `403 route_not_available`. Rotate the secret from the dashboard.",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -589,7 +693,7 @@
       "post": {
         "operationId": "pendingWebhookSubscription.test",
         "summary": "Send a test event now",
-        "description": "A signed delivery of `webhook.test`, with no retries. It is recorded in the history.\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "A signed delivery of `webhook.test`, with no retries. It is recorded in the history.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:write",
@@ -608,7 +712,7 @@
       "get": {
         "operationId": "pendingWebhookSubscription.deliveries",
         "summary": "List the delivery history",
-        "description": "One record per attempt, most recent first. Paginate with `page` and `per_page` (25 by default, 100 at most).\n\n**Pending of the spec** (accounts origin/main @ c34cba2c).",
+        "description": "One record per attempt, most recent first. Paginate with `page` and `per_page` (25 by default, 100 at most).\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Webhooks"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "webhooks:read",
@@ -1565,7 +1669,7 @@
       "post": {
         "operationId": "pendingDevice.store",
         "summary": "Create a number by QR",
-        "description": "Creates a number of the account, not connected yet: then ask for its QR with `GET /api/v1/devices/{device}/qr`, or send your customer a connect link (`POST /api/v1/connect-links`). An official (WhatsApp Cloud) number is created only with a connect link. It uses the plan's quota, counted by phone number, with the same refusals and the same trial-account rule as the panel; the provider is the one the system assigns.\n\n`Idempotency-Key` (optional, up to 255 characters, kept 24 hours per account): the same key with the same body answers the same number without creating another (only successful answers are replayed, with `Idempotent-Replayed: true`; a refusal is evaluated again); with a different body, `422 idempotency_key_mismatch`; while the first one runs, `409 operation_in_progress`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "Creates a number of the account, not connected yet: then ask for its QR with `GET /api/v1/devices/{device}/qr`, or send your customer a connect link (`POST /api/v1/connect-links`). An official (WhatsApp Cloud) number is created only with a connect link. It uses the plan's quota, counted by phone number, with the same refusals and the same trial-account rule as the panel; the provider is the one the system assigns.\n\n`Idempotency-Key` (optional, up to 255 characters, kept 24 hours per account): the same key with the same body answers the same number without creating another (only successful answers are replayed, with `Idempotent-Replayed: true`; a refusal is evaluated again); with a different body, `422 idempotency_key_mismatch`; while the first one runs, `409 operation_in_progress`.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Device"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1599,7 +1703,7 @@
       "get": {
         "operationId": "pendingDevice.qr",
         "summary": "Get the QR of a number",
-        "description": "Starts the number's WhatsApp session if needed and answers its QR to scan. Ask again after `expires_in` seconds (5 with a QR: show it and scan it right away), until `connected` is `true` (or wait for `device.connected`). Only QR numbers: an official number answers `422 provider_unsupported`. It needs `accounts:operate` because scanning the QR gives control of a WhatsApp.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "Starts the number's WhatsApp session if needed and answers its QR to scan. Ask again after `expires_in` seconds (5 with a QR: show it and scan it right away), until `connected` is `true` (or wait for `device.connected`). Only QR numbers: an official number answers `422 provider_unsupported`. It needs `accounts:operate` because scanning the QR gives control of a WhatsApp.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["Device"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1629,7 +1733,7 @@
       "post": {
         "operationId": "pendingConnectLink.store",
         "summary": "Create a connect link",
-        "description": "A single-use page where your customer connects a number, with no Funnelchat session: `type: \"qr\"` shows the QR and renews it; `type: \"meta\"` runs Meta's Embedded Signup. The number is created when the page ends (or the existing one is reconnected, with `device_id`). The quota is checked now and again at the end: the link does not hold a place. Learn the result by `device.connected` (with `connect_link_id` and `external_reference`), by `return_url`, or by reading the link. The raw token is only in `url` of this answer.\n\nAt most 20 open links per account (`429 too_many_open_links`), and a per-minute limit. The official signup (`type: \"meta\"`) is off in production until Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. The page claims the link when your customer presses its button, not when it opens, so a messenger's preview does not burn it. `Idempotency-Key` works as in `POST /api/v1/devices`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "A single-use page where your customer connects a number, with no Funnelchat session: `type: \"qr\"` shows the QR and renews it; `type: \"meta\"` runs Meta's Embedded Signup. The number is created when the page ends (or the existing one is reconnected, with `device_id`). The quota is checked now and again at the end: the link does not hold a place. Learn the result by `device.connected` (with `connect_link_id` and `external_reference`), by `return_url`, or by reading the link. The raw token is only in `url` of this answer.\n\nAt most 20 open links per account (`429 too_many_open_links`), and a per-minute limit. The official signup (`type: \"meta\"`) is off in production until Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. The page claims the link when your customer presses its button, not when it opens, so a messenger's preview does not burn it. `Idempotency-Key` works as in `POST /api/v1/devices`.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1662,7 +1766,7 @@
       "get": {
         "operationId": "pendingConnectLink.index",
         "summary": "List connect links",
-        "description": "The links of the account, paginated, newest first, without their token.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "The links of the account, paginated, newest first, without their token.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:read",
@@ -1712,7 +1816,7 @@
       "get": {
         "operationId": "pendingConnectLink.show",
         "summary": "Retrieve a connect link",
-        "description": "The link and its `status`, without the token.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "The link and its `status`, without the token.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:read",
@@ -1737,7 +1841,7 @@
       "delete": {
         "operationId": "pendingConnectLink.destroy",
         "summary": "Revoke a connect link",
-        "description": "Revokes a `pending` link: `204`. A link that is no longer `pending` answers `409 link_not_pending`.\n\n**Pending of the spec** (contract 1022-alta-de-numeros).",
+        "description": "Revokes a `pending` link: `204`. A link that is no longer `pending` answers `409 link_not_pending`.\n\n**Pending of the spec** (accounts v1.5.97).",
         "tags": ["ConnectLink"],
         "x-fc-domain": "accounts",
         "x-fc-permission": "accounts:operate",
@@ -1747,6 +1851,62 @@
           "204": { "description": "No Content" },
           "404": { "description": "The link does not exist." },
           "409": { "description": "`link_not_pending`: the link is no longer `pending`." }
+        }
+      }
+    },
+    "/api/v1/groups/{group}/messages": {
+      "post": {
+        "operationId": "pendingGroupMessage.send",
+        "summary": "Send a message to a group now",
+        "description": "Sends a text or a file to a WhatsApp group of the account, from one of its numbers. It is asynchronous: it answers `202` with `action_id` and the message goes out right after, at the pace of the number (a QR number sends at the pace of the Low-speed scheduled messages). Learn how it ended with `GET /api/v1/groups/actions/{action}` (`result.message.uid` is the message's id in WhatsApp) or with `group_action.completed` / `group_action.failed`. With an official number, the 24-hour service window and the number's quality are checked before accepting. There is no idempotency key: retrying after a `5xx` can send it twice.\n\n`{group}` is the group's WhatsApp id (`uid`, `…@g.us`), from `GET /api/v1/groups`.\n\nThe group actions by API sit behind a switch of communities: while it is off they answer `403 route_not_available`.\n\n**Pending of the spec** (communities v2.35.5).",
+        "tags": ["Groups"],
+        "x-fc-domain": "communities",
+        "x-fc-permission": "communities:send",
+        "x-fc-pending": "communities-group-messages",
+        "parameters": [{ "name": "group", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The group's WhatsApp id (`uid`)." }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupMessageCreate" } } }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted: it goes out right after.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PendingGroupActionAccepted" } } }
+          },
+          "402": { "description": "The account's plan does not include it." },
+          "403": { "description": "`route_not_available` (the group actions by API are off) or `permission_denied`." },
+          "404": { "description": "`device_not_found` or `group_not_found` (also when they are of another workspace)." },
+          "422": { "description": "`device_not_connected`, `device_not_group_admin` (QR number), `device_not_group_number` (official number), `unsupported_group_type` (a community or a channel), `unsupported_type`, `provider_unsupported` (with `requires`), `window_closed`, `number_restricted`, or a validation error with `errors`." },
+          "429": { "description": "`too_many_pending_actions`: the number already has 50 actions open; or the limit of 30 requests per minute." },
+          "502": { "description": "`provider_error`." }
+        }
+      }
+    },
+    "/api/v1/groups/actions/{action}": {
+      "get": {
+        "operationId": "pendingGroupAction.show",
+        "summary": "Read a group action",
+        "description": "The state (`queued`, `running`, `completed` or `failed`) and the result of an action requested through the API, such as a message sent to a group. An action of another account or of another workspace answers the same `404 action_not_found`.\n\n**Pending of the spec** (communities v2.35.5).",
+        "tags": ["Groups"],
+        "x-fc-domain": "communities",
+        "x-fc-permission": "communities:read",
+        "x-fc-pending": "communities-group-messages",
+        "parameters": [{ "name": "action", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "description": "The `action_id` of the `202`." }],
+        "responses": {
+          "200": {
+            "description": "The action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/PendingGroupAction" } },
+                  "required": ["data"]
+                }
+              }
+            }
+          },
+          "403": { "description": "`route_not_available` (the group actions by API are off) or `permission_denied`." },
+          "404": { "description": "`action_not_found`." }
         }
       }
     }
@@ -1980,6 +2140,14 @@
           "description": "The number on your account that received the message: the same `device_id` you use to reply from that number. `null` if the message has no number."
         }
       }
+    },
+    {
+      "type": "*",
+      "x-fc-pending": "accounts-workspace-id",
+      "dataProperties": {
+        "workspace_id": { "$ref": "#/components/schemas/PendingWorkspaceId" }
+      },
+      "required": ["workspace_id"]
     }
   ],
   "webhooks": {
@@ -2021,11 +2189,10 @@
     "device.connected": {
       "post": {
         "summary": "device.connected",
-        "description": "One of the account's numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. `device.connection`, `device.external_reference` and `connect_link_id` (the link of this connection, or `null`) are from contract 1022-alta-de-numeros: optional in the types.",
+        "description": "One of the account's numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. With `device.connection`, `device.external_reference` and `connect_link_id` (the link of this connection, or `null`).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
-        "x-fc-pending-fields": ["device.connection", "device.external_reference", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2039,7 +2206,7 @@
                       "connected_at": { "type": "string", "format": "date-time" },
                       "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "connected_at"]
+                    "required": ["device", "connected_at", "connect_link_id"]
                   }
                 }
               }
@@ -2051,11 +2218,10 @@
     "device.disconnected": {
       "post": {
         "summary": "device.disconnected",
-        "description": "One of the account's numbers disconnected and can no longer send or receive: a QR session closed or protected from a shadow ban, an official number left without registration, or disconnected in the panel. `reason`, `device.connection`, `device.external_reference` and `connect_link_id` (the last link that connected the number, or `null`) are from contract 1022-alta-de-numeros: optional in the types.",
+        "description": "One of the account's numbers disconnected and can no longer send or receive: a QR session closed or protected from a shadow ban, an official number left without registration, or disconnected in the panel. With `reason`, `device.connection`, `device.external_reference` and `connect_link_id` (the last link that connected the number, or `null`).",
         "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
-        "x-fc-pending-fields": ["device.connection", "device.external_reference", "reason", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2073,7 +2239,7 @@
                       },
                       "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "disconnected_at"]
+                    "required": ["device", "disconnected_at", "reason", "connect_link_id"]
                   }
                 }
               }
@@ -2085,11 +2251,10 @@
     "device.deleted": {
       "post": {
         "summary": "device.deleted",
-        "description": "A number was deleted from the account (once per number, after the deletion, with the number as it was; `connect_link_id` is the last link that connected it, or `null`). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number's session is closed. From contract 1022-alta-de-numeros.",
-        "x-fc-status": "planned",
+        "description": "A number was deleted from the account (once per number, after the deletion, with the number as it was; `connect_link_id` is the last link that connected it, or `null`). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number's session is closed.",
+        "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
-        "x-fc-pending-fields": ["device.connection", "device.external_reference", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2103,7 +2268,7 @@
                       "deleted_at": { "type": "string", "format": "date-time" },
                       "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "deleted_at"]
+                    "required": ["device", "deleted_at", "connect_link_id"]
                   }
                 }
               }
@@ -2115,11 +2280,10 @@
     "device.health_changed": {
       "post": {
         "summary": "device.health_changed",
-        "description": "The aggregated health of an official number changed (not on every Meta webhook; `connect_link_id` is the last link that connected it, or `null`). From contract 1022-alta-de-numeros. The shape (`previous_state` and `state`) is the contract's; an open PR in accounts (#1103) proposes `state: { previous, current }`, still to be decided.",
-        "x-fc-status": "planned",
+        "description": "The aggregated health of an official number changed, according to Meta (not on every Meta webhook; `connect_link_id` is the last link that connected it, or `null`). The reason is read with `GET /api/v1/devices/{device}/health`.",
+        "x-fc-status": "live",
         "x-fc-domain": "accounts",
         "x-fc-pending": "accounts-number-onboarding",
-        "x-fc-pending-fields": ["device.connection", "device.external_reference", "connect_link_id"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2135,7 +2299,7 @@
                       "changed_at": { "type": "string", "format": "date-time" },
                       "connect_link_id": { "$ref": "#/components/schemas/PendingConnectLinkId" }
                     },
-                    "required": ["device", "previous_state", "state", "changed_at"]
+                    "required": ["device", "previous_state", "state", "changed_at", "connect_link_id"]
                   }
                 }
               }
@@ -2354,21 +2518,148 @@
     "group_action.failed": {
       "post": {
         "summary": "group_action.failed",
-        "description": "An automatic action on a group failed.",
+        "description": "An action on a group failed as a whole. For an action requested through the API (a message sent to a group), `action.uuid` is the `action_id` of its `202` and `pipeline` is `null`; for one run by a campaign or a pipeline, `action.uuid` is `null`. `group` and `campaign` can be `null`.",
         "x-fc-status": "live",
         "x-fc-domain": "communities",
-        "x-fc-pending": "accounts-webhooks",
+        "x-fc-pending": "communities-group-messages",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "type": "object" },
-              "example": {
-                "data": {
-                  "campaign": { "uuid": "xK9mQz", "name": "Campaña de ejemplo" },
-                  "pipeline": { "uuid": "bN7vLs", "name": "Pipeline de ejemplo" },
-                  "group": { "uid": "120363000000000000@g.us", "name": "Grupo de ejemplo" },
-                  "action": { "type": "tipo_de_ejemplo" },
-                  "reason": "motivo_de_ejemplo"
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "campaign": {
+                        "type": ["object", "null"],
+                        "properties": { "uuid": { "type": "string" }, "name": { "type": ["string", "null"] } },
+                        "required": ["uuid", "name"]
+                      },
+                      "pipeline": {
+                        "type": ["object", "null"],
+                        "properties": { "uuid": { "type": "string" }, "name": { "type": ["string", "null"] } },
+                        "required": ["uuid", "name"]
+                      },
+                      "group": { "oneOf": [{ "$ref": "#/components/schemas/PendingEventGroup" }, { "type": "null" }] },
+                      "action": {
+                        "type": "object",
+                        "properties": {
+                          "uuid": { "type": ["string", "null"], "description": "The `action_id` of an action requested through the API." },
+                          "type": { "type": "string", "description": "`send_message` for a message sent to a group." }
+                        },
+                        "required": ["uuid", "type"]
+                      },
+                      "reason": { "type": "string", "description": "Why it failed: `window_closed`, `number_restricted`, `device_not_connected`, `provider_error`, `internal_error`…" }
+                    },
+                    "required": ["campaign", "pipeline", "group", "action", "reason"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "group_action.completed": {
+      "post": {
+        "summary": "group_action.completed",
+        "description": "An action on a group requested through the API finished. `action.uuid` is the `action_id` of its `202` and `action.type` says which action it was; for a message sent to a group (`send_message`), `result.message.uid` is the message's id in WhatsApp. `group` and `campaign` can be `null`.",
+        "x-fc-status": "live",
+        "x-fc-domain": "communities",
+        "x-fc-pending": "communities-group-messages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "action": {
+                        "type": "object",
+                        "properties": { "uuid": { "type": "string" }, "type": { "type": "string" } },
+                        "required": ["uuid", "type"]
+                      },
+                      "group": { "oneOf": [{ "$ref": "#/components/schemas/PendingEventGroup" }, { "type": "null" }] },
+                      "campaign": {
+                        "type": ["object", "null"],
+                        "properties": { "uuid": { "type": "string" }, "name": { "type": ["string", "null"] } },
+                        "required": ["uuid", "name"]
+                      },
+                      "result": { "$ref": "#/components/schemas/PendingGroupActionResult" }
+                    },
+                    "required": ["action", "group", "campaign", "result"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "group_participant.joined": {
+      "post": {
+        "summary": "group_participant.joined",
+        "description": "Someone joined a WhatsApp group of the account, with or without a campaign: `campaign` is `null` when the group has none.",
+        "x-fc-status": "live",
+        "x-fc-domain": "communities",
+        "x-fc-pending": "communities-participant-events",
+        "x-fc-replace-while": { "description": "Una persona entró a un grupo de una campaña." },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "group": { "$ref": "#/components/schemas/PendingEventGroup" },
+                      "campaign": {
+                        "type": ["object", "null"],
+                        "properties": { "uuid": { "type": "string" } },
+                        "required": ["uuid"]
+                      },
+                      "participant": { "$ref": "#/components/schemas/PendingEventParticipant" }
+                    },
+                    "required": ["group", "campaign", "participant"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "group_participant.left": {
+      "post": {
+        "summary": "group_participant.left",
+        "description": "Someone left a WhatsApp group of the account (or was removed), with or without a campaign: `campaign` is `null` when the group has none.",
+        "x-fc-status": "live",
+        "x-fc-domain": "communities",
+        "x-fc-pending": "communities-participant-events",
+        "x-fc-replace-while": { "description": "Una persona salió de un grupo de una campaña." },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "group": { "$ref": "#/components/schemas/PendingEventGroup" },
+                      "campaign": {
+                        "type": ["object", "null"],
+                        "properties": { "uuid": { "type": "string" } },
+                        "required": ["uuid"]
+                      },
+                      "participant": { "$ref": "#/components/schemas/PendingEventParticipant" }
+                    },
+                    "required": ["group", "campaign", "participant"]
+                  }
                 }
               }
             }

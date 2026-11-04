@@ -15,7 +15,7 @@ namespace Funnelchat\Generated;
 final class Routes
 {
     /**
-     * Every operation of the spec (264), sorted by path. `pending` = taken from
+     * Every operation of the spec (266), sorted by path. `pending` = taken from
      * spec/pending.json, not from the snapshot. `sdk` = the resource method that calls it
      * (`contacts->list`), or `null`: call it with `$funnelchat->request()`.
      *
@@ -194,11 +194,13 @@ final class Routes
         ['method' => 'POST', 'path' => '/api/v1/forms/{id}/sync', 'operationId' => 'whatsappForm.sync', 'domain' => 'conversations', 'permission' => 'conversations:write', 'tag' => 'Formularios', 'summary' => 'Validate with Meta', 'pending' => true, 'sdk' => 'forms->sync'],
         ['method' => 'POST', 'path' => '/api/v1/forms/{id}/versions', 'operationId' => 'whatsappForm.newVersion', 'domain' => 'conversations', 'permission' => 'conversations:write', 'tag' => 'Formularios', 'summary' => 'New version', 'pending' => true, 'sdk' => 'forms->createVersion'],
         ['method' => 'GET', 'path' => '/api/v1/groups', 'operationId' => 'group.index', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Listar grupos', 'pending' => false, 'sdk' => 'groups->list'],
+        ['method' => 'GET', 'path' => '/api/v1/groups/actions/{action}', 'operationId' => 'pendingGroupAction.show', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Groups', 'summary' => 'Read a group action', 'pending' => true, 'sdk' => 'groups->retrieveAction'],
         ['method' => 'GET', 'path' => '/api/v1/groups/participants', 'operationId' => 'group.participants', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Participantes', 'summary' => 'Listar los participantes de un grupo', 'pending' => false, 'sdk' => 'groups->listParticipants'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{groupUid}/metadata', 'operationId' => 'groupMetadata.show', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Ver los datos actuales de un grupo en WhatsApp', 'pending' => false, 'sdk' => 'groups->metadata'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{group}', 'operationId' => 'group.show', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Ver un grupo', 'pending' => false, 'sdk' => 'groups->retrieve'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{group}/actions', 'operationId' => 'group.actions', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Listar las acciones de sesión sobre un grupo', 'pending' => false, 'sdk' => 'groups->listActions'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{group}/messages', 'operationId' => 'group.messages', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Listar los mensajes enviados a un grupo', 'pending' => false, 'sdk' => 'groups->listMessages'],
+        ['method' => 'POST', 'path' => '/api/v1/groups/{group}/messages', 'operationId' => 'pendingGroupMessage.send', 'domain' => 'communities', 'permission' => 'communities:send', 'tag' => 'Groups', 'summary' => 'Send a message to a group now', 'pending' => true, 'sdk' => 'groups->sendMessage'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{group}/participant-events', 'operationId' => 'group.participantEvents', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Participantes', 'summary' => 'Listar entradas y salidas de un grupo', 'pending' => false, 'sdk' => 'groups->listParticipantEvents'],
         ['method' => 'GET', 'path' => '/api/v1/groups/{group}/scheduled-messages', 'operationId' => 'group.scheduledMessages', 'domain' => 'communities', 'permission' => 'communities:read', 'tag' => 'Grupos', 'summary' => 'Listar los envíos programados que incluyen un grupo', 'pending' => false, 'sdk' => 'groups->listScheduledMessages'],
         ['method' => 'GET', 'path' => '/api/v1/kanban-settings', 'operationId' => 'kanbanSetting.index', 'domain' => 'conversations', 'permission' => 'conversations:read', 'tag' => 'KanbanSetting', 'summary' => 'Listar tableros', 'pending' => false, 'sdk' => null],

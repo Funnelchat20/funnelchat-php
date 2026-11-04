@@ -205,10 +205,48 @@ final class GeneratedTest extends TestCase
         // Present means the key is there, even with a null value: the same rule as the generator.
         $exampleData = self::at($content, 'example', 'data');
         $schemaData = self::at($content, 'schema', 'properties', 'data', 'properties');
-        $inSnapshot = (\is_array($exampleData) && \array_key_exists('device_id', $exampleData))
-            || (\is_array($schemaData) && \array_key_exists('device_id', $schemaData));
+        $inSnapshot = static fn(string $field): bool => (\is_array($exampleData) && \array_key_exists($field, $exampleData))
+            || (\is_array($schemaData) && \array_key_exists($field, $schemaData));
+        $expected = array_values(array_filter(['device_id', 'workspace_id'], static fn(string $field): bool => !$inSnapshot($field)));
 
-        self::assertSame($inSnapshot ? [] : ['device_id'], self::event('message.received')['pendingFields']);
+        self::assertSame($expected, self::event('message.received')['pendingFields']);
+    }
+
+    public function testEveryEventWithAKnownShapeSaysItsWorkspace(): void
+    {
+        // accounts v1.5.97 writes `data.workspace_id` on every event it delivers (Q35 of 04-11).
+        $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
+        preg_match_all('/@phpstan-type (\w+)Data (array\{.*?\n \* \}|array<string, mixed>)\n/s', $source, $matches, \PREG_SET_ORDER);
+        self::assertGreaterThan(40, \count($matches));
+        $typed = 0;
+        foreach ($matches as [, $name, $shape]) {
+            if ($shape === 'array<string, mixed>') {
+                // A planned event whose `data` is not known yet keeps the open type.
+                continue;
+            }
+            self::assertMatchesRegularExpression('/\n \*     workspace_id: PendingWorkspaceId,\n \* \}$/', $shape, $name);
+            ++$typed;
+        }
+        self::assertGreaterThan(40, $typed);
+        foreach (['message.received', 'message.status_changed', 'device.connected', 'device.disconnected', 'group_participant.joined', 'group_participant.left', 'webhook.test'] as $type) {
+            $pendingFields = self::event($type)['pendingFields'];
+            self::assertIsArray($pendingFields, $type);
+            self::assertContains('workspace_id', $pendingFields, $type);
+        }
+        self::assertStringContainsString('@phpstan-type PendingWorkspaceId int|null', (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php'));
+    }
+
+    public function testTheParticipantEventsAreTheOnesOfProduction(): void
+    {
+        $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
+        foreach (['GroupParticipantJoinedData', 'GroupParticipantLeftData'] as $alias) {
+            // communities v2.35.5: any group of the account, so `campaign` can be null.
+            self::assertMatchesRegularExpression("/@phpstan-type {$alias} array\\{\\s*\\*\\s*group: PendingEventGroup,\\s*\\*\\s*campaign: array\\{\\s*\\*\\s*uuid: string,\\s*\\*\\s*\\}\\|null,\\s*\\*\\s*participant: PendingEventParticipant,/s", $source, $alias);
+        }
+        self::assertTrue(self::event('group_participant.joined')['pending']);
+        self::assertSame('live', self::event('group_action.completed')['status']);
+        $schemas = (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php');
+        self::assertMatchesRegularExpression("/@phpstan-type PendingEventParticipant array\\{\\s*\\*\\s*identity: string,\\s*\\*\\s*identity_type: 'phone'\\|'whatsapp_user',\\s*\\*\\s*name: string\\|null,/s", $schemas);
     }
 
     public function testAddsThePendingFieldsOfASchemaOnlyWhileTheSnapshotLacksThem(): void

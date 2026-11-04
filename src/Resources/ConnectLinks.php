@@ -23,8 +23,7 @@ use Funnelchat\Pagination\Paginator;
  * Creating and revoking need **WhatsApp numbers → Create, connect and delete**; reading,
  * **WhatsApp numbers → View**. The official signup (`type: 'meta'`) is off in production until
  * Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. PENDING OF THE
- * SPEC: from the contract 1022-alta-de-numeros v0.2 (spec/pending.json,
- * `accounts-number-onboarding`).
+ * SPEC: from accounts v1.5.97 (spec/pending.json, `accounts-number-onboarding`).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingConnectLink from Schemas

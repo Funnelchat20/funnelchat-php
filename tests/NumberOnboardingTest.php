@@ -511,20 +511,25 @@ final class NumberOnboardingTest extends TestCase
             self::assertSame(['accounts'], $catalog[$type]['domains'], $type);
             self::assertTrue($catalog[$type]['pending'], $type);
         }
-        self::assertSame(['device.connection', 'device.external_reference', 'connect_link_id'], $catalog['device.connected']['pendingFields']);
-        self::assertSame(['device.connection', 'device.external_reference', 'reason', 'connect_link_id'], $catalog['device.disconnected']['pendingFields']);
+        foreach (['device.connected', 'device.disconnected', 'device.deleted', 'device.health_changed'] as $type) {
+            // accounts v1.5.97 emits the four; the only field the pending layer adds to them is the workspace.
+            $event = $catalog[$type];
+            self::assertIsArray($event, $type);
+            self::assertSame('live', $event['status'], $type);
+            self::assertSame(['workspace_id'], $event['pendingFields'], $type);
+        }
 
         $source = (string) file_get_contents(__DIR__ . '/../src/Generated/WebhookEvents.php');
-        // The new fields are optional: production does not send them until accounts deploys.
+        // accounts v1.5.97 always sends them (DeviceWebhookEmitter): they are required.
         foreach (['DeviceConnectedData', 'DeviceDisconnectedData', 'DeviceDeletedData', 'DeviceHealthChangedData'] as $alias) {
-            self::assertMatchesRegularExpression("/@phpstan-type {$alias} array\\{\\s*\\*\\s*device: PendingWebhookDevice,.*?connect_link_id\\?: PendingConnectLinkId,/s", $source, $alias);
+            self::assertMatchesRegularExpression("/@phpstan-type {$alias} array\\{\\s*\\*\\s*device: PendingWebhookDevice,.*?connect_link_id: PendingConnectLinkId,\\s*\\*\\s*workspace_id: PendingWorkspaceId,/s", $source, $alias);
         }
-        self::assertMatchesRegularExpression("/@phpstan-type DeviceDisconnectedData array\\{.*?reason\\?: 'qr_logged_out'\\|'meta_account_not_registered'\\|'shadow_ban_protection'\\|'provider_error'\\|'disconnected_by_user'\\|'unknown',/s", $source);
+        self::assertMatchesRegularExpression("/@phpstan-type DeviceDisconnectedData array\\{.*?reason: 'qr_logged_out'\\|'meta_account_not_registered'\\|'shadow_ban_protection'\\|'provider_error'\\|'disconnected_by_user'\\|'unknown',/s", $source);
         self::assertMatchesRegularExpression('/@phpstan-type DeviceDeletedData array\{\s*\*\s*device: PendingWebhookDevice,\s*\*\s*deleted_at: string,/s', $source);
         self::assertMatchesRegularExpression('/@phpstan-type DeviceHealthChangedData array\{.*?previous_state: PendingDeviceHealthState,\s*\*\s*state: PendingDeviceHealthState,/s', $source);
 
         $schemas = (string) file_get_contents(__DIR__ . '/../src/Generated/Schemas.php');
-        self::assertMatchesRegularExpression('/@phpstan-type PendingWebhookDevice array\\{.*?connection\\?: PendingConnectionType,\\s*\\*\\s*external_reference\\?: PendingExternalReference,/s', $schemas);
+        self::assertMatchesRegularExpression('/@phpstan-type PendingWebhookDevice array\\{.*?connection: PendingConnectionType,\\s*\\*\\s*external_reference: PendingExternalReference,/s', $schemas);
         self::assertStringContainsString("@phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null", $schemas);
         self::assertStringContainsString('@phpstan-type PendingConnectLinkId int|null', $schemas);
         self::assertStringContainsString("@phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'", $schemas);

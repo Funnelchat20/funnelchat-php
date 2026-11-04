@@ -19,10 +19,12 @@ use Funnelchat\Webhooks\WebhookHelpers;
  * Webhook subscriptions (accounts area) and the verification of deliveries.
  *
  * The subscription routes need **Notifications (webhooks) → View** / **Notifications (webhooks)
- * → Manage**, and a key only sees and manages subscriptions whose events are of areas it can read
- * (the area's **View**). The catalog (`events()`) needs **WhatsApp numbers → View**. PENDING OF
- * THE SPEC: the subscription routes come from accounts v1.4.24, not from the snapshot; their types
- * are in spec/pending.json until a snapshot brings them.
+ * → Manage**, and a key only sees and manages the subscriptions of its workspace whose events are
+ * of areas it can read (the area's **View**). A subscription receives only the events of its
+ * workspace, and every event says which one in `data.workspace_id`. The catalog (`events()`) needs
+ * **WhatsApp numbers → View**. PENDING OF THE SPEC: the subscription routes come from accounts
+ * v1.5.97, not from the snapshot; their types are in spec/pending.json until a snapshot brings
+ * them.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PendingWebhookSubscription from Schemas
@@ -74,8 +76,8 @@ final class Webhooks extends AbstractResource
     }
 
     /**
-     * `GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only
-     * yours, except those with events of an area your key cannot read.
+     * `GET /api/v1/webhooks`, paginated: the subscriptions of your key's workspace (at most 50),
+     * not only yours, except those with events of an area your key cannot read.
      *
      * Permission: **Notifications (webhooks) → View**.
      * Pending of the spec (`accounts-webhooks` in spec/pending.json).
@@ -175,7 +177,7 @@ final class Webhooks extends AbstractResource
 
     /**
      * `POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops
-     * working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available`
+     * working. Not open to API keys (accounts v1.5.97): it answers `403 route_not_available`
      * (rotate it in the panel).
      *
      * Permission: **Notifications (webhooks) → Manage**.
