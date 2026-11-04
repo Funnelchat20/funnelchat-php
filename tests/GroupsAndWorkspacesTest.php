@@ -109,9 +109,9 @@ final class GroupsAndWorkspacesTest extends TestCase
         }
     }
 
-    public function testWhileTheGroupActionsAreOffItAnswersRouteNotAvailable(): void
+    public function testAKeyWithoutThePermissionGetsPermissionDenied(): void
     {
-        $http = new MockHttpClient(Reply::json(403, ['error' => 'route_not_available', 'message' => 'Las acciones de grupo por API no están habilitadas.']));
+        $http = new MockHttpClient(Reply::json(403, ['error' => 'permission_denied', 'message' => 'La clave no tiene el permiso.']));
 
         $this->expectException(PermissionDeniedException::class);
         $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi']);

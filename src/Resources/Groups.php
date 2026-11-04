@@ -278,8 +278,6 @@ final class Groups extends AbstractResource
      * (`result.message.uid` is the message's id in WhatsApp) or wait for `group_action.completed` /
      * `group_action.failed`. A QR number must be an admin of the group; an official number, the
      * group's own number. It is a send: never retried by itself, and there is no idempotency key.
-     * The group actions sit behind a switch of communities: while it is off they answer `403
-     * route_not_available`.
      *
      * Permission: **Groups and campaigns → Send**.
      * Pending of the spec (`communities-group-messages` in spec/pending.json).

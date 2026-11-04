@@ -122,7 +122,6 @@ echo $action['status']; // queued, running, completed or failed
 - A file: `type` `image`, `video`, `audio` or `document`, with `media_url` (a public `https` URL, up to 255 characters); `caption` with an image or a video, `file_name` with a document.
 - A QR number must be an admin of the group; an official number, the group's own number. Otherwise `422 device_not_group_admin` or `422 device_not_group_number`.
 - A send to a group is never retried by itself and has no idempotency key: after a timeout or a `5xx`, read the group's messages (`groups->listMessages()`) before sending it again.
-- While sending to groups by API is not enabled, the API answers `403 route_not_available`.
 
 Who joins and who leaves a group arrives in `group_participant.joined` and `group_participant.left` (subscribe to them like any other, with **Groups and campaigns → View** in the key):
 
@@ -337,7 +336,6 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 | `422 unsupported_type`, `422 provider_unsupported` | The number cannot send that type, or the account lacks what it needs (`requires` says what). |
 | `422 window_closed`, `422 number_restricted` | Official number: the 24-hour window is closed, or its quality does not let it send. |
 | `429 too_many_pending_actions` | The number already has 50 group actions open. Never retried. |
-| `403 route_not_available` | Sending to groups by API is not enabled. |
 
 A QR number sends at the pace of the Low-speed scheduled messages; there is no volume cap of the plan. The `result` of `retrieveAction()` for a send is `['message' => ['uid' => …]]`.
 
