@@ -1,44 +1,44 @@
 {
     "description": "Where spec/funnelchat.json came from. Written by `composer generate -- --spec <file>`; do not edit it by hand.",
     "file": "spec/funnelchat.json",
-    "sha256": "0f451feaba59418f3a556f58856f841f12570973fd6525103e8cc0128ab64374",
-    "bytes": 1168453,
+    "sha256": "8228ea7369daed0655b779ca6af381355a6c1cc13dd702ed6e9c322779bafe94",
+    "bytes": 1214988,
     "source": {
         "repository": "git@github.com:Funnelchat20/developers-portal.git",
         "path": "generated/specs/funnelchat-completa.json",
-        "branch": "feat/primer-uso",
-        "commit": "4838fb5390621ac3ec1eb1e095f025edbc507748",
-        "commit_date": "2026-11-04T17:32:00-03:00",
+        "branch": "feat/enviar-por-telefono",
+        "commit": "db3f0b987c7a1a6754c394193a0d43848cc7b620",
+        "commit_date": "2026-11-05T13:49:53-03:00",
         "file_tracked_in_git": false,
         "tracked_files_clean": true,
-        "file_modified_at": "2026-11-04T20:33:15Z"
+        "file_modified_at": "2026-11-05T16:52:09Z"
     },
-    "imported_at": "2026-11-04T21:07:39.492Z",
+    "imported_at": "2026-11-05T17:00:15.894Z",
     "spec": {
         "openapi": "3.1.0",
         "title": "Funnelchat API",
         "version": "v0",
-        "paths": 203,
-        "operations": 248,
+        "paths": 217,
+        "operations": 264,
         "webhooks": 29,
         "domains": [
             {
                 "domain": "conversations",
-                "sha": null,
-                "branch": null,
-                "snapshot_at": null
+                "version": "0.0.1",
+                "operations": 128,
+                "excluded_routes": 20
             },
             {
                 "domain": "communities",
-                "sha": null,
-                "branch": null,
-                "snapshot_at": null
+                "version": "1.0.0",
+                "operations": 60,
+                "excluded_routes": 6
             },
             {
                 "domain": "accounts",
-                "sha": null,
-                "branch": null,
-                "snapshot_at": null
+                "version": "0.1.0",
+                "operations": 76,
+                "excluded_routes": 0
             }
         ]
     }

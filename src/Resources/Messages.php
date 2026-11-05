@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -99,9 +99,15 @@ final class Messages extends AbstractResource
     }
 
     /**
-     * `POST /api/v1/message/send-message`: the same send with the contact in the body
-     * (`contact_id`, required). Returns `['message' => …]`, as `send()`. It is a send: same rules
-     * as `send()`.
+     * `POST /api/v1/message/send-message`: a send straight to a phone: `device_id`, `phone`
+     * (digits, without `+`) and the text or file, no contact needed. If the phone is not a contact
+     * yet, it is created in your key's workspace (the same rules and `422`s as
+     * `contacts->upsert()`), and it stays created even if a WhatsApp rule then stops the send.
+     * Returns `['message' => …]`, as `send()`, with the contact in `message.contact_id`. Instead
+     * of `phone`: `contact_id`, or `whatsapp_id` (a BSUID, official numbers only; not with
+     * `phone`). With `phone` and `contact_id`, they must be the same contact (`422
+     * recipient_mismatch`); a phone of a contact of another workspace answers `404`. Needs
+     * **Contacts and conversations → Send**. It is a send: same rules as `send()`.
      *
      * Permission: **Contacts and conversations → Send**.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.

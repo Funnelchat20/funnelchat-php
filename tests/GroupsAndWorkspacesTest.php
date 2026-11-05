@@ -152,7 +152,8 @@ final class GroupsAndWorkspacesTest extends TestCase
         self::assertNotNull($send);
         self::assertSame('groups->sendMessage', $send['sdk']);
         self::assertSame('communities:send', $send['permission']);
-        self::assertTrue($send['pending']);
+        // In the full spec since 05-11 (communities snapshotted with group actions on).
+        self::assertFalse($send['pending']);
         $read = $routes['GET /api/v1/groups/actions/{action}'] ?? null;
         self::assertNotNull($read);
         self::assertSame('groups->retrieveAction', $read['sdk']);

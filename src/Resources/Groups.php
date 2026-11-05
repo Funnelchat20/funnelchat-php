@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -21,12 +21,13 @@ use Funnelchat\Pagination\Paginator;
  * `group_action.completed`.
  *
  * Reading needs **Groups and campaigns → View**; sending, **Groups and campaigns → Send**. Who
- * joins and who leaves arrives in `group_participant.joined` and `group_participant.left`. PENDING
- * OF THE SPEC: `sendMessage()` and `retrieveAction()` come from communities v2.35.5
- * (spec/pending.json, `communities-group-messages`).
+ * joins and who leaves arrives in `group_participant.joined` and `group_participant.left`. From the
+ * full spec of 05-11 (communities v2.35.5); spec/pending.json (`communities-group-messages`)
+ * corrects the answer of `retrieveAction()` and adds the `group_action.*` events.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
+ * @phpstan-import-type ApiGroupActionAcceptedResource from Schemas
  * @phpstan-import-type ChannelMetadataResource from Schemas
  * @phpstan-import-type CommunitiesMessageResource from Schemas
  * @phpstan-import-type GroupMetadataResource from Schemas
@@ -35,9 +36,8 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type ParticipantEventResource from Schemas
  * @phpstan-import-type ParticipantResource from Schemas
  * @phpstan-import-type PendingGroupAction from Schemas
- * @phpstan-import-type PendingGroupActionAccepted from Schemas
- * @phpstan-import-type PendingGroupMessageCreate from Schemas
  * @phpstan-import-type ScheduledMessageResource from Schemas
+ * @phpstan-import-type SendGroupMessageRequest from Schemas
  */
 final class Groups extends AbstractResource
 {
@@ -280,17 +280,16 @@ final class Groups extends AbstractResource
      * group's own number. It is a send: never retried by itself, and there is no idempotency key.
      *
      * Permission: **Groups and campaigns → Send**.
-     * Pending of the spec (`communities-group-messages` in spec/pending.json).
      *
      * @param string $group
-     * @param PendingGroupMessageCreate $body
+     * @param SendGroupMessageRequest $body
      * @param RequestOptions $options
      *
-     * @return PendingGroupActionAccepted
+     * @return ApiGroupActionAcceptedResource
      */
     public function sendMessage(int|string $group, array $body, array $options = []): mixed
     {
-        /** @var PendingGroupActionAccepted $result */
+        /** @var ApiGroupActionAcceptedResource $result */
         $result = $this->client->request('POST', '/api/v1/groups/{group}/messages', ['path' => ['group' => $group], 'body' => $body] + $options);
 
         return $result;
@@ -302,7 +301,8 @@ final class Groups extends AbstractResource
      * Another workspace's action answers `404 action_not_found`.
      *
      * Permission: **Groups and campaigns → View**.
-     * Pending of the spec (`communities-group-messages` in spec/pending.json).
+     * Response: pending of the spec (`communities-group-messages` in spec/pending.json); it may
+     * change.
      *
      * @param string $action
      * @param RequestOptions $options
