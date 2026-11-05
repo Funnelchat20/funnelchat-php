@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -22,9 +22,8 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type DeviceConnectionEventResource from Schemas
  * @phpstan-import-type DeviceHealthDetailResource from Schemas
  * @phpstan-import-type DeviceResource from Schemas
- * @phpstan-import-type PendingDeviceCreate from Schemas
  * @phpstan-import-type PendingDeviceQr from Schemas
- * @phpstan-import-type PendingExternalReference from Schemas
+ * @phpstan-import-type StoreDeviceRequest from Schemas
  */
 final class Devices extends AbstractResource
 {
@@ -34,11 +33,9 @@ final class Devices extends AbstractResource
      * works.
      *
      * Permission: **WhatsApp numbers → View**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
-     * `external_reference`.
      *
      * @param array{
-     *     external_reference?: string,
+     *     external_reference?: string|null,
      *     page?: int,
      *     cursor?: string,
      * } $query
@@ -67,9 +64,8 @@ final class Devices extends AbstractResource
      * repeat it safely.
      *
      * Permission: **WhatsApp numbers → Create, connect and delete**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
-     * @param PendingDeviceCreate $body
+     * @param StoreDeviceRequest $body
      * @param RequestOptions $options
      *
      * @return array{
@@ -110,8 +106,6 @@ final class Devices extends AbstractResource
      * `PUT /api/v1/devices/{device}`.
      *
      * Permission: **WhatsApp numbers → Edit**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json):
-     * `external_reference`.
      *
      * @param int $device
      * @param array{
@@ -126,7 +120,7 @@ final class Devices extends AbstractResource
      *     code?: string,
      *     whatsApp_business_app?: bool,
      *     capi_consent?: bool,
-     *     external_reference?: PendingExternalReference,
+     *     external_reference?: string|null,
      * } $body
      * @param RequestOptions $options
      *
@@ -185,7 +179,8 @@ final class Devices extends AbstractResource
      * `device.connected`. An official number answers `422 provider_unsupported`.
      *
      * Permission: **WhatsApp numbers → Create, connect and delete**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
+     * change.
      *
      * @param int $device
      * @param RequestOptions $options
@@ -232,11 +227,27 @@ final class Devices extends AbstractResource
      * @param int $device
      * @param RequestOptions $options
      *
-     * @return null
+     * @return array{
+     *     phone: string,
+     *     locale: '',
+     *     name: string,
+     *     avatar: string,
+     *     isBusiness: bool,
+     *     about: '',
+     * }|null
      */
     public function me(int|string $device, array $options = []): mixed
     {
-        /** @var null $result */
+        /**
+         * @var array{
+         *     phone: string,
+         *     locale: '',
+         *     name: string,
+         *     avatar: string,
+         *     isBusiness: bool,
+         *     about: '',
+         * }|null $result
+         */
         $result = $this->client->request('GET', '/api/v1/devices/{device}/me', ['path' => ['device' => $device]] + $options);
 
         return $result;

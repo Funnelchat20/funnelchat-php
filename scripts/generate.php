@@ -262,12 +262,15 @@ final class Generator
         $domains = [];
         foreach (self::arr($spec['x-fc-sources'] ?? null) as $source) {
             $source = self::obj($source);
-            $domains[] = [
-                'domain' => $source['domain'] ?? null,
-                'sha' => $source['sha'] ?? null,
-                'branch' => $source['branch'] ?? null,
-                'snapshot_at' => $source['snapshot_at'] ?? null,
-            ];
+            // What the spec says of each domain's snapshot: the full spec of the portal carries the
+            // version and the counts, and no longer the commit (that is in the portal's snapshots).
+            $domain = ['domain' => $source['domain'] ?? null];
+            foreach (['sha', 'branch', 'snapshot_at', 'version', 'operations', 'excluded_routes'] as $key) {
+                if (isset($source[$key])) {
+                    $domain[$key] = $source[$key];
+                }
+            }
+            $domains[] = $domain;
         }
 
         $provenance = [
@@ -530,42 +533,71 @@ final class Generator
             $patch = self::obj($patch);
             $type = self::str($patch['type'] ?? null) ?? '';
             $properties = self::obj($patch['dataProperties'] ?? null);
-            $label = "webhook {$type} (parche: " . implode(', ', array_keys($properties)) . ')';
-            $key = $snapshotTypes[$type] ?? null;
-            if ($key === null) {
-                $report['missing'][] = $label;
+            $required = self::strings($patch['required'] ?? null);
+            $fields = implode(', ', array_keys($properties));
+            // `*` is every event: the snapshot's and the ones this layer added.
+            $types = $type === '*' ? array_keys($snapshotTypes) : [$type];
+            if ($type !== '*' && !isset($snapshotTypes[$type])) {
+                $report['missing'][] = "webhook {$type} (parche: {$fields})";
 
                 continue;
             }
-            $item = self::obj($webhooks[$key] ?? null);
-            $post = self::obj($item['post'] ?? null);
-            $requestBody = self::obj($post['requestBody'] ?? null);
-            $content = self::obj($requestBody['content'] ?? null);
-            $json = self::obj($content['application/json'] ?? null);
-            $schema = self::obj($json['schema'] ?? null);
-            $schemaProperties = self::obj($schema['properties'] ?? null);
-            $data = self::obj($schemaProperties['data'] ?? null);
-            $dataProperties = self::obj($data['properties'] ?? null);
-            $example = self::obj(self::obj($json['example'] ?? null)['data'] ?? null);
-            $missing = array_diff_key($properties, $dataProperties, $example);
-            if ($missing === []) {
-                $report['superseded'][] = $label;
-
-                continue;
+            $appliedTo = 0;
+            foreach ($types as $eventType) {
+                $applied = false;
+                // Every key of the type: a type can have one per domain ("webhook.test (conversations)").
+                foreach (array_keys($webhooks) as $key) {
+                    if (self::eventTypeOfKey((string) $key) !== (string) $eventType) {
+                        continue;
+                    }
+                    $item = self::obj($webhooks[$key] ?? null);
+                    $post = self::obj($item['post'] ?? null);
+                    $requestBody = self::obj($post['requestBody'] ?? null);
+                    $content = self::obj($requestBody['content'] ?? null);
+                    $json = self::obj($content['application/json'] ?? null);
+                    $schema = self::obj($json['schema'] ?? null);
+                    $schemaProperties = self::obj($schema['properties'] ?? null);
+                    $data = self::obj($schemaProperties['data'] ?? null);
+                    $dataProperties = self::obj($data['properties'] ?? null);
+                    $example = self::obj(self::obj($json['example'] ?? null)['data'] ?? null);
+                    // `*` does not give a shape to an event whose `data` is still unknown (a planned one).
+                    if ($type === '*' && $dataProperties === [] && $example === []) {
+                        continue;
+                    }
+                    $missing = array_diff_key($properties, $dataProperties, $example);
+                    if ($missing === []) {
+                        continue;
+                    }
+                    $data['type'] ??= 'object';
+                    $data['properties'] = $dataProperties + $missing;
+                    $newlyRequired = array_values(array_intersect($required, array_keys($missing)));
+                    if ($newlyRequired !== []) {
+                        $data['required'] = array_values(array_unique([...self::strings($data['required'] ?? null), ...$newlyRequired]));
+                    }
+                    $schemaProperties['data'] = $data;
+                    $schema['type'] ??= 'object';
+                    $schema['properties'] = $schemaProperties;
+                    $json['schema'] = $schema;
+                    $content['application/json'] = $json;
+                    $requestBody['content'] = $content;
+                    $post['requestBody'] = $requestBody;
+                    $post['x-fc-pending-fields'] = array_values(array_unique([...self::strings($post['x-fc-pending-fields'] ?? null), ...array_keys($missing)]));
+                    $item['post'] = $post;
+                    $webhooks[$key] = $item;
+                    $applied = true;
+                }
+                if ($applied) {
+                    ++$appliedTo;
+                } elseif ($type !== '*') {
+                    $report['superseded'][] = "webhook {$type} (parche: {$fields})";
+                }
             }
-            $data['type'] ??= 'object';
-            $data['properties'] = $dataProperties + $missing;
-            $schemaProperties['data'] = $data;
-            $schema['type'] ??= 'object';
-            $schema['properties'] = $schemaProperties;
-            $json['schema'] = $schema;
-            $content['application/json'] = $json;
-            $requestBody['content'] = $content;
-            $post['requestBody'] = $requestBody;
-            $post['x-fc-pending-fields'] = array_keys($missing);
-            $item['post'] = $post;
-            $webhooks[$key] = $item;
-            $report['applied'][] = $label;
+            if ($type === '*') {
+                // One entry of spec/pending.json: obsolete only once no event lacks the fields.
+                $report[$appliedTo > 0 ? 'applied' : 'superseded'][] = "webhook * (parche: {$fields}" . ($appliedTo > 0 ? ", {$appliedTo} eventos" : '') . ')';
+            } elseif ($appliedTo > 0) {
+                $report['applied'][] = "webhook {$type} (parche: {$fields})";
+            }
         }
 
         $components['schemas'] = $schemas;
@@ -577,18 +609,52 @@ final class Generator
     }
 
     /**
+     * Whether `$target` meets every entry of `$condition`. A key is a top-level key of the target
+     * (`"x-fc-status": "planned"`), or a JSON pointer (RFC 6901) into it when it starts with `/`
+     * (`"/responses/200/content/application~1json/schema/type": "string"`): the condition then
+     * holds while the value at that pointer is exactly the one given, and `null` stands for
+     * "absent or null". So a correction of the pending layer stops by itself once the snapshot
+     * changes the very thing it corrects.
+     *
      * @param Json $target
      * @param Json $condition
      */
     private static function matches(array $target, array $condition): bool
     {
         foreach ($condition as $key => $value) {
+            $key = (string) $key;
+            if (str_starts_with($key, '/')) {
+                if (self::pointer($target, $key) !== $value) {
+                    return false;
+                }
+
+                continue;
+            }
             if (!\array_key_exists($key, $target) || $target[$key] !== $value) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * The value at a JSON pointer, or `null` when a step is missing.
+     *
+     * @param Json $target
+     */
+    private static function pointer(array $target, string $pointer): mixed
+    {
+        $value = $target;
+        foreach (\array_slice(explode('/', $pointer), 1) as $token) {
+            $token = str_replace(['~1', '~0'], ['/', '~'], $token);
+            if (!\is_array($value) || !\array_key_exists($token, $value)) {
+                return null;
+            }
+            $value = $value[$token];
+        }
+
+        return $value;
     }
 
     /** The event type a `webhooks` key stands for: "webhook.test (conversations)" -> "webhook.test". */
@@ -1606,13 +1672,15 @@ final class Types
             return 'mixed';
         }
         $hintProperties = Generator::obj($hint['properties'] ?? null);
+        $hintRequired = Generator::strings($hint['required'] ?? null);
         $shape = [];
         foreach ($value as $key => $item) {
             $shape[(string) $key] = ['type' => $this->fromExample($item, Generator::obj($hintProperties[(string) $key] ?? null), $depth + 1), 'required' => true];
         }
+        // A key of the schema that the example lacks is optional, unless the schema requires it.
         foreach ($hintProperties as $key => $schema) {
             if (!isset($shape[$key])) {
-                $shape[$key] = ['type' => $this->render(Generator::obj($schema), $depth + 1), 'required' => false];
+                $shape[$key] = ['type' => $this->render(Generator::obj($schema), $depth + 1), 'required' => \in_array((string) $key, $hintRequired, true)];
             }
         }
 

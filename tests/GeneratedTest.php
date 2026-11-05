@@ -104,9 +104,30 @@ final class GeneratedTest extends TestCase
         }
     }
 
-    public function testFlagsThePatchedOperationsWhileTheSnapshotSaysSendPending(): void
+    /**
+     * The condition of a patch, as the generator reads it: top-level keys, or JSON pointers
+     * (`/responses/200/…`) where `null` stands for "absent or null".
+     *
+     * @param array<array-key, mixed> $target
+     * @param array<array-key, mixed> $condition
+     */
+    private static function holds(array $target, array $condition): bool
+    {
+        foreach ($condition as $key => $expected) {
+            $key = (string) $key;
+            $tokens = str_starts_with($key, '/') ? array_map(static fn(string $token): string => str_replace(['~1', '~0'], ['/', '~'], $token), \array_slice(explode('/', $key), 1)) : [$key];
+            if (self::at($target, ...$tokens) !== $expected) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function testEveryCorrectionOfTheSnapshotThatStillHoldsFlagsItsRoute(): void
     {
         $spec = self::readJson('funnelchat.json');
+        $pending = self::readJson('pending.json');
         $routes = [];
         foreach (self::constant(Routes::class, 'ALL') as $route) {
             self::assertIsArray($route);
@@ -114,18 +135,41 @@ final class GeneratedTest extends TestCase
             self::assertIsString($route['path']);
             $routes["{$route['method']} {$route['path']}"] = $route;
         }
-        $patches = self::readJson('pending.json')['operationPatches'] ?? [];
-        self::assertIsArray($patches);
-        foreach ($patches as $patch) {
-            self::assertIsArray($patch);
-            self::assertIsString($patch['method']);
-            self::assertIsString($patch['path']);
-            $op = self::at($spec, 'paths', $patch['path'], $patch['method']);
-            $label = strtoupper($patch['method']) . " {$patch['path']}";
-            if (\is_array($op) && ($op['x-portal-v0'] ?? null) === 'send_pending') {
-                self::assertTrue(($routes[$label] ?? [])['pending'] ?? false, "{$label} is patched with client_reference");
+        $checked = 0;
+        foreach (['operationPatches', 'responsePatches'] as $kind) {
+            $patches = $pending[$kind] ?? [];
+            self::assertIsArray($patches);
+            foreach ($patches as $patch) {
+                self::assertIsArray($patch);
+                self::assertIsString($patch['method']);
+                self::assertIsString($patch['path']);
+                $label = strtoupper($patch['method']) . " {$patch['path']}";
+                $op = self::at($spec, 'paths', $patch['path'], $patch['method']);
+                self::assertIsArray($op, "{$label}: the operation of a {$kind} entry is in the snapshot");
+                $while = $patch['while'] ?? [];
+                self::assertIsArray($while);
+                if (!self::holds($op, $while)) {
+                    continue;
+                }
+                self::assertTrue(($routes[$label] ?? [])['pending'] ?? false, "{$label} is corrected by spec/pending.json");
+                ++$checked;
             }
         }
+        // The full spec of 04-11 still needs the corrections: the four sends, the QR, the links…
+        self::assertGreaterThanOrEqual(4, $checked);
+    }
+
+    public function testTheSendsAnswerTheMessageNeverNull(): void
+    {
+        // conversations v1.19.7 (ApiKeySendResponse::message): `{"message": <object>}` for an API key.
+        foreach (['send', 'sendDirect', 'sendForm'] as $method) {
+            $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Messages::class, $method))->getDocComment();
+            self::assertMatchesRegularExpression('/@return array\{\s*\*\s*message: PublicMessageResource,\s*\*\s*\}/', $doc, $method);
+        }
+        $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Templates::class, 'send'))->getDocComment();
+        self::assertMatchesRegularExpression('/@return array\{\s*\*\s*message: PublicMessageResource,\s*\*\s*\}/', $doc);
+        $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Devices::class, 'qr'))->getDocComment();
+        self::assertMatchesRegularExpression('/@return array\{\s*\*\s*data: PendingDeviceQr,\s*\*\s*\}/', $doc);
     }
 
     public function testNoResourceMethodDropsTheAnswer(): void
@@ -141,39 +185,6 @@ final class GeneratedTest extends TestCase
                 $type = $method->getReturnType();
                 self::assertNotSame('void', $type instanceof \ReflectionNamedType ? $type->getName() : null, "{$class}::{$method->getName()}");
             }
-        }
-    }
-
-    public function testTypesTheAnswerOfTheSendsWhileTheSnapshotSaysSendPending(): void
-    {
-        $spec = self::readJson('funnelchat.json');
-        $patches = self::at(self::readJson('pending.json'), 'responsePatches');
-        self::assertIsArray($patches);
-        $routes = [];
-        foreach (self::constant(Routes::class, 'ALL') as $route) {
-            self::assertIsArray($route);
-            self::assertIsString($route['method']);
-            self::assertIsString($route['path']);
-            $routes["{$route['method']} {$route['path']}"] = $route;
-        }
-        foreach ($patches as $patch) {
-            self::assertIsArray($patch);
-            self::assertIsString($patch['method']);
-            self::assertIsString($patch['path']);
-            if (self::at($spec, 'paths', $patch['path'], $patch['method'], 'x-portal-v0') !== 'send_pending') {
-                continue;
-            }
-            $route = $routes[strtoupper($patch['method']) . " {$patch['path']}"] ?? null;
-            self::assertIsArray($route, $patch['path']);
-            self::assertTrue($route['pending'], $patch['path']);
-            if (!\is_string($route['sdk'])) {
-                continue;
-            }
-            // The resource method documents the pending answer, not "no body".
-            [$property, $name] = explode('->', $route['sdk']);
-            $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
-            self::assertStringContainsString('`conversations-send`', $doc, $route['sdk']);
-            self::assertStringContainsString('Pending', $doc, $route['sdk']);
         }
     }
 
@@ -205,10 +216,48 @@ final class GeneratedTest extends TestCase
         // Present means the key is there, even with a null value: the same rule as the generator.
         $exampleData = self::at($content, 'example', 'data');
         $schemaData = self::at($content, 'schema', 'properties', 'data', 'properties');
-        $inSnapshot = (\is_array($exampleData) && \array_key_exists('device_id', $exampleData))
-            || (\is_array($schemaData) && \array_key_exists('device_id', $schemaData));
+        $inSnapshot = static fn(string $field): bool => (\is_array($exampleData) && \array_key_exists($field, $exampleData))
+            || (\is_array($schemaData) && \array_key_exists($field, $schemaData));
+        $expected = array_values(array_filter(['device_id', 'workspace_id'], static fn(string $field): bool => !$inSnapshot($field)));
 
-        self::assertSame($inSnapshot ? [] : ['device_id'], self::event('message.received')['pendingFields']);
+        self::assertSame($expected, self::event('message.received')['pendingFields']);
+    }
+
+    public function testEveryEventWithAKnownShapeSaysItsWorkspace(): void
+    {
+        // accounts v1.5.97 writes `data.workspace_id` on every event it delivers (Q35 of 04-11).
+        $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
+        preg_match_all('/@phpstan-type (\w+)Data (array\{.*?\n \* \}|array<string, mixed>)\n/s', $source, $matches, \PREG_SET_ORDER);
+        self::assertGreaterThan(40, \count($matches));
+        $typed = 0;
+        foreach ($matches as [, $name, $shape]) {
+            if ($shape === 'array<string, mixed>') {
+                // A planned event whose `data` is not known yet keeps the open type.
+                continue;
+            }
+            self::assertMatchesRegularExpression('/\n \*     workspace_id: PendingWorkspaceId,\n \* \}$/', $shape, $name);
+            ++$typed;
+        }
+        self::assertGreaterThan(40, $typed);
+        foreach (['message.received', 'message.status_changed', 'device.connected', 'device.disconnected', 'group_participant.joined', 'group_participant.left', 'webhook.test'] as $type) {
+            $pendingFields = self::event($type)['pendingFields'];
+            self::assertIsArray($pendingFields, $type);
+            self::assertContains('workspace_id', $pendingFields, $type);
+        }
+        self::assertStringContainsString('@phpstan-type PendingWorkspaceId int|null', (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php'));
+    }
+
+    public function testTheParticipantEventsAreTheOnesOfProduction(): void
+    {
+        $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
+        foreach (['GroupParticipantJoinedData', 'GroupParticipantLeftData'] as $alias) {
+            // communities v2.35.5: any group of the account, so `campaign` can be null.
+            self::assertMatchesRegularExpression("/@phpstan-type {$alias} array\\{\\s*\\*\\s*group: PendingEventGroup,\\s*\\*\\s*campaign: array\\{\\s*\\*\\s*uuid: string,\\s*\\*\\s*\\}\\|null,\\s*\\*\\s*participant: PendingEventParticipant,/s", $source, $alias);
+        }
+        self::assertTrue(self::event('group_participant.joined')['pending']);
+        self::assertSame('live', self::event('group_action.completed')['status']);
+        $schemas = (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php');
+        self::assertMatchesRegularExpression("/@phpstan-type PendingEventParticipant array\\{\\s*\\*\\s*identity: string,\\s*\\*\\s*identity_type: 'phone'\\|'whatsapp_user',\\s*\\*\\s*name: string\\|null,/s", $schemas);
     }
 
     public function testAddsThePendingFieldsOfASchemaOnlyWhileTheSnapshotLacksThem(): void

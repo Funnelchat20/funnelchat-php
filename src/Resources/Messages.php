@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -27,9 +27,9 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ConversationsMessageResource from Schemas
  * @phpstan-import-type ForwardMessageRequest from Schemas
- * @phpstan-import-type PendingClientReference from Schemas
- * @phpstan-import-type PendingForwardResult from Schemas
- * @phpstan-import-type PendingPublicMessage from Schemas
+ * @phpstan-import-type PublicMessageResource from Schemas
+ * @phpstan-import-type SendDirectMessageRequest from Schemas
+ * @phpstan-import-type SendWhatsappFormRequest from Schemas
  * @phpstan-import-type StoreContactCardRequest from Schemas
  * @phpstan-import-type StoreMessageReactionRequest from Schemas
  */
@@ -48,8 +48,6 @@ final class Messages extends AbstractResource
      * `message.status_changed`.
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`,
-     * `file_type`, `file_name`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $contact
@@ -60,13 +58,17 @@ final class Messages extends AbstractResource
      *     text?: string,
      *     contact_id?: int,
      *     file?: string,
+     *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
+     *     file_name?: string|null,
      *     temporal_uuid?: string,
      *     note?: bool,
+     *     mentions?: list<int>|null,
      *     options?: list<array{
      *         id?: string,
      *         label?: string,
      *     }>,
      *     reference_message_uid?: string|null,
+     *     client_reference?: string|null,
      *     link_preview?: bool,
      *     link_preview_meta?: array{
      *         url?: string,
@@ -75,14 +77,11 @@ final class Messages extends AbstractResource
      *         image_url?: string|null,
      *         domain?: string,
      *     },
-     *     client_reference?: PendingClientReference,
-     *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
-     *     file_name?: string|null,
      * } $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     message: PendingPublicMessage,
+     *     message: PublicMessageResource,
      * }
      */
     public function send(int|string $contact, array $body, array $options = []): mixed
@@ -91,7 +90,7 @@ final class Messages extends AbstractResource
 
         /**
          * @var array{
-         *     message: PendingPublicMessage,
+         *     message: PublicMessageResource,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/contacts/{contact}/message', ['path' => ['contact' => $contact], 'body' => $body] + $options);
@@ -105,33 +104,20 @@ final class Messages extends AbstractResource
      * as `send()`.
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`,
-     * `file_type`, `file_name`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
-     * @param array{
-     *     device_id: int,
-     *     text?: string,
-     *     contact_id: int,
-     *     file?: string,
-     *     temporal_uuid?: string,
-     *     local_id?: string|null,
-     *     note?: bool,
-     *     client_reference?: PendingClientReference,
-     *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
-     *     file_name?: string|null,
-     * } $body
+     * @param SendDirectMessageRequest $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     message: PendingPublicMessage,
+     *     message: PublicMessageResource,
      * }
      */
     public function sendDirect(array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     message: PendingPublicMessage,
+         *     message: PublicMessageResource,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/message/send-message', ['body' => $body] + $options);
@@ -146,27 +132,21 @@ final class Messages extends AbstractResource
      * send: same rules as `send()`.
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-forms` in spec/pending.json).
+     * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $contact
-     * @param array{
-     *     form_id: int,
-     *     device_id: int,
-     *     text?: string,
-     *     button_text?: string,
-     *     client_reference?: PendingClientReference,
-     * } $body
+     * @param SendWhatsappFormRequest $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     message: PendingPublicMessage,
+     *     message: PublicMessageResource,
      * }
      */
     public function sendForm(int|string $contact, array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     message: PendingPublicMessage,
+         *     message: PublicMessageResource,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/contacts/{contact}/message/form', ['path' => ['contact' => $contact], 'body' => $body] + $options);
@@ -205,17 +185,16 @@ final class Messages extends AbstractResource
      * `error`. Any refusal is a `404`.
      *
      * Permission: **Contacts and conversations → View**.
-     * Pending of the spec (`conversations-send` in spec/pending.json).
      *
      * @param int $contact
      * @param int $message
      * @param RequestOptions $options
      *
-     * @return PendingPublicMessage
+     * @return PublicMessageResource
      */
     public function get(int|string $contact, int|string $message, array $options = []): mixed
     {
-        /** @var PendingPublicMessage $result */
+        /** @var PublicMessageResource $result */
         $result = $this->client->request('GET', '/api/v1/contacts/{contact}/messages/{message}', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
 
         return $result;
@@ -226,22 +205,20 @@ final class Messages extends AbstractResource
      * `['messages' => […]]`, one registered message per card, in order.
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
-     * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $contact
      * @param StoreContactCardRequest $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     messages: list<PendingPublicMessage>,
+     *     messages: list<PublicMessageResource>,
      * }
      */
     public function sendContactCard(int|string $contact, array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     messages: list<PendingPublicMessage>,
+         *     messages: list<PublicMessageResource>,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/contacts/{contact}/message/contact-card', ['path' => ['contact' => $contact], 'body' => $body] + $options);
@@ -255,19 +232,31 @@ final class Messages extends AbstractResource
      * `reason`) and its `message`.
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
-     * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $contact
      * @param int $message
      * @param ForwardMessageRequest $body
      * @param RequestOptions $options
      *
-     * @return list<PendingForwardResult>
+     * @return list<array{
+     *     contact_id: int,
+     *     mode: 'internal'|'native',
+     *     status: 'queued'|'blocked',
+     *     reason: string|null,
+     *     message: PublicMessageResource|null,
+     * }>
      */
     public function forward(int|string $contact, int|string $message, array $body, array $options = []): mixed
     {
-        /** @var list<PendingForwardResult> $result */
+        /**
+         * @var list<array{
+         *     contact_id: int,
+         *     mode: 'internal'|'native',
+         *     status: 'queued'|'blocked',
+         *     reason: string|null,
+         *     message: PublicMessageResource|null,
+         * }> $result
+         */
         $result = $this->client->request('POST', '/api/v1/contacts/{contact}/messages/{message}/forward', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
 
         return $result;
@@ -277,34 +266,38 @@ final class Messages extends AbstractResource
      * `PUT /api/v1/contacts/{contact}/messages/{message}/reaction`: reacts with an emoji.
      *
      * Permission: **Contacts and conversations → Send**.
-     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param int $message
      * @param StoreMessageReactionRequest $body
      * @param RequestOptions $options
      *
-     * @return mixed
+     * @return array<string, mixed>
      */
     public function react(int|string $contact, int|string $message, array $body, array $options = []): mixed
     {
-        return $this->client->request('PUT', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
+        /** @var array<string, mixed> $result */
+        $result = $this->client->request('PUT', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
+
+        return $result;
     }
 
     /**
      * `DELETE /api/v1/contacts/{contact}/messages/{message}/reaction`: removes your reaction.
      *
      * Permission: **Contacts and conversations → Send**.
-     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param int $message
      * @param RequestOptions $options
      *
-     * @return mixed
+     * @return array<string, mixed>
      */
     public function removeReaction(int|string $contact, int|string $message, array $options = []): mixed
     {
-        return $this->client->request('DELETE', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
+        /** @var array<string, mixed> $result */
+        $result = $this->client->request('DELETE', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
+
+        return $result;
     }
 }

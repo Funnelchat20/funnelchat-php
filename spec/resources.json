@@ -137,7 +137,7 @@
     {
       "property": "groups",
       "class": "Groups",
-      "doc": "WhatsApp groups (communities area), read only: the groups, their participants, joins and leaves, messages, scheduled messages and actions.",
+      "doc": "WhatsApp groups (communities area): the groups, their participants, joins and leaves, the messages sent to them, scheduled messages and actions; and sending a message to a group now (`sendMessage()`), whose result you read with `retrieveAction()` or receive in `group_action.completed`.\n\nReading needs **Groups and campaigns → View**; sending, **Groups and campaigns → Send**. Who joins and who leaves arrives in `group_participant.joined` and `group_participant.left`. PENDING OF THE SPEC: `sendMessage()` and `retrieveAction()` come from communities v2.35.5 (spec/pending.json, `communities-group-messages`).",
       "methods": [
         { "name": "list", "op": "GET /api/v1/groups", "paginate": true, "doc": "`GET /api/v1/groups`, paginated." },
         { "name": "retrieve", "op": "GET /api/v1/groups/{group}", "doc": "`GET /api/v1/groups/{group}`." },
@@ -147,7 +147,9 @@
         { "name": "listParticipantEvents", "op": "GET /api/v1/groups/{group}/participant-events", "paginate": true, "doc": "`GET /api/v1/groups/{group}/participant-events`, paginated: joins and leaves." },
         { "name": "listMessages", "op": "GET /api/v1/groups/{group}/messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/messages`, paginated." },
         { "name": "listScheduledMessages", "op": "GET /api/v1/groups/{group}/scheduled-messages", "paginate": true, "doc": "`GET /api/v1/groups/{group}/scheduled-messages`, paginated." },
-        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." }
+        { "name": "listActions", "op": "GET /api/v1/groups/{group}/actions", "paginate": true, "doc": "`GET /api/v1/groups/{group}/actions`, paginated." },
+        { "name": "sendMessage", "op": "POST /api/v1/groups/{group}/messages", "doc": "`POST /api/v1/groups/{group}/messages`: sends a text (`type: 'text'`, `text`) or a file (`image`, `video`, `audio` or `document`, with `media_url`) to the group now, from `device_id`. `{group}` is the group's `uid` (`…@g.us`). It is asynchronous: it returns `['action_id' => …, 'status' => 'queued']`; read how it ended with `retrieveAction()` (`result.message.uid` is the message's id in WhatsApp) or wait for `group_action.completed` / `group_action.failed`. A QR number must be an admin of the group; an official number, the group's own number. It is a send: never retried by itself, and there is no idempotency key." },
+        { "name": "retrieveAction", "op": "GET /api/v1/groups/actions/{action}", "doc": "`GET /api/v1/groups/actions/{action}`: the state (`queued`, `running`, `completed` or `failed`) and the `result` of an action, by the `action_id` that `sendMessage()` returned. Another workspace's action answers `404 action_not_found`." }
       ]
     },
     {
@@ -171,7 +173,7 @@
     {
       "property": "connectLinks",
       "class": "ConnectLinks",
-      "doc": "Connect links (accounts area): a single-use page where your customer creates or reconnects a WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is created when the page ends. Learn the result by `device.connected` (with `connect_link_id`, the link of that connection, and `external_reference`), by `return_url`, or with `retrieve()`.\n\nCreating and revoking need **WhatsApp numbers → Create, connect and delete**; reading, **WhatsApp numbers → View**. The official signup (`type: 'meta'`) is off in production until Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. PENDING OF THE SPEC: from the contract 1022-alta-de-numeros v0.2 (spec/pending.json, `accounts-number-onboarding`).",
+      "doc": "Connect links (accounts area): a single-use page where your customer creates or reconnects a WhatsApp number, by QR or with Meta's signup, without a Funnelchat session. The number is created when the page ends. Learn the result by `device.connected` (with `connect_link_id`, the link of that connection, and `external_reference`), by `return_url`, or with `retrieve()`.\n\nCreating and revoking need **WhatsApp numbers → Create, connect and delete**; reading, **WhatsApp numbers → View**. The official signup (`type: 'meta'`) is off in production until Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. From the full spec of 04-11 (accounts v1.5.97); spec/pending.json (`accounts-number-onboarding`) corrects a link read (`url` is always there and `null`), the empty answer of `revoke()` and adds `perPage` to `list()`.",
       "methods": [
         { "name": "create", "op": "POST /api/v1/connect-links", "doc": "`POST /api/v1/connect-links`: returns `['data' => <link>]` with its `url`, the only time the URL comes: give it to your customer. `allowed_connection_types` is required with `type: 'meta'` and forbidden with `type: 'qr'`; `device_id` reconnects that number without new quota. `country` (two letters, optional; only `qr`, not with `device_id`) is the country of the phone, where the WhatsApp session is opened. `type: 'meta'` is off in production (`503 meta_connect_disabled`). `provision_us_number` (a US pool number, always dedicated) needs `dedicated` in `allowed_connection_types` and does not go with `device_id`: otherwise `422 invalid_request`. A `meta` link stays `pending` after a Facebook or Meta failure, so your customer can retry on the page; the fifth failure makes it `failed`. Refusals: see `Funnelchat\\Exception\\DeviceErrors`. Pass `idempotencyKey` in the options to repeat it safely." },
         { "name": "retrieve", "op": "GET /api/v1/connect-links/{link}", "doc": "`GET /api/v1/connect-links/{link}`: the link and its `status` (`pending`, `completed`, `failed`, `expired`, `revoked`), with `device_id` and `error_code`; never its URL." },
@@ -182,16 +184,16 @@
     {
       "property": "webhooks",
       "class": "Webhooks",
-      "doc": "Webhook subscriptions (accounts area) and the verification of deliveries.\n\nThe subscription routes need **Notifications (webhooks) → View** / **Notifications (webhooks) → Manage**, and a key only sees and manages subscriptions whose events are of areas it can read (the area's **View**). The catalog (`events()`) needs **WhatsApp numbers → View**. PENDING OF THE SPEC: the subscription routes come from accounts v1.4.24, not from the snapshot; their types are in spec/pending.json until a snapshot brings them.",
+      "doc": "Webhook subscriptions (accounts area) and the verification of deliveries.\n\nThe subscription routes need **Notifications (webhooks) → View** / **Notifications (webhooks) → Manage**, and a key only sees and manages the subscriptions of its workspace whose events are of areas it can read (the area's **View**). A subscription receives only the events of its workspace, and every event says which one in `data.workspace_id`. The catalog (`events()`) needs **WhatsApp numbers → View**. The routes come from the full spec of 04-11 (accounts v1.5.97); `rotateSecret()`, the answer of `update()` and the query parameters of `list()` and `listDeliveries()` that production accepts, from spec/pending.json (`accounts-webhooks`).",
       "traits": ["Funnelchat\\Webhooks\\WebhookHelpers"],
       "methods": [
         { "name": "events", "op": "GET /api/v1/webhooks/events", "doc": "`GET /api/v1/webhooks/events`: the event types you can subscribe to, each with `status`." },
-        { "name": "list", "op": "GET /api/v1/webhooks", "paginate": true, "doc": "`GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only yours, except those with events of an area your key cannot read." },
+        { "name": "list", "op": "GET /api/v1/webhooks", "paginate": true, "doc": "`GET /api/v1/webhooks`, paginated: the subscriptions of your key's workspace (at most 50), not only yours, except those with events of an area your key cannot read." },
         { "name": "create", "op": "POST /api/v1/webhooks", "doc": "`POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`." },
         { "name": "retrieve", "op": "GET /api/v1/webhooks/{id}", "doc": "`GET /api/v1/webhooks/{id}` (without the secret)." },
         { "name": "update", "op": "PUT /api/v1/webhooks/{id}", "doc": "`PUT /api/v1/webhooks/{id}`: replaces `url`, `events`, `description` and `filters`. The secret stays." },
         { "name": "delete", "op": "DELETE /api/v1/webhooks/{id}", "doc": "`DELETE /api/v1/webhooks/{id}`." },
-        { "name": "rotateSecret", "op": "POST /api/v1/webhooks/{id}/rotate-secret", "doc": "`POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available` (rotate it in the panel)." },
+        { "name": "rotateSecret", "op": "POST /api/v1/webhooks/{id}/rotate-secret", "doc": "`POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops working. Not open to API keys (accounts v1.5.97): it answers `403 route_not_available` (rotate it in the panel)." },
         { "name": "test", "op": "POST /api/v1/webhooks/{id}/test", "doc": "`POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`." },
         { "name": "listDeliveries", "op": "GET /api/v1/webhooks/{id}/deliveries", "paginate": true, "doc": "`GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first." }
       ]

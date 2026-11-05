@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -19,18 +19,20 @@ use Funnelchat\Webhooks\WebhookHelpers;
  * Webhook subscriptions (accounts area) and the verification of deliveries.
  *
  * The subscription routes need **Notifications (webhooks) → View** / **Notifications (webhooks)
- * → Manage**, and a key only sees and manages subscriptions whose events are of areas it can read
- * (the area's **View**). The catalog (`events()`) needs **WhatsApp numbers → View**. PENDING OF
- * THE SPEC: the subscription routes come from accounts v1.4.24, not from the snapshot; their types
- * are in spec/pending.json until a snapshot brings them.
+ * → Manage**, and a key only sees and manages the subscriptions of its workspace whose events are
+ * of areas it can read (the area's **View**). A subscription receives only the events of its
+ * workspace, and every event says which one in `data.workspace_id`. The catalog (`events()`) needs
+ * **WhatsApp numbers → View**. The routes come from the full spec of 04-11 (accounts v1.5.97);
+ * `rotateSecret()`, the answer of `update()` and the query parameters of `list()` and
+ * `listDeliveries()` that production accepts, from spec/pending.json (`accounts-webhooks`).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
- * @phpstan-import-type PendingWebhookSubscription from Schemas
- * @phpstan-import-type PendingWebhookSubscriptionCreate from Schemas
- * @phpstan-import-type PendingWebhookSubscriptionDelivery from Schemas
- * @phpstan-import-type PendingWebhookSubscriptionTestResult from Schemas
- * @phpstan-import-type PendingWebhookSubscriptionUpdate from Schemas
  * @phpstan-import-type PendingWebhookSubscriptionWithSecret from Schemas
+ * @phpstan-import-type StoreWebhookSubscriptionRequest from Schemas
+ * @phpstan-import-type UpdateWebhookSubscriptionRequest from Schemas
+ * @phpstan-import-type WebhookSubscriptionCreatedResource from Schemas
+ * @phpstan-import-type WebhookSubscriptionDeliveryResource from Schemas
+ * @phpstan-import-type WebhookSubscriptionResource from Schemas
  */
 final class Webhooks extends AbstractResource
 {
@@ -74,11 +76,11 @@ final class Webhooks extends AbstractResource
     }
 
     /**
-     * `GET /api/v1/webhooks`, paginated: the subscriptions of the account (at most 50), not only
-     * yours, except those with events of an area your key cannot read.
+     * `GET /api/v1/webhooks`, paginated: the subscriptions of your key's workspace (at most 50),
+     * not only yours, except those with events of an area your key cannot read.
      *
      * Permission: **Notifications (webhooks) → View**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
+     * Pending of the spec (`accounts-webhooks` in spec/pending.json): `perPage`.
      *
      * @param array{
      *     perPage?: int,
@@ -87,11 +89,11 @@ final class Webhooks extends AbstractResource
      * } $query
      * @param RequestOptions $options
      *
-     * @return Paginator<PendingWebhookSubscription>
+     * @return Paginator<WebhookSubscriptionResource>
      */
     public function list(array $query = [], array $options = []): Paginator
     {
-        /** @var Paginator<PendingWebhookSubscription> $result */
+        /** @var Paginator<WebhookSubscriptionResource> $result */
         $result = $this->client->paginate('/api/v1/webhooks', ['query' => $query] + $options);
 
         return $result;
@@ -101,16 +103,15 @@ final class Webhooks extends AbstractResource
      * `POST /api/v1/webhooks`: the response brings `secret` once. Store it, and store the `id`.
      *
      * Permission: **Notifications (webhooks) → Manage**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
-     * @param PendingWebhookSubscriptionCreate $body
+     * @param StoreWebhookSubscriptionRequest $body
      * @param RequestOptions $options
      *
-     * @return PendingWebhookSubscriptionWithSecret
+     * @return WebhookSubscriptionCreatedResource
      */
     public function create(array $body, array $options = []): mixed
     {
-        /** @var PendingWebhookSubscriptionWithSecret $result */
+        /** @var WebhookSubscriptionCreatedResource $result */
         $result = $this->client->request('POST', '/api/v1/webhooks', ['body' => $body] + $options);
 
         return $result;
@@ -120,16 +121,15 @@ final class Webhooks extends AbstractResource
      * `GET /api/v1/webhooks/{id}` (without the secret).
      *
      * Permission: **Notifications (webhooks) → View**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
      * @param RequestOptions $options
      *
-     * @return PendingWebhookSubscription
+     * @return WebhookSubscriptionResource
      */
     public function retrieve(int|string $id, array $options = []): mixed
     {
-        /** @var PendingWebhookSubscription $result */
+        /** @var WebhookSubscriptionResource $result */
         $result = $this->client->request('GET', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
 
         return $result;
@@ -140,17 +140,17 @@ final class Webhooks extends AbstractResource
      * secret stays.
      *
      * Permission: **Notifications (webhooks) → Manage**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
+     * Response: pending of the spec (`accounts-webhooks` in spec/pending.json); it may change.
      *
      * @param string $id
-     * @param PendingWebhookSubscriptionUpdate $body
+     * @param UpdateWebhookSubscriptionRequest $body
      * @param RequestOptions $options
      *
-     * @return PendingWebhookSubscription
+     * @return WebhookSubscriptionResource
      */
     public function update(int|string $id, array $body, array $options = []): mixed
     {
-        /** @var PendingWebhookSubscription $result */
+        /** @var WebhookSubscriptionResource $result */
         $result = $this->client->request('PUT', '/api/v1/webhooks/{id}', ['path' => ['id' => $id], 'body' => $body] + $options);
 
         return $result;
@@ -160,22 +160,23 @@ final class Webhooks extends AbstractResource
      * `DELETE /api/v1/webhooks/{id}`.
      *
      * Permission: **Notifications (webhooks) → Manage**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
-     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param string $id
      * @param RequestOptions $options
      *
-     * @return mixed
+     * @return null
      */
     public function delete(int|string $id, array $options = []): mixed
     {
-        return $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
+        /** @var null $result */
+        $result = $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
+
+        return $result;
     }
 
     /**
      * `POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops
-     * working. Not open to API keys in accounts v1.4.24: it answers `403 route_not_available`
+     * working. Not open to API keys (accounts v1.5.97): it answers `403 route_not_available`
      * (rotate it in the panel).
      *
      * Permission: **Notifications (webhooks) → Manage**.
@@ -198,16 +199,29 @@ final class Webhooks extends AbstractResource
      * `POST /api/v1/webhooks/{id}/test`: delivers one signed `webhook.test` now. Check `succeeded`.
      *
      * Permission: **Notifications (webhooks) → Manage**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
      *
      * @param string $id
      * @param RequestOptions $options
      *
-     * @return PendingWebhookSubscriptionTestResult
+     * @return array{
+     *     succeeded: bool,
+     *     response_status: int|null,
+     *     error: 'non_2xx'|'internal_error'|'timeout'|'connection_failed'|'tls_error'|'destination_not_allowed'|'secret_unreadable'|null,
+     *     duration_ms: int|null,
+     *     delivery_id: int,
+     * }
      */
     public function test(int|string $id, array $options = []): mixed
     {
-        /** @var PendingWebhookSubscriptionTestResult $result */
+        /**
+         * @var array{
+         *     succeeded: bool,
+         *     response_status: int|null,
+         *     error: 'non_2xx'|'internal_error'|'timeout'|'connection_failed'|'tls_error'|'destination_not_allowed'|'secret_unreadable'|null,
+         *     duration_ms: int|null,
+         *     delivery_id: int,
+         * } $result
+         */
         $result = $this->client->request('POST', '/api/v1/webhooks/{id}/test', ['path' => ['id' => $id]] + $options);
 
         return $result;
@@ -217,23 +231,24 @@ final class Webhooks extends AbstractResource
      * `GET /api/v1/webhooks/{id}/deliveries`, paginated: one row per attempt, newest first.
      *
      * Permission: **Notifications (webhooks) → View**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
+     * Pending of the spec (`accounts-webhooks` in spec/pending.json): `per_page`, `event_type`,
+     * `event_id`.
      *
      * @param string $id
      * @param array{
-     *     page?: int,
      *     per_page?: int,
      *     event_type?: string,
      *     event_id?: string,
+     *     page?: int,
      *     cursor?: string,
      * } $query
      * @param RequestOptions $options
      *
-     * @return Paginator<PendingWebhookSubscriptionDelivery>
+     * @return Paginator<WebhookSubscriptionDeliveryResource>
      */
     public function listDeliveries(int|string $id, array $query = [], array $options = []): Paginator
     {
-        /** @var Paginator<PendingWebhookSubscriptionDelivery> $result */
+        /** @var Paginator<WebhookSubscriptionDeliveryResource> $result */
         $result = $this->client->paginate('/api/v1/webhooks/{id}/deliveries', ['path' => ['id' => $id], 'query' => $query] + $options);
 
         return $result;

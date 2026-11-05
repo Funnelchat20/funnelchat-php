@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -22,13 +22,15 @@ use Funnelchat\Pagination\Paginator;
  *
  * Creating and revoking need **WhatsApp numbers → Create, connect and delete**; reading,
  * **WhatsApp numbers → View**. The official signup (`type: 'meta'`) is off in production until
- * Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. PENDING OF THE
- * SPEC: from the contract 1022-alta-de-numeros v0.2 (spec/pending.json,
- * `accounts-number-onboarding`).
+ * Funnelchat registers its domain with Meta: it answers `503 meta_connect_disabled`. From the full
+ * spec of 04-11 (accounts v1.5.97); spec/pending.json (`accounts-number-onboarding`) corrects a
+ * link read (`url` is always there and `null`), the empty answer of `revoke()` and adds `perPage`
+ * to `list()`.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
+ * @phpstan-import-type ConnectLinkResource from Schemas
  * @phpstan-import-type PendingConnectLink from Schemas
- * @phpstan-import-type PendingConnectLinkCreate from Schemas
+ * @phpstan-import-type StoreConnectLinkRequest from Schemas
  */
 final class ConnectLinks extends AbstractResource
 {
@@ -46,20 +48,19 @@ final class ConnectLinks extends AbstractResource
      * safely.
      *
      * Permission: **WhatsApp numbers → Create, connect and delete**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
      *
-     * @param PendingConnectLinkCreate $body
+     * @param StoreConnectLinkRequest $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     data: PendingConnectLink,
+     *     data: ConnectLinkResource,
      * }
      */
     public function create(array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     data: PendingConnectLink,
+         *     data: ConnectLinkResource,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/connect-links', ['body' => $body] + $options);
@@ -72,7 +73,8 @@ final class ConnectLinks extends AbstractResource
      * `failed`, `expired`, `revoked`), with `device_id` and `error_code`; never its URL.
      *
      * Permission: **WhatsApp numbers → View**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
+     * change.
      *
      * @param int $link
      * @param RequestOptions $options
@@ -98,11 +100,13 @@ final class ConnectLinks extends AbstractResource
      * `external_reference`.
      *
      * Permission: **WhatsApp numbers → View**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json): `perPage`.
+     * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
+     * change.
      *
      * @param array{
-     *     status?: 'pending'|'completed'|'failed'|'expired'|'revoked',
-     *     external_reference?: string,
+     *     status?: 'pending'|'completed'|'failed'|'expired'|'revoked'|null,
+     *     external_reference?: string|null,
      *     perPage?: int,
      *     page?: int,
      *     cursor?: string,
@@ -124,7 +128,8 @@ final class ConnectLinks extends AbstractResource
      * `pending` answers `409 link_not_pending`.
      *
      * Permission: **WhatsApp numbers → Create, connect and delete**.
-     * Pending of the spec (`accounts-number-onboarding` in spec/pending.json).
+     * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
+     * change.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $link

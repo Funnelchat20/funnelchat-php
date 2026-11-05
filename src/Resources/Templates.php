@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -18,8 +18,7 @@ use Funnelchat\Pagination\Paginator;
  * WhatsApp message templates (conversations area): list, create, edit, send.
  *
  * @phpstan-import-type RequestOptions from Funnelchat
- * @phpstan-import-type PendingClientReference from Schemas
- * @phpstan-import-type PendingPublicMessage from Schemas
+ * @phpstan-import-type PublicMessageResource from Schemas
  * @phpstan-import-type StoreMessageTemplateRequest from Schemas
  * @phpstan-import-type TemplateResource from Schemas
  * @phpstan-import-type UpdateMessageTemplateRequest from Schemas
@@ -30,6 +29,7 @@ final class Templates extends AbstractResource
      * `GET /api/v1/templates`, paginated.
      *
      * Permission: **Contacts and conversations → View**.
+     * Response: pending of the spec (`conversations-listings` in spec/pending.json); it may change.
      *
      * @param array{
      *     name?: string|null,
@@ -40,6 +40,8 @@ final class Templates extends AbstractResource
      *     deviceId?: int|null,
      *     type?: 'text'|'image'|'document'|'video'|'location'|'default'|null,
      *     created_by_webhook?: bool,
+     *     quality?: list<'GREEN'|'YELLOW'|'RED'|'UNKNOWN'|'NOT_APPLICABLE'|null>|null,
+     *     include?: 'quality_counts'|null,
      *     perPage?: int,
      *     orderBy?: 'name'|'created_at'|'updated_at',
      *     orderByMethod?: 'asc'|'desc',
@@ -142,7 +144,6 @@ final class Templates extends AbstractResource
      * `['message' => …]`, the registered message (`type` `template`).
      *
      * Permission: **Contacts and conversations → Send**.
-     * Pending of the spec (`conversations-send` in spec/pending.json): `client_reference`.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
      * @param int $device
@@ -153,19 +154,19 @@ final class Templates extends AbstractResource
      *     template_variables?: array{
      *         body?: list<string|null>,
      *     },
-     *     client_reference?: PendingClientReference,
+     *     client_reference?: string|null,
      * } $body
      * @param RequestOptions $options
      *
      * @return array{
-     *     message: PendingPublicMessage,
+     *     message: PublicMessageResource,
      * }
      */
     public function send(int|string $device, int|string $template, array $body, array $options = []): mixed
     {
         /**
          * @var array{
-         *     message: PendingPublicMessage,
+         *     message: PublicMessageResource,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/devices/{device}/templates/{template}/send-template', ['path' => ['device' => $device, 'template' => $template], 'body' => $body] + $options);

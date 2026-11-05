@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -67,8 +67,10 @@ trait ResourceProperties
     public readonly CustomFields $customFields;
 
     /**
-     * WhatsApp groups (communities area), read only: the groups, their participants, joins and
-     * leaves, messages, scheduled messages and actions.
+     * WhatsApp groups (communities area): the groups, their participants, joins and leaves, the
+     * messages sent to them, scheduled messages and actions; and sending a message to a group now
+     * (`sendMessage()`), whose result you read with `retrieveAction()` or receive in
+     * `group_action.completed`.
      */
     public readonly Groups $groups;
 

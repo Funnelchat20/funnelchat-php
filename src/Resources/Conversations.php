@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8bbbae569b4cab52…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -49,6 +49,10 @@ final class Conversations extends AbstractResource
      *     leadScoreDisqualified?: 'include'|'exclude'|'only'|null,
      *     metaWindowOpen?: bool,
      *     metaWindowDeviceIds?: string|null,
+     *     lastMessageDateFrom?: string|null,
+     *     lastMessageDateTo?: string|null,
+     *     timezone?: string|null,
+     *     customFieldFilters?: string|null,
      *     perPage?: int,
      *     orderBy?: 'asc'|'desc',
      *     page?: int,
@@ -104,11 +108,15 @@ final class Conversations extends AbstractResource
      *     advisorIds?: string,
      *     favorites?: bool,
      *     ownAndUnassigned?: bool,
+     *     withMine?: bool,
      * } $query
      * @param RequestOptions $options
      *
      * @return array{
      *     count: int,
+     * }|array{
+     *     count: int,
+     *     mine: int,
      * }
      */
     public function countUnread(array $query = [], array $options = []): mixed
@@ -116,6 +124,9 @@ final class Conversations extends AbstractResource
         /**
          * @var array{
          *     count: int,
+         * }|array{
+         *     count: int,
+         *     mine: int,
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/conversations/count/unread', ['query' => $query] + $options);
@@ -164,14 +175,14 @@ final class Conversations extends AbstractResource
      * @param RequestOptions $options
      *
      * @return array{
-     *     count: int,
+     *     count: int|null,
      * }
      */
     public function countClosed(array $query = [], array $options = []): mixed
     {
         /**
          * @var array{
-         *     count: int,
+         *     count: int|null,
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/conversations/count/closed', ['query' => $query] + $options);
