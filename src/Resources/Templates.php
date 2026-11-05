@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -139,9 +139,10 @@ final class Templates extends AbstractResource
 
     /**
      * `POST /api/v1/devices/{device}/templates/{template}/send-template`: sends an approved
-     * template (the way to write to a contact outside the 24-hour window). `phone` and `contact_id`
-     * are required; `template_variables.body` fills the body variables in order. Returns
-     * `['message' => …]`, the registered message (`type` `template`).
+     * template (the way to write to a contact outside the 24-hour window). Send `phone` alone (the
+     * contact is created if it does not exist, as in `messages->sendDirect()`), or `contact_id`, or
+     * both if they are the same contact; `template_variables.body` fills the body variables in
+     * order. Returns `['message' => …]`, the registered message (`type` `template`).
      *
      * Permission: **Contacts and conversations → Send**.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
@@ -149,8 +150,9 @@ final class Templates extends AbstractResource
      * @param int $device
      * @param string $template
      * @param array{
-     *     phone: string,
-     *     contact_id: int,
+     *     contact_id?: int|null,
+     *     phone?: string|null,
+     *     whatsapp_id?: string|null,
      *     template_variables?: array{
      *         body?: list<string|null>,
      *     },

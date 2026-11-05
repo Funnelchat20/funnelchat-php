@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0f451feaba59418f…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -170,6 +170,33 @@ namespace Funnelchat\Generated;
  *     module: string,
  *     action: string,
  *     enabled: bool,
+ * }
+ * @phpstan-type ApiGroupActionAcceptedResource array{
+ *     action_id: string,
+ *     status: 'queued',
+ * }
+ * @phpstan-type ApiGroupDescriptionRequest array{
+ *     device_id: int,
+ *     description: string|null,
+ * }
+ * @phpstan-type ApiGroupNameRequest array{
+ *     device_id: int,
+ *     name: string,
+ * }
+ * @phpstan-type ApiGroupPhonesRequest array{
+ *     device_id: int,
+ *     phones: list<string>,
+ * }
+ * @phpstan-type ApiGroupPhotoRequest array{
+ *     device_id: int,
+ *     photo_url: string,
+ * }
+ * @phpstan-type ApiGroupRenewLinkRequest array{
+ *     device_id: int,
+ * }
+ * @phpstan-type ApiGroupSettingsRequest array{
+ *     device_id: int,
+ *     members_can_send_messages: bool,
  * }
  * @phpstan-type AppModulesScheduledMessagesResourcesMessageTemplateResource array{
  *     id: string,
@@ -375,6 +402,10 @@ namespace Funnelchat\Generated;
  *         number_brake_lifted_at: string,
  *         template_name: string,
  *         template_status: string,
+ *         quality_risk_accepted: array{
+ *             at: string|null,
+ *             quality: string|null,
+ *         },
  *     }|string|null,
  *     number_brake_until: string|null,
  *     failure_reason: array{
@@ -771,6 +802,13 @@ namespace Funnelchat\Generated;
  *     advisor_scope: string,
  *     created_at: string,
  *     updated_at: string|'',
+ * }
+ * @phpstan-type CreateApiGroupRequest array{
+ *     device_id: int,
+ *     name: string,
+ *     description?: string|null,
+ *     join_approval_required?: bool,
+ *     participants: list<string>,
  * }
  * @phpstan-type CustomDomainResource array{
  *     id: int,
@@ -1254,7 +1292,7 @@ namespace Funnelchat\Generated;
  *     isAdmin: string,
  *     created_at: string|'',
  * }
- * @phpstan-type PaymentEventTypeEnum 'approved'|'pending'|'rejected'|'cancelled'|'refunded'|'chargeback'
+ * @phpstan-type PaymentEventTypeEnum 'approved'|'pending'|'rejected'|'cancelled'|'refunded'|'chargeback'|'abandoned_cart'
  * @phpstan-type PaymentProductResource array{
  *     external_product_id: string,
  *     name: string|null,
@@ -1372,7 +1410,9 @@ namespace Funnelchat\Generated;
  * @phpstan-type SendDirectMessageRequest array{
  *     device_id: int,
  *     text?: string,
- *     contact_id: int,
+ *     contact_id?: int|null,
+ *     phone?: string|null,
+ *     whatsapp_id?: string|null,
  *     file?: string,
  *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
  *     file_name?: string|null,
@@ -1381,6 +1421,14 @@ namespace Funnelchat\Generated;
  *     note?: bool,
  *     mentions?: list<int>|null,
  *     client_reference?: string|null,
+ * }
+ * @phpstan-type SendGroupMessageRequest array{
+ *     device_id: int,
+ *     type: 'text'|'image'|'video'|'audio'|'document',
+ *     text?: string,
+ *     media_url?: string,
+ *     caption?: string,
+ *     file_name?: string,
  * }
  * @phpstan-type SendMessageRequest array{
  *     phone?: string,
@@ -1977,18 +2025,8 @@ namespace Funnelchat\Generated;
  *     identity_type: 'phone'|'whatsapp_user',
  *     name: string|null,
  * }
- * @phpstan-type PendingGroupMessageCreate array{
- *     device_id: int,
- *     type: 'text'|'image'|'video'|'audio'|'document',
- *     text?: string,
- *     media_url?: string,
- *     caption?: string|null,
- *     file_name?: string|null,
- * }
- * @phpstan-type PendingGroupActionAccepted array{
- *     action_id: string,
- *     status: 'queued',
- * }
+ * @phpstan-type PendingGroupMessageCreate SendGroupMessageRequest
+ * @phpstan-type PendingGroupActionAccepted ApiGroupActionAcceptedResource
  * @phpstan-type PendingGroupActionResult array{
  *     message?: array{
  *         uid: string,

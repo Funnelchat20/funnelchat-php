@@ -61,6 +61,19 @@ final class SendResultTest extends TestCase
         self::assertSame(self::message(9001), $result['message']);
     }
 
+    public function testASendByPhoneNeedsNoContactAndSaysWhichOneItIs(): void
+    {
+        // conversations v1.19.21: `contact_id` is optional with `phone`; the contact is created if needed.
+        $http = new MockHttpClient(Reply::ok(['message' => self::message(9008)]));
+
+        $result = $this->client($http)->messages->sendDirect(['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola']);
+
+        self::assertSame('/api/v1/message/send-message', $http->lastRequest()->getUri()->getPath());
+        self::assertSame(['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], self::jsonBody($http->lastRequest()));
+        self::assertSame(2001, $result['message']['contact_id']);
+        self::assertSame('queued', $result['message']['status']);
+    }
+
     public function testAFileFromASignedUrlCarriesItsTypeAndName(): void
     {
         $http = new MockHttpClient(Reply::ok(['message' => self::message(9006, 'document')]));

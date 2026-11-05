@@ -39,17 +39,15 @@ The QR changes every 5 seconds: show it and scan it right away. `$number['id']` 
 ### 3. Send a message
 
 ```php
-$contact = $funnelchat->contacts->create(['phone' => '5491100000000', 'name' => 'Ana']);
-
-$sent = $funnelchat->messages->send($contact['id'], [
+$sent = $funnelchat->messages->sendDirect([
     'device_id' => $number['id'],
-    'phone' => '5491100000000', // the same phone, without +
-    'text' => 'Hi Ana! This is my first message from the API.',
+    'phone' => '5491100000000', // digits, without +
+    'text' => 'Hi! This is my first message from the API.',
 ]);
 echo $sent['message']['id'], ' ', $sent['message']['status']; // 9001 queued
 ```
 
-If a contact with that phone already exists, `contacts->create()` returns it. **Queued is not sent**: the next statuses arrive in step 4. With an official (WhatsApp Cloud) number you can write free text only within 24 hours of the contact's last message; after that, an [approved template](#closed-window-an-approved-template).
+One call: if the phone is not a contact yet, Funnelchat creates it, and `$sent['message']['contact_id']` says which one. **Queued is not sent**: the next statuses arrive in step 4. With an official (WhatsApp Cloud) number you can write free text only within 24 hours of the contact's last message; after that, an [approved template](#closed-window-an-approved-template).
 
 ### 4. Know when it was read
 
@@ -80,7 +78,7 @@ if ($event['type'] === 'message.status_changed' && $event['data']['status'] === 
 http_response_code(200);
 ```
 
-`status` goes `sent` → `delivered` → `read`, or `failed` (with `error`). A wrong signature throws `WebhookVerificationException`: answer `400`. Without a server, ask for the message: `$funnelchat->messages->get($contact['id'], $sent['message']['id'])['status']`.
+`status` goes `sent` → `delivered` → `read`, or `failed` (with `error`). A wrong signature throws `WebhookVerificationException`: answer `400`. Without a server, ask for the message: `$funnelchat->messages->get($sent['message']['contact_id'], $sent['message']['id'])['status']`.
 
 The four steps put together, ready to run: [examples/plain-php/first-use.php](examples/plain-php/first-use.php).
 
@@ -216,7 +214,7 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 |---|---|
 | `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, the tags and fields of a contact, `metaWindow` (the 24-hour window), notes. |
 | `$funnelchat->conversations` | `list`, `update`, counters, mark everything as read or unread. |
-| `$funnelchat->messages` | `send`, `sendDirect` (the contact in the body), `sendForm` (a form), `get` (one message by id), `list` (a contact's history), `sendContactCard`, `forward`, `react`, `removeReaction`. |
+| `$funnelchat->messages` | `send`, `sendDirect` (to a phone, no contact needed), `sendForm` (a form), `get` (one message by id), `list` (a contact's history), `sendContactCard`, `forward`, `react`, `removeReaction`. |
 | `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `delete`. |
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
@@ -233,6 +231,13 @@ The resource classes are generated from the spec: the parameters, query, body an
 ## Sending a message
 
 Sending with an API key needs the **Contacts and conversations → Send** permission and follows the WhatsApp rules.
+
+**To a phone.** `messages->sendDirect()` takes `device_id` and `phone` (digits, without `+`), with no contact first:
+
+- If the phone is not a contact yet, it is created in your key's workspace, with the same rules and `422`s as `contacts->upsert()`. It stays created even if a WhatsApp rule (the 24-hour window, the antiblock, the MACs, a disconnected number) then stops the send.
+- The answer is the same as `send()`'s, with the contact in `message.contact_id`.
+- Instead of `phone`, `contact_id`; or `whatsapp_id` (Meta's BSUID) with an official number only: with a QR number, with `phone`, or without the shape of a BSUID it answers `422`.
+- With `phone` and `contact_id`, they must be the same contact (`422 recipient_mismatch`). The phone of a contact of another workspace of the account answers `404`: nothing is created or sent.
 
 **Open window: free text.** With an official Meta number you can only send free text if the contact wrote to you in the last 24 hours. Check the window first:
 
@@ -278,11 +283,12 @@ The route takes the number (`3`) and the template id (`45`), which comes from `$
 
 ```php
 $funnelchat->templates->send(3, '45', [
-    'phone' => '5491100000000',
-    'contact_id' => 2001,
+    'phone' => '5491100000000',                     // alone: the contact is created if it does not exist
     'template_variables' => ['body' => ['Lucía']], // the body variables, in order
 ]);
 ```
+
+With `contact_id` instead of `phone`, or with both if they are the same contact.
 
 **A WhatsApp form.** `form_id` is the id of the published form (`family_id`); the answers arrive through `whatsapp_form.completed`:
 
@@ -675,7 +681,7 @@ What it does (`scripts/generate.php`):
 
 `spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**The current snapshot** is the portal's full unified spec of 04-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `c90565e4` (the merge of PR #33, deployed as v0.6.0), the same tree as `feat/primer-uso` @ `4838fb5`, where it was built and imported from (that is what `spec/procedencia.json` records). 203 paths, 248 operations and 29 events, from the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `v1.19.7` (`4e35ddb83`) and communities `v2.35.5` (`2be913d4`), the tags in production that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current snapshot** is the portal's full unified spec of 05-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `f5464516` (the merge of PR #37, v0.6.2), the same tree as `feat/enviar-por-telefono` @ `db3f0b9`, where it was built and imported from (that is what `spec/procedencia.json` records). 264 operations and 29 events, from the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `main` @ `f2937a71` (`v1.19.21`, sending by phone) and communities `v2.35.5` (`2be913d4`, taken with group actions on), what production ran that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
 ## Pending of the spec
 
@@ -684,13 +690,13 @@ What production has and the snapshot does not, or has with another shape, is in 
 - `spec/pending.json`: paths, fields, query parameters, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`, explained in its `sources`).
 - Each correction carries the condition that ends it (`while`, `x-fc-replace-while`): a top-level key, or a JSON pointer into the snapshot's operation or event (`/responses/200/content/application~1json/schema/type`). When a new snapshot changes the very thing a correction corrects, the generation stops applying it and lists it as obsolete.
 
-All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `main` @ `975d8154` (deployed to production on 25-10; its latest tag is `v0.3.0`).
+All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`; sending by phone, from conversations `v1.19.21` of 05-11 as the spec has it): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `main` @ `975d8154` (deployed to production on 25-10; its latest tag is `v0.3.0`).
 
 | What stays in the pending layer | Why |
 |---|---|
 | WhatsApp forms (`/api/v1/forms…`, the `forms` resource) | In production (conversations `v1.19.7`; api-edge routes `forms`), but the portal leaves them out of its spec: its map of the API entrypoint lacks `forms`. |
 | `webhooks->rotateSecret()` | Not open to API keys, so it is not in the spec; the method stays. |
-| Sending a message to a group (`groups->sendMessage`) and reading how it ended (`groups->retrieveAction`) | The portal took communities' snapshot with group actions off; they are on in production. |
+| The answer of `groups->retrieveAction()` | The spec types `data` as a list; communities answers the action as an object. |
 | The events accounts delivers: `device.*`, billing, subscription, MAC and AI quota, `group_action.*`, `group.message_received`, `group.reaction_added`, `group_join_request.*`, `group.full`… | The spec's `webhooks` has only those of conversations and communities' own catalog. |
 | `data.workspace_id` in every event | No event of the spec has it yet. |
 | `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`. |
@@ -720,7 +726,7 @@ The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), wi
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. The published sandbox (0.2.0) does not have sending to a group yet, and its events do not carry `workspace_id`.
+The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. The published sandbox 0.3.0 has sending to a group and `workspace_id`; sending by phone without `contact_id` (production since 05-11) may not be in it yet: if it answers `422` on `contact_id`, create the contact first (`contacts->create()`) and send with `messages->send()`.
 
 The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx @funnelchat-hq/sandbox --meta-connect`, or while it runs:
 
