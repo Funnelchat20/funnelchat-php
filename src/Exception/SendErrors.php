@@ -11,7 +11,8 @@ namespace Funnelchat\Exception;
  * Source: conversations v1.18.10 (`ApiSendRejection`, `ApiSendGuard`, `ApiSendRateLimiter`,
  * `ApiKeySendResponse`, `FormSendPreflight` and `lang/en/public_api.php`), in production since
  * 21-10 and the same in v1.19.7 (04-11). Sending to a group (`groups->sendMessage()`): communities
- * v2.35.5 (`ApiGroupActionTargetResolver`, `ApiGroupActionAcceptor` and `GroupActionsDocumentation`).
+ * v2.35.5 (`ApiGroupActionTargetResolver`, `ApiGroupActionAcceptor` and `GroupActionsDocumentation`) and,
+ * for following a group, v2.35.7 (`ApiGroupImporter`).
  */
 final class SendErrors
 {
@@ -44,6 +45,13 @@ final class SendErrors
      * - `unsupported_type` (422): an official number cannot send that type of message.
      * - `number_restricted` (422): the quality of the official number does not let it send.
      * - `too_many_pending_actions` (429): the number already has 50 group actions open. Never retried.
+     *
+     * A group of the number that is not in the account is followed first (communities v2.35.7), so
+     * `groups->sendMessage()` and `groups->follow()` also have:
+     *
+     * - `import_permission_required` (403): the key lacks **Groups and campaigns → Manage groups**.
+     * - `import_rate_limited` (429, with `Retry-After`): the number followed 5 groups in the last minute.
+     * - `import_in_progress` (409): the same group is being followed by another call.
      */
     public const CODES = [
         'rate_limited' => 429,
@@ -74,6 +82,9 @@ final class SendErrors
         'unsupported_type' => 422,
         'number_restricted' => 422,
         'too_many_pending_actions' => 429,
+        'import_permission_required' => 403,
+        'import_rate_limited' => 429,
+        'import_in_progress' => 409,
     ];
 
     /**

@@ -100,8 +100,10 @@ On an official number, a message received opens the 24-hour window for free text
 
 ## Groups
 
+Start from the groups of your number, read live from WhatsApp, and write to one:
+
 ```php
-foreach ($funnelchat->groups->list(['deviceId' => $number['id']]) as $group) {
+foreach ($funnelchat->groups->listByDevice($number['id']) as $group) {
     echo $group['uid'], ' ', $group['name'], "\n"; // 120363000000000001@g.us Customers
 }
 
@@ -115,11 +117,22 @@ $action = $funnelchat->groups->retrieveAction($accepted['action_id'])['data'];
 echo $action['status']; // queued, running, completed or failed
 ```
 
+- `listByDevice()` lists every group of the number, also those that are not in your account yet (for a key it is reused for a minute: a group just created can take that long to appear). `groups->list()` is the groups already in the account.
+- Writing to a group that is not in the account follows it first (see below), so the key also needs **Groups and campaigns → Manage groups** besides **Send**.
 - Reading groups needs **Groups and campaigns → View**; sending to a group, **Groups and campaigns → Send**.
 - Sending is asynchronous: `sendMessage()` answers `['action_id' => …, 'status' => 'queued']` and the message goes out right after, at the number's pace. Learn how it ended with `retrieveAction()` (`result.message.uid` is the message's id in WhatsApp; a failure has its `reason`) or with the `group_action.completed` and `group_action.failed` events, whose `action.uuid` is the same `action_id`.
 - A file: `type` `image`, `video`, `audio` or `document`, with `media_url` (a public `https` URL, up to 255 characters); `caption` with an image or a video, `file_name` with a document.
 - A QR number must be an admin of the group; an official number, the group's own number. Otherwise `422 device_not_group_admin` or `422 device_not_group_number`.
 - A send to a group is never retried by itself and has no idempotency key: after a timeout or a `5xx`, read the group's messages (`groups->listMessages()`) before sending it again.
+
+**Follow a group** to know who joins and who leaves, without writing to it:
+
+```php
+$followed = $funnelchat->groups->follow('120363000000000001@g.us', ['device_id' => $number['id']])['data'];
+// ['uid' => …, 'name' => …, 'imported' => true the first time, 'is_admin' => whether your number is an admin]
+```
+
+It is the panel's import: the group enters your account and its participants are synced. QR numbers only (`422 provider_unsupported` otherwise), with **Groups and campaigns → Manage groups** (`403 import_permission_required`); up to 5 groups per number per minute (`429 import_rate_limited`, which the SDK waits out by itself when `Retry-After` is at most 60 seconds).
 
 Who joins and who leaves a group arrives in `group_participant.joined` and `group_participant.left` (subscribe to them like any other, with **Groups and campaigns → View** in the key):
 
@@ -219,7 +232,7 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | `list`, `retrieve`, `listByDevice`, `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages`, `listActions`, `sendMessage` (to a group, now) and `retrieveAction` (how a send ended). See [Groups](#groups-reference). |
+| `$funnelchat->groups` | `list`, `retrieve`, `listByDevice` (the number's groups, live), `follow` (start receiving who joins and leaves), `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages`, `listActions`, `sendMessage` (to a group, now) and `retrieveAction` (how a send ended). See [Groups](#groups-reference). |
 | `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `delete`, `status`, `health`, `me`, `checkPhone`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
 | `$funnelchat->connectLinks` | `create`, `retrieve`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
 | `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
@@ -342,6 +355,7 @@ $metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id
 | `422 unsupported_type`, `422 provider_unsupported` | The number cannot send that type, or the account lacks what it needs (`requires` says what). |
 | `422 window_closed`, `422 number_restricted` | Official number: the 24-hour window is closed, or its quality does not let it send. |
 | `429 too_many_pending_actions` | The number already has 50 group actions open. Never retried. |
+| `403 import_permission_required`, `429 import_rate_limited`, `409 import_in_progress` | The group was not in the account and following it first failed: the key lacks **Groups and campaigns → Manage groups**, the number followed 5 groups in the last minute, or another call is following it. |
 
 A QR number sends at the pace of the Low-speed scheduled messages; there is no volume cap of the plan. The `result` of `retrieveAction()` for a send is `['message' => ['uid' => …]]`.
 
@@ -681,7 +695,7 @@ What it does (`scripts/generate.php`):
 
 `spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**The current snapshot** is the portal's full unified spec of 05-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `f5464516` (the merge of PR #37, v0.6.2), the same tree as `feat/enviar-por-telefono` @ `db3f0b9`, where it was built and imported from (that is what `spec/procedencia.json` records). 264 operations and 29 events, from the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `main` @ `f2937a71` (`v1.19.21`, sending by phone) and communities `v2.35.5` (`2be913d4`, taken with group actions on), what production ran that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current snapshot** is the portal's full unified spec of 05-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `99928866` (the merge of PR #39, v0.6.3), the same tree as `feat/grupos-primer-paso` @ `d31477c`, where it was built and imported from (that is what `spec/procedencia.json` records). From the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `main` @ `f2937a71` (`v1.19.21`, sending by phone) and communities `feat/grupos-sin-panel` @ `54643bbd` (the code of `v2.35.7`, following a group; taken with group actions on), what production ran that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
 ## Pending of the spec
 

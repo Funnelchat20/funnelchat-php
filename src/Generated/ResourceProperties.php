@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -68,9 +68,10 @@ trait ResourceProperties
 
     /**
      * WhatsApp groups (communities area): the groups, their participants, joins and leaves, the
-     * messages sent to them, scheduled messages and actions; and sending a message to a group now
+     * messages sent to them, scheduled messages and actions; following a group of a number
+     * (`follow()`), so its joins and leaves arrive as events; and sending a message to a group now
      * (`sendMessage()`), whose result you read with `retrieveAction()` or receive in
-     * `group_action.completed`.
+     * `group_action.completed`. The groups of a number, live from WhatsApp, are `listByDevice()`.
      */
     public readonly Groups $groups;
 

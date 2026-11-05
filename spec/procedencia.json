@@ -1,25 +1,25 @@
 {
     "description": "Where spec/funnelchat.json came from. Written by `composer generate -- --spec <file>`; do not edit it by hand.",
     "file": "spec/funnelchat.json",
-    "sha256": "8228ea7369daed0655b779ca6af381355a6c1cc13dd702ed6e9c322779bafe94",
-    "bytes": 1214988,
+    "sha256": "0ffaad2b25733d28b2cc07dde8152400c3c68974b3515e71e116ce599312b0fa",
+    "bytes": 1222005,
     "source": {
         "repository": "git@github.com:Funnelchat20/developers-portal.git",
         "path": "generated/specs/funnelchat-completa.json",
-        "branch": "feat/enviar-por-telefono",
-        "commit": "db3f0b987c7a1a6754c394193a0d43848cc7b620",
-        "commit_date": "2026-11-05T13:49:53-03:00",
+        "branch": "feat/grupos-primer-paso",
+        "commit": "d31477c9e86e32dc5714aae54c189654e1fd6ee7",
+        "commit_date": "2026-11-05T16:32:57-03:00",
         "file_tracked_in_git": false,
         "tracked_files_clean": true,
-        "file_modified_at": "2026-11-05T16:52:09Z"
+        "file_modified_at": "2026-11-05T19:35:37Z"
     },
-    "imported_at": "2026-11-05T17:00:15.894Z",
+    "imported_at": "2026-11-05T19:42:39.950Z",
     "spec": {
         "openapi": "3.1.0",
         "title": "Funnelchat API",
         "version": "v0",
-        "paths": 217,
-        "operations": 264,
+        "paths": 218,
+        "operations": 265,
         "webhooks": 29,
         "domains": [
             {
@@ -31,7 +31,7 @@
             {
                 "domain": "communities",
                 "version": "1.0.0",
-                "operations": 60,
+                "operations": 61,
                 "excluded_routes": 6
             },
             {
