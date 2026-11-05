@@ -726,7 +726,7 @@ The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), wi
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. The published sandbox 0.3.0 has sending to a group and `workspace_id`; sending by phone without `contact_id` (production since 05-11) may not be in it yet: if it answers `422` on `contact_id`, create the contact first (`contacts->create()`) and send with `messages->send()`.
+The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. Sending by phone (`messages->sendDirect()` without `contact_id`) needs `@funnelchat-hq/sandbox` 0.3.1 or later.
 
 The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx @funnelchat-hq/sandbox --meta-connect`, or while it runs:
 
