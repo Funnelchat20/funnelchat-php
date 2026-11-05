@@ -49,6 +49,19 @@ final class GroupsAndWorkspacesTest extends TestCase
         self::assertSame(['device_id' => 4, 'type' => 'text', 'text' => 'Hi, everyone!'], self::jsonBody($request));
     }
 
+    public function testFollowsAGroupOfTheNumber(): void
+    {
+        // communities v2.35.7: POST groups/{group}/import, 201 the first time, inside `data`.
+        $http = new MockHttpClient(Reply::json(201, ['data' => ['uid' => self::GROUP, 'name' => 'Customers', 'imported' => true, 'is_admin' => true]]));
+
+        $followed = $this->client($http)->groups->follow(self::GROUP, ['device_id' => 4])['data'];
+
+        self::assertSame('/api/v1/groups/120363000000000001%40g.us/import', $http->lastRequest()->getUri()->getPath());
+        self::assertSame(['device_id' => 4], self::jsonBody($http->lastRequest()));
+        self::assertTrue($followed['imported']);
+        self::assertTrue($followed['is_admin']);
+    }
+
     public function testSendsAFileToAGroup(): void
     {
         $http = new MockHttpClient(Reply::json(202, ['action_id' => self::ACTION, 'status' => 'queued']));

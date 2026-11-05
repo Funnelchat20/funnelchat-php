@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -178,6 +178,15 @@ namespace Funnelchat\Generated;
  * @phpstan-type ApiGroupDescriptionRequest array{
  *     device_id: int,
  *     description: string|null,
+ * }
+ * @phpstan-type ApiGroupDeviceRequest array{
+ *     device_id: int,
+ * }
+ * @phpstan-type ApiGroupImportResource array{
+ *     uid: string,
+ *     name: string|null,
+ *     imported: bool,
+ *     is_admin: bool,
  * }
  * @phpstan-type ApiGroupNameRequest array{
  *     device_id: int,

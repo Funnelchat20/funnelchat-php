@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 8228ea7369daed06…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -16,9 +16,10 @@ use Funnelchat\Pagination\Paginator;
 
 /**
  * WhatsApp groups (communities area): the groups, their participants, joins and leaves, the
- * messages sent to them, scheduled messages and actions; and sending a message to a group now
+ * messages sent to them, scheduled messages and actions; following a group of a number
+ * (`follow()`), so its joins and leaves arrive as events; and sending a message to a group now
  * (`sendMessage()`), whose result you read with `retrieveAction()` or receive in
- * `group_action.completed`.
+ * `group_action.completed`. The groups of a number, live from WhatsApp, are `listByDevice()`.
  *
  * Reading needs **Groups and campaigns → View**; sending, **Groups and campaigns → Send**. Who
  * joins and who leaves arrives in `group_participant.joined` and `group_participant.left`. From the
@@ -28,6 +29,8 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
  * @phpstan-import-type ApiGroupActionAcceptedResource from Schemas
+ * @phpstan-import-type ApiGroupDeviceRequest from Schemas
+ * @phpstan-import-type ApiGroupImportResource from Schemas
  * @phpstan-import-type ChannelMetadataResource from Schemas
  * @phpstan-import-type CommunitiesMessageResource from Schemas
  * @phpstan-import-type GroupMetadataResource from Schemas
@@ -89,8 +92,10 @@ final class Groups extends AbstractResource
     }
 
     /**
-     * `GET /api/v1/devices/{device}/groups`, paginated (`page`, `pageSize`): the groups of one
-     * number.
+     * `GET /api/v1/devices/{device}/groups`, paginated (`page`, `pageSize`): the WhatsApp groups of
+     * one number, read live from WhatsApp (for an API key, reused for a minute per number), also
+     * those not in the account yet; one that is in the account carries its `device_id`. Its `uid`
+     * is the `{group}` of `follow()` and `sendMessage()`.
      *
      * Permission: **Groups and campaigns → View**.
      *
@@ -271,13 +276,48 @@ final class Groups extends AbstractResource
     }
 
     /**
+     * `POST /api/v1/groups/{group}/import`: follows a group of the number `device_id` (the panel's
+     * import): the group enters the account, its participants are synced and from then on
+     * `group_participant.joined` and `group_participant.left` arrive. Returns `['data' => ['uid',
+     * 'name', 'imported', 'is_admin']]`, `201` when it imported it and `200` when it was already in
+     * the account; `is_admin` is read from WhatsApp in the same call. QR numbers only (`422
+     * provider_unsupported`); a group that is not of the number answers `404 group_not_found`.
+     * Needs **Groups and campaigns → Manage groups** (`403 import_permission_required`). Up to 5
+     * per number per minute: `429 import_rate_limited`, with `retryAfter`; two at once for the same
+     * group, `409 import_in_progress`.
+     *
+     * Permission: **Groups and campaigns → Manage groups**.
+     *
+     * @param string $group
+     * @param ApiGroupDeviceRequest $body
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     data: ApiGroupImportResource,
+     * }
+     */
+    public function follow(int|string $group, array $body, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     data: ApiGroupImportResource,
+         * } $result
+         */
+        $result = $this->client->request('POST', '/api/v1/groups/{group}/import', ['path' => ['group' => $group], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
      * `POST /api/v1/groups/{group}/messages`: sends a text (`type: 'text'`, `text`) or a file
      * (`image`, `video`, `audio` or `document`, with `media_url`) to the group now, from
-     * `device_id`. `{group}` is the group's `uid` (`…@g.us`). It is asynchronous: it returns
-     * `['action_id' => …, 'status' => 'queued']`; read how it ended with `retrieveAction()`
-     * (`result.message.uid` is the message's id in WhatsApp) or wait for `group_action.completed` /
-     * `group_action.failed`. A QR number must be an admin of the group; an official number, the
-     * group's own number. It is a send: never retried by itself, and there is no idempotency key.
+     * `device_id`. `{group}` is the group's `uid` (`…@g.us`); a group of the number that is not
+     * in the account yet is followed first (`follow()`, with its rules: this also needs **Groups
+     * and campaigns → Manage groups**). It is asynchronous: it returns `['action_id' => …,
+     * 'status' => 'queued']`; read how it ended with `retrieveAction()` (`result.message.uid` is
+     * the message's id in WhatsApp) or wait for `group_action.completed` / `group_action.failed`. A
+     * QR number must be an admin of the group; an official number, the group's own number. It is a
+     * send: never retried by itself, and there is no idempotency key.
      *
      * Permission: **Groups and campaigns → Send**.
      *
