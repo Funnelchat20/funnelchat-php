@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -15,7 +15,7 @@ namespace Funnelchat\Generated;
 final class Routes
 {
     /**
-     * Every operation of the spec (284), sorted by path. `pending` = taken from
+     * Every operation of the spec (285), sorted by path. `pending` = taken from
      * spec/pending.json, not from the snapshot. `sdk` = the resource method that calls it
      * (`contacts->list`), or `null`: call it with `$funnelchat->request()`.
      *
@@ -157,6 +157,7 @@ final class Routes
         ['method' => 'GET', 'path' => '/api/v1/devices/{device}/qr', 'operationId' => 'deviceProvisioning.qr', 'domain' => 'accounts', 'permission' => 'accounts:operate', 'tag' => 'DeviceProvisioning', 'summary' => 'Pedir el QR de un número', 'pending' => true, 'sdk' => 'devices->qr'],
         ['method' => 'PUT', 'path' => '/api/v1/devices/{device}/reset', 'operationId' => 'device.reset', 'domain' => 'accounts', 'permission' => 'accounts:operate', 'tag' => 'Device', 'summary' => 'Reiniciar la sesión de un número', 'pending' => false, 'sdk' => null],
         ['method' => 'GET', 'path' => '/api/v1/devices/{device}/status', 'operationId' => 'device.status', 'domain' => 'accounts', 'permission' => 'accounts:read', 'tag' => 'Device', 'summary' => 'Ver el estado de conexión', 'pending' => false, 'sdk' => 'devices->status'],
+        ['method' => 'POST', 'path' => '/api/v1/devices/{device}/templates', 'operationId' => 'messageTemplate.sync', 'domain' => 'conversations', 'permission' => 'conversations:write', 'tag' => 'MessageTemplate', 'summary' => 'Sincronizar las plantillas de un número con Meta', 'pending' => false, 'sdk' => 'templates->sync'],
         ['method' => 'DELETE', 'path' => '/api/v1/devices/{device}/templates/{template}', 'operationId' => 'messageTemplate.delete', 'domain' => 'conversations', 'permission' => 'conversations:write', 'tag' => 'MessageTemplate', 'summary' => 'Eliminar una plantilla de un número', 'pending' => false, 'sdk' => 'templates->delete'],
         ['method' => 'POST', 'path' => '/api/v1/devices/{device}/templates/{template}/send-template', 'operationId' => 'messageTemplate.send', 'domain' => 'conversations', 'permission' => 'conversations:send', 'tag' => 'MessageTemplate', 'summary' => 'Enviar una plantilla', 'pending' => true, 'sdk' => 'templates->send'],
         ['method' => 'PUT', 'path' => '/api/v1/devices/{device}/update-webhook-received', 'operationId' => 'device.updateWebhookReceived', 'domain' => 'accounts', 'permission' => 'accounts:write', 'tag' => 'Device', 'summary' => 'Configurar el webhook de mensajes recibidos', 'pending' => false, 'sdk' => null],

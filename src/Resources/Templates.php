@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -172,6 +172,40 @@ final class Templates extends AbstractResource
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/devices/{device}/templates/{template}/send-template', ['path' => ['device' => $device, 'template' => $template], 'body' => $body] + $options);
+
+        return $result;
+    }
+
+    /**
+     * `POST /api/v1/devices/{device}/templates`: brings the templates an official number has in
+     * Meta into Funnelchat (and drops those of a WhatsApp Business account the number no longer
+     * uses), so a template you just created in Meta can be sent; then list them again with
+     * `list()`. `{device}` is the official number's id; no body. Returns `['status' =>
+     * 'completed']` (done) or `['status' => 'in_progress']` (the first 100 are in, the rest keep
+     * coming: list again in a few seconds). Refusals: `404` (the number is not in your key's
+     * workspace), `409 template_sync_in_progress` (one is already running for that number: do not
+     * start another), `422 number_not_connected_to_meta` (a QR number, or no WhatsApp Business
+     * account or credentials), `422 meta_rejected` (Meta refused; its code in `body['meta_code']`;
+     * nothing was brought), `502 meta_unavailable` (Meta did not answer). Needs **Contacts and
+     * conversations → Edit**.
+     *
+     * Permission: **Contacts and conversations → Edit**.
+     *
+     * @param int $device
+     * @param RequestOptions $options
+     *
+     * @return array{
+     *     status: 'in_progress'|'completed',
+     * }
+     */
+    public function sync(int|string $device, array $options = []): mixed
+    {
+        /**
+         * @var array{
+         *     status: 'in_progress'|'completed',
+         * } $result
+         */
+        $result = $this->client->request('POST', '/api/v1/devices/{device}/templates', ['path' => ['device' => $device]] + $options);
 
         return $result;
     }
