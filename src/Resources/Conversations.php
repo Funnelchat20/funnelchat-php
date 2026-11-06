@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 0ffaad2b25733d28…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -39,6 +39,7 @@ final class Conversations extends AbstractResource
      *     kanbanSettingId?: int,
      *     kanbanStageIds?: string,
      *     unreadMessages?: bool,
+     *     awaitingReply?: bool,
      *     onlyWithMac?: bool,
      *     cursor?: string,
      *     updated_since?: string,

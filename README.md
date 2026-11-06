@@ -228,7 +228,7 @@ In Laravel, register a single client for the whole app: see [examples/laravel/ap
 | `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, the tags and fields of a contact, `metaWindow` (the 24-hour window), notes. |
 | `$funnelchat->conversations` | `list`, `update`, counters, mark everything as read or unread. |
 | `$funnelchat->messages` | `send`, `sendDirect` (to a phone, no contact needed), `sendForm` (a form), `get` (one message by id), `list` (a contact's history), `sendContactCard`, `forward`, `react`, `removeReaction`. |
-| `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `delete`. |
+| `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `sync` (bring a number's templates from Meta), `delete`. |
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
@@ -292,7 +292,7 @@ If one is missing, the API answers `422` with the field in `errors` (`file_type`
 
 ### Closed window: an approved template
 
-The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`:
+The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`. If a template you created in Meta is not in that list yet, bring the number's templates from Meta with `$funnelchat->templates->sync(3)` and list again (official numbers only; `['status' => 'in_progress']` means the rest are still coming, so list again in a few seconds):
 
 ```php
 $funnelchat->templates->send(3, '45', [
@@ -695,7 +695,7 @@ What it does (`scripts/generate.php`):
 
 `spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
 
-**The current snapshot** is the portal's full unified spec of 05-11: `generated/specs/funnelchat-completa.json` of developers-portal `main` @ `99928866` (the merge of PR #39, v0.6.3), the same tree as `feat/grupos-primer-paso` @ `d31477c`, where it was built and imported from (that is what `spec/procedencia.json` records). From the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `main` @ `f2937a71` (`v1.19.21`, sending by phone) and communities `feat/grupos-sin-panel` @ `54643bbd` (the code of `v2.35.7`, following a group; taken with group actions on), what production ran that day; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current snapshot** is the portal's full unified spec of 06-11: `generated/specs/funnelchat-completa.json` built on developers-portal `feat/plantillas-de-meta` @ `51c0aeb` (v0.6.7, not merged yet), where it was imported from (that is what `spec/procedencia.json` records). It adds bringing a number's templates from Meta (conversations v1.19.37). From the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `feat/sincronizar-plantillas` @ `519651f1b` (bringing templates from Meta, in production as `v1.19.37`) and communities `feat/grupos-sin-panel` @ `54643bbd` (the code of `v2.35.7`, following a group; taken with group actions on), what production runs; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
 
 ## Pending of the spec
 

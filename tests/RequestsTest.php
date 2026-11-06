@@ -437,4 +437,27 @@ final class RequestsTest extends TestCase
         (new Funnelchat(apiKey: self::TEST_API_KEY, httpClient: $http, requestFactory: $factory))->devices->retrieve(3);
         self::assertSame(1, $factory->created);
     }
+
+    public function testBringsTheTemplatesOfANumberFromMetaAndSurfacesASyncAlreadyRunning(): void
+    {
+        // conversations v1.19.37: POST devices/{device}/templates, no body, 202 with the status.
+        $http = new MockHttpClient(
+            Reply::json(202, ['status' => 'in_progress']),
+            Reply::json(409, ['error' => 'template_sync_in_progress', 'message' => 'Ya hay una sincronización en curso.']),
+        );
+        $client = $this->client($http, maxRetries: 2);
+
+        self::assertSame(['status' => 'in_progress'], $client->templates->sync(3));
+        self::assertSame('POST', $http->lastRequest()->getMethod());
+        self::assertSame('/api/v1/devices/3/templates', $http->lastRequest()->getUri()->getPath());
+        self::assertSame('', (string) $http->lastRequest()->getBody());
+
+        try {
+            $client->templates->sync(3);
+            self::fail('A sync already running is a 409.');
+        } catch (\Funnelchat\Exception\ConflictException $exception) {
+            self::assertSame('template_sync_in_progress', $exception->errorCode);
+        }
+        self::assertCount(2, $http->requests); // a 409 is not retried
+    }
 }
