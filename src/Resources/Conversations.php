@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -14,7 +14,10 @@ use Funnelchat\Funnelchat;
 use Funnelchat\Pagination\Paginator;
 
 /**
- * Conversations (conversations area): the inbox, its counters and the state of each conversation.
+ * Conversations (conversations area): the inbox, its counters, and marking everything as read or
+ * unread.
+ *
+ * In the developers portal: «Conversaciones» (Funciones de Funnelchat).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  */
@@ -66,36 +69,6 @@ final class Conversations extends AbstractResource
     {
         /** @var Paginator<array<string, mixed>> $result */
         $result = $this->client->paginate('/api/v1/conversations', ['query' => $query] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `PUT /api/v1/contacts/{contact}/update`: changes the conversation with a contact (open,
-     * assigned…).
-     *
-     * Permission: **Contacts and conversations → Edit**.
-     *
-     * @param int $contact
-     * @param array{
-     *     favorite?: bool,
-     *     active_conversation?: bool,
-     *     unread_messages?: int,
-     *     adviser_id?: int|null,
-     *     device_id?: int,
-     *     text?: string,
-     *     notes?: string|null,
-     *     custom_fields?: list<string>,
-     *     manually_unread?: bool,
-     * } $body
-     * @param RequestOptions $options
-     *
-     * @return array<string, mixed>
-     */
-    public function update(int|string $contact, array $body, array $options = []): mixed
-    {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('PUT', '/api/v1/contacts/{contact}/update', ['path' => ['contact' => $contact], 'body' => $body] + $options);
 
         return $result;
     }

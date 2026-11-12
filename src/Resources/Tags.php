@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -16,6 +16,8 @@ use Funnelchat\Pagination\Paginator;
 
 /**
  * Tags (conversations area).
+ *
+ * In the developers portal: «Etiquetas» (Funciones de Funnelchat).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ContactResource from Schemas

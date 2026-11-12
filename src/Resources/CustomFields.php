@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -17,6 +17,8 @@ use Funnelchat\Pagination\Paginator;
 /**
  * Custom fields of contacts (conversations area). To set a value on a contact, see
  * `contacts->attachCustomField()`.
+ *
+ * In the developers portal: «Campos personalizados» (Funciones de Funnelchat).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type CustomFieldResource from Schemas
@@ -31,7 +33,7 @@ final class CustomFields extends AbstractResource
      * @param array{
      *     name?: string,
      *     description?: string,
-     *     type?: int,
+     *     type?: 0|1|2|3|4,
      *     withContactCount?: bool,
      *     perPage?: int,
      *     orderBy?: 'name'|'created_at'|'updated_at',
@@ -59,7 +61,7 @@ final class CustomFields extends AbstractResource
      * @param array{
      *     name: string,
      *     description?: string|null,
-     *     type: int,
+     *     type: 0|1|2|3|4,
      * } $body
      * @param RequestOptions $options
      *

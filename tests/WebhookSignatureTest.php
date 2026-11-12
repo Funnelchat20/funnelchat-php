@@ -54,7 +54,7 @@ final class WebhookSignatureTest extends TestCase
     public function testAnswersLikeThePortalSnippetOnThePortalVectors(string $body, string $header, string $secret, bool $expected): void
     {
         self::assertSame(verificarFirma($body, $header, $secret), Webhook::verify($body, $header, $secret));
-        self::assertSame($expected, verificarFirma($body, $header, $secret), 'the copy of the portal snippet still answers as test_firmas.py expects');
+        self::assertSame($expected, verificarFirma($body, $header, $secret), 'the copy of the portal snippet still answers as the portal\'s vectors expect');
     }
 
     /**

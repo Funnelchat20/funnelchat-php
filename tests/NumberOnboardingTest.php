@@ -244,7 +244,7 @@ final class NumberOnboardingTest extends TestCase
         );
         $client = $this->client($http);
 
-        self::assertSame('completed', $client->connectLinks->retrieve(7)['data']['status']);
+        self::assertSame('completed', $client->connectLinks->get(7)['data']['status']);
         self::assertSame('https://api.funnelchat.com/api/v1/connect-links/7', (string) $http->lastRequest()->getUri());
 
         $ids = [];
@@ -520,7 +520,7 @@ final class NumberOnboardingTest extends TestCase
         }
 
         $source = (string) file_get_contents(__DIR__ . '/../src/Generated/WebhookEvents.php');
-        // accounts v1.5.97 always sends them (DeviceWebhookEmitter): they are required.
+        // accounts v1.5.97 always sends them: they are required.
         foreach (['DeviceConnectedData', 'DeviceDisconnectedData', 'DeviceDeletedData', 'DeviceHealthChangedData'] as $alias) {
             self::assertMatchesRegularExpression("/@phpstan-type {$alias} array\\{\\s*\\*\\s*device: PendingWebhookDevice,.*?connect_link_id: PendingConnectLinkId,\\s*\\*\\s*workspace_id: PendingWorkspaceId,/s", $source, $alias);
         }

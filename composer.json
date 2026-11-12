@@ -1,6 +1,6 @@
 {
     "name": "funnelchat/funnelchat-php",
-    "description": "Official PHP SDK for the Funnelchat public API: contacts, messages, templates, forms, groups, numbers and webhooks.",
+    "description": "Official PHP SDK for the Funnelchat public API: every function the developers portal publishes (numbers, messages, groups, contacts, broadcasts, campaigns, automations, webhooks and more); the most used as typed methods.",
     "type": "library",
     "license": "MIT",
     "homepage": "https://developers-portal.funnelchat.app/docs/",
@@ -69,8 +69,8 @@
         ]
     },
     "scripts-descriptions": {
-        "generate": "Regenerates src/Generated and src/Resources from spec/ (with --spec <file>, imports a new spec).",
-        "generate:check": "Fails if the generated code is not up to date with spec/.",
+        "generate": "Regenerates src/Generated, src/Resources and the block of README.md from spec/ (with --spec <file>, imports the spec the developers portal publishes).",
+        "generate:check": "Fails if the generated code (or the block of README.md) is not up to date with spec/.",
         "test": "PHPUnit, with no network and no keys.",
         "test:e2e": "The end-to-end tests against funnelchat-sandbox (FUNNELCHAT_SANDBOX_URL=http://127.0.0.1:4010).",
         "analyse": "PHPStan at the max level.",
@@ -86,7 +86,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.3.x-dev"
+            "dev-main": "0.4.x-dev"
         }
     },
     "minimum-stability": "stable",

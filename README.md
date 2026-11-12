@@ -8,6 +8,8 @@ composer require funnelchat/funnelchat-php guzzlehttp/guzzle
 
 PHP 8.1 or later. The API reference is on the [developers portal](https://developers-portal.funnelchat.app/docs/).
 
+**Every function the portal publishes is in the SDK**: the ones of the first use below and all those of [«Más funciones»](https://developers-portal.funnelchat.app/docs/mas-funciones/), the WhatsApp ones and the Funnelchat ones; the most used as methods of a resource, every one with `request()`. Its topics: numbers (connecting them, QR, connect links, health, username, message queue), messages and templates, groups and their actions (create, participants, admins, invite link, join requests), contacts, conversations, tags, custom fields and notes, automations and their folders, campaigns, scheduled sends, statistics, forms, broadcasts, boards, tickets, quick replies, lead score, sales, custom domains, Conversions API, Meta costs and accounts, your account and team, and webhooks. How many there are, and the portal's groups by category, are in [Every function of the portal](#every-function-of-the-portal).
+
 ## First use
 
 ### 1. Create your key
@@ -123,7 +125,7 @@ echo $action['status']; // queued, running, completed or failed
 - Sending is asynchronous: `sendMessage()` answers `['action_id' => …, 'status' => 'queued']` and the message goes out right after, at the number's pace. Learn how it ended with `retrieveAction()` (`result.message.uid` is the message's id in WhatsApp; a failure has its `reason`) or with the `group_action.completed` and `group_action.failed` events, whose `action.uuid` is the same `action_id`.
 - A file: `type` `image`, `video`, `audio` or `document`, with `media_url` (a public `https` URL, up to 255 characters); `caption` with an image or a video, `file_name` with a document.
 - A QR number must be an admin of the group; an official number, the group's own number. Otherwise `422 device_not_group_admin` or `422 device_not_group_number`.
-- A send to a group is never retried by itself and has no idempotency key: after a timeout or a `5xx`, read the group's messages (`groups->listMessages()`) before sending it again.
+- A send to a group is never retried by itself and has no idempotency key: after a timeout or a `5xx`, read the group's actions (`groups->listActions($group, ['orderBy' => 'created_at', 'orderByMethod' => 'desc'])`) before sending it again: a send is one of them.
 
 **Follow a group** to know who joins and who leaves, without writing to it:
 
@@ -161,7 +163,7 @@ $workspaceId = $event['data']['workspace_id']; // the same for every event of on
 
 The rest is reference.
 
-- [API keys and permissions](#api-keys-and-permissions) · [The client](#the-client) · [The resources](#the-resources)
+- [API keys and permissions](#api-keys-and-permissions) · [The client](#the-client) · [Every function of the portal](#every-function-of-the-portal) · [The resources](#the-resources)
 - [Sending a message](#sending-a-message) · [Groups](#groups-reference) · [Creating and connecting numbers](#creating-and-connecting-numbers)
 - [Receiving webhooks with Laravel](#receiving-webhooks-with-laravel) · [Pagination](#pagination) · [Errors](#errors) · [Retries](#retries) · [Any route](#any-route)
 - [Regenerating](#regenerating) · [Pending of the spec](#pending-of-the-spec) · [Development](#development) · [Testing against the sandbox](#testing-against-the-sandbox)
@@ -221,25 +223,49 @@ Every request sends `Authorization: Bearer <key>`, `Accept: application/json` an
 
 In Laravel, register a single client for the whole app: see [examples/laravel/app/Providers/FunnelchatServiceProvider.php](examples/laravel/app/Providers/FunnelchatServiceProvider.php).
 
+## Every function of the portal
+
+The SDK covers every function the developers portal publishes for an API key, those of [«Más funciones»](https://developers-portal.funnelchat.app/docs/mas-funciones/) included:
+
+<!-- BEGIN GENERATED: functions (composer generate; do not edit by hand) -->
+**253 operations and 56 webhook event types**, in the 30 groups of the portal (named as the portal names them), by category:
+
+- **[Primer uso](https://developers-portal.funnelchat.app/)**, 1 group: Mensajes.
+- **[Funciones de WhatsApp](https://developers-portal.funnelchat.app/docs/mas-funciones/whatsapp/)**, 9 groups: Números, Grupos, Atender una conversación, Cola de mensajes de un número, Acciones de grupo, Plantillas, Formularios, Conversions API, Costos y cuentas de Meta.
+- **[Funciones de Funnelchat](https://developers-portal.funnelchat.app/docs/mas-funciones/funnelchat/)**, 20 groups: Contactos, Conversaciones, Etiquetas, Campos personalizados, Automatizaciones, Campañas, Envíos programados, Estadísticas, Difusiones, Tableros, Tickets, Notas, Respuestas rápidas, Carpetas de flujos, Puntaje, Ventas, Dominios propios, Tu cuenta y tu equipo, Alertas, Webhooks.
+<!-- END GENERATED: functions -->
+
+The resources ([The resources](#the-resources)) wrap the most used ones, with the same names as the Node SDK. Any of them is a call with [`request()`](#any-route), or `paginate()` for a list, by the method and path the portal shows:
+
+```php
+foreach ($funnelchat->paginate('/api/v1/broadcasts', ['query' => ['perPage' => 50]]) as $broadcast) {
+    echo $broadcast['id'], ' ', $broadcast['name'], "\n";
+}
+
+$tickets = $funnelchat->request('GET', '/api/v1/tickets')['data'];
+```
+
+`Funnelchat\Generated\Routes::ALL` lists every operation with its group as the portal names it (`group`), the category of the group (`category`), its permission and its summary; `Routes::GROUPS` has the groups in the portal's order. An operation with `destructive: true` cannot be undone, such as deleting a number: a script or an AI agent acting on its own should ask a person to confirm before calling it. `destructive: null` means the spec does not say.
+
 ## The resources
 
 | Resource | What it has |
 |---|---|
 | `$funnelchat->contacts` | `list`, `create`, `upsert`, `retrieve`, `update`, `delete`, the tags and fields of a contact, `metaWindow` (the 24-hour window), notes. |
-| `$funnelchat->conversations` | `list`, `update`, counters, mark everything as read or unread. |
+| `$funnelchat->conversations` | `list`, counters, mark everything as read or unread. |
 | `$funnelchat->messages` | `send`, `sendDirect` (to a phone, no contact needed), `sendForm` (a form), `get` (one message by id), `list` (a contact's history), `sendContactCard`, `forward`, `react`, `removeReaction`. |
-| `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `quickReplyButtons`, `send`, `sync` (bring a number's templates from Meta), `delete`. |
+| `$funnelchat->templates` | `list`, `create`, `retrieve`, `update`, `send`, `sync` (bring a number's templates from Meta), `delete`. |
 | `$funnelchat->forms` | WhatsApp forms: `list`, `templates`, `create`, `retrieve`, `update`, `delete`, `createVersion`, `sync`, `publish`, `numbers`, `addNumber`, `removeNumber`, `retryNumbers`, `definition`, `versions`, `listResponses`, `retrieveResponse` and `metrics`. |
 | `$funnelchat->tags` | `list`, `create`, `retrieve`, `update`, `delete`, `listContacts`. |
 | `$funnelchat->customFields` | `list`, `create`, `retrieve`, `update`, `delete`. |
-| `$funnelchat->groups` | `list`, `retrieve`, `listByDevice` (the number's groups, live), `follow` (start receiving who joins and leaves), `metadata`, `listParticipants`, `listParticipantEvents`, `listMessages`, `listScheduledMessages`, `listActions`, `sendMessage` (to a group, now) and `retrieveAction` (how a send ended). See [Groups](#groups-reference). |
-| `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `delete`, `status`, `health`, `me`, `checkPhone`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
-| `$funnelchat->connectLinks` | `create`, `retrieve`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
-| `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `rotateSecret`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
+| `$funnelchat->groups` | `list`, `retrieve`, `listByDevice` (the number's groups, live), `follow` (start receiving who joins and leaves), `metadata`, `listParticipants`, `listParticipantEvents`, `listScheduledMessages`, `listActions`, `sendMessage` (to a group, now) and `retrieveAction` (how a send ended). See [Groups](#groups-reference). |
+| `$funnelchat->devices` | `list` (filter by `external_reference`), `create` (a QR number), `qr`, `retrieve` (with `capabilities`), `update`, `delete`, `status`, `health`, connection history. See [Creating and connecting numbers](#creating-and-connecting-numbers). |
+| `$funnelchat->connectLinks` | `create`, `get`, `list`, `revoke`: [connect links](#a-connect-link) for your customer to connect a number. |
+| `$funnelchat->webhooks` | Subscriptions (`list`, `create`, `retrieve`, `update`, `delete`, `test`, `listDeliveries`), the catalog (`events`), `verify` and `constructEvent`. |
 
-The resources the [Node SDK](https://github.com/Funnelchat20/funnelchat-node) also has have the same methods, with the arguments in the same order: path parameters first, then the query or the body (arrays), and the call options last.
+They have the same methods as the [Node SDK](https://github.com/Funnelchat20/funnelchat-node), with the arguments in the same order: path parameters first, then the query or the body (arrays), and the call options last.
 
-The resource classes are generated from the spec: the parameters, query, body and response of each method are typed in its PHPDoc with array shapes (`array{id: int, name: string, …}`). The schemas of the spec are PHPStan aliases in `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), which you can use in your code with `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. For any other route, see [Any route](#any-route).
+The resource classes are generated from the spec: the parameters, query, body and response of each method are typed in its PHPDoc with array shapes (`array{id: int, name: string, …}`). The schemas of the spec are PHPStan aliases in `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), which you can use in your code with `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. For any other function, see [Every function of the portal](#every-function-of-the-portal).
 
 ## Sending a message
 
@@ -411,7 +437,7 @@ sendToYourCustomer($link['url']); // the URL comes only in this answer
 - Learn the result three ways: the `device.connected` event (with `connect_link_id` and `external_reference`), `return_url` (it gets `connect_link_id`, `status`, and `device_id` or `error_code`), or reading the link:
 
 ```php
-$link = $funnelchat->connectLinks->retrieve($link['id'])['data'];
+$link = $funnelchat->connectLinks->get($link['id'])['data'];
 // status: pending, completed, failed (see error_code), expired or revoked; device_id once completed
 
 foreach ($funnelchat->connectLinks->list(['status' => 'pending']) as $open) { … } // newest first
@@ -509,7 +535,7 @@ The full example is in [examples/plain-php/webhook.php](examples/plain-php/webho
 - If you only want a yes or no, `Webhook::verify($rawBody, $signatureHeader, $secret)` returns `true` or `false` and never throws.
 - Both reject a signature whose `t` is more than 300 seconds away from your clock. To change that, use the fourth argument: `Webhook::verify($rawBody, $header, $secret, 600)`.
 - The body can be a string or a PSR-7 `StreamInterface`.
-- The algorithm is exactly the one of the portal's `snippets/verificar-firma.php`: `X-Funnelchat-Signature: t=<unix>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>." + raw body` with the full secret, compared in constant time (`hash_equals`), and there can be several `v1`. The tests use the vectors of the portal's `tests/test_firmas.py` and compare, case by case, with a copy of the snippet.
+- The algorithm is exactly the one of the portal's `snippets/verificar-firma.php`: `X-Funnelchat-Signature: t=<unix>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>." + raw body` with the full secret, compared in constant time (`hash_equals`), and there can be several `v1`. The tests use the vectors with which the portal tests its signature code, and compare, case by case, with a copy of the snippet.
 - They are also on the client: `$funnelchat->webhooks->verify(…)` and `$funnelchat->webhooks->constructEvent(…)`.
 
 **The event types.** `type` is a string, because new types can arrive before the SDK knows them: answer `2xx` to the ones you do not handle. Once you checked `type`, the alias of that event gives you the full shape (they are in `Funnelchat\Generated\WebhookEvents`: `MessageReceivedEvent`, `MessageStatusChangedEvent`…; and `XxxData` for its `data`):
@@ -551,7 +577,7 @@ $subscription = $funnelchat->webhooks->create([
 - Subscriptions need **Notifications (webhooks) → View** and **Notifications (webhooks) → Manage**, and for each event type, the **View** of the event's area: **Contacts and conversations → View** for `message.received` and `message.status_changed`, **Groups and campaigns → View** for the group events, **WhatsApp numbers → View** for `device.*`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
 - They belong to the workspace of the key: `list()` (paginated) also brings the ones of other integrations of that workspace, except those with events of an area your key cannot read. A subscription receives only the events of its workspace. At most 50 per workspace.
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
-- `rotateSecret($id)` **is not open to API keys**: it answers `403 route_not_available`. Rotate the secret from the dashboard.
+- Rotating the secret is not open to API keys, so it is not in the SDK: rotate it from the dashboard.
 - List every type you want by name: there is no wildcard (`*` answers `422`, accounts v1.5.97 accepts only the subscribable types of `events()`).
 - The catalog, with the area and status (`active` or `planned`) of each type, is `$funnelchat->webhooks->events()` (needs **WhatsApp numbers → View**).
 
@@ -653,7 +679,7 @@ $funnelchat->tags->list([], ['maxRetries' => 0, 'timeout' => 5, 'headers' => ['X
 
 ## Any route
 
-`request()` calls any route, whether it is in a resource or not. Path parameters go in `path`, the query in `query` and the body in `body`:
+`request()` calls any route, whether it is in a resource or not: every function of the portal without a method, one the spec adds after this version of the SDK, or one you want to call with a body the spec does not document. Path parameters go in `path`, the query in `query` and the body in `body`:
 
 ```php
 $contact = $funnelchat->request('GET', '/api/v1/contacts/{contact}', ['path' => ['contact' => 2001]]);
@@ -669,16 +695,17 @@ It returns the decoded JSON (associative arrays), the text when the response is 
 
 The query is built the way Laravel reads it: arrays go as `key[]=a&key[]=b`, nested arrays with brackets, booleans as `1` and `0` and dates (`DateTimeInterface`) in ISO 8601, in UTC.
 
-`Funnelchat\Generated\Routes::ALL` has every operation of the spec with its domain, its permission and the SDK method that calls it (`sdk`), or `null` when it is called with `request()`.
+`Funnelchat\Generated\Routes::ALL` has every operation of the spec with its domain, its permission, its group in the portal (`group`) and the group's category (`category`, `null` while the spec does not say it), whether it cannot be undone (`destructive`) and the SDK method that calls it (`sdk`).
 
 ## Regenerating
 
-Everything generated comes from a single script, in PHP:
+Everything generated comes from a single script, in PHP, and from the spec **the developers portal publishes**: only what the portal shows, which is what an API key can use (the portal's full unified spec also has internal routes and routes closed to keys, and the SDK does not take it).
 
 ```bash
-# With the portal's full unified spec (built by `npm run build` in developers-portal; not the published /specs/,
-# which carries only the operations the portal shows):
-composer generate -- --spec ../developers-portal/generated/specs/funnelchat-completa.json
+# With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
+curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
+composer generate -- --spec funnelchat.json \
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.13
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -689,31 +716,41 @@ composer generate:check
 
 What it does (`scripts/generate.php`):
 
-1. With `--spec`, it copies the spec to `spec/funnelchat.json` and writes `spec/procedencia.json`: repository, branch, commit, date and `sha256` of the file, and what the spec says of each domain.
-2. It adds `spec/pending.json` (the [pending of the spec](#pending-of-the-spec) layer), but **only what the snapshot does not bring, or brings with a shape production does not answer**. At the end it lists the entries the new snapshot made obsolete, so you can delete them from `spec/pending.json`.
-3. It writes `src/Generated/Routes.php` (every operation), `src/Generated/Schemas.php` (every schema as a PHPStan alias), `src/Generated/WebhookEvents.php` (the catalog and the shape of each event, taken from the schema or from the example), `src/Resources/*.php` (one method per operation, with its types) and `src/Generated/ResourceProperties.php` (the client's properties).
+1. With `--spec`, it copies the spec to `spec/funnelchat.json` and writes `spec/procedencia.json`: what `--source` declares (the public URL and the portal's version; from a checkout of a repository, its repository, branch and commit are read from git), the date and `sha256` of the file, and what the spec says of each domain. A local path is never recorded.
+2. It applies `spec/pending.json` (the [pending of the spec](#pending-of-the-spec) layer): corrections to shapes of what the spec publishes, **never an operation or an event it does not publish**. At the end it lists the entries the new spec made obsolete, and those it does not publish, so you can delete them from `spec/pending.json`.
+3. It writes `src/Generated/Routes.php` (every operation, and the portal's groups), `src/Generated/Schemas.php` (every schema as a PHPStan alias), `src/Generated/WebhookEvents.php` (the catalog and the shape of each event, taken from the schema or from the example), `src/Resources/*.php` (the methods of `spec/resources.json`, with their types), `src/Generated/ResourceProperties.php` (the client's properties) and the block of [Every function of the portal](#every-function-of-the-portal) in this README.
 
-`spec/resources.json` says which operation each method of each resource is: they are the same names as in Node. Regenerating never needs code edited by hand. If an operation of that list is no longer in the spec, the generation fails and says which one; if its shape changed, `composer analyse` flags it. After regenerating: `composer check`.
+**Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
-**The current snapshot** is the portal's full unified spec of 06-11: `generated/specs/funnelchat-completa.json` built on developers-portal `feat/plantillas-de-meta` @ `51c0aeb` (v0.6.7, not merged yet), where it was imported from (that is what `spec/procedencia.json` records). It adds bringing a number's templates from Meta (conversations v1.19.37). From the snapshots of accounts `v1.5.97` (`558332bcf`), conversations `feat/sincronizar-plantillas` @ `519651f1b` (bringing templates from Meta, in production as `v1.19.37`) and communities `feat/grupos-sin-panel` @ `54643bbd` (the code of `v2.35.7`, following a group; taken with group actions on), what production runs; the file itself does not carry those commits. Its own texts (summaries and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+**The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What left in 0.4.0
+
+The SDK has only what the portal publishes. Up to 0.3.3 it was generated from the portal's full unified spec, plus the pending layer; these were there and are not published, because they are internal or closed to API keys in production:
+
+- The methods `conversations->update()` (`PUT /api/v1/contacts/{contact}/update`), `templates->quickReplyButtons()`, `groups->listMessages()`, `devices->me()`, `devices->checkPhone()` and `webhooks->rotateSecret()`.
+- 30 routes without a method, now neither in `Routes::ALL`: the writes of the alert destinations (create, edit, delete, its code and its verification, and the test: 6), the old webhook endpoints (`/api/v1/webhooks/endpoints…`, 7), the logs of the numbers (`/api/v1/devices/logs`, `/api/v1/devices/{device}/logs`, `…/logs/health`), `extension-token`, `disconnect-survey` (2), `chats`, `open-conversations`, `update-webhook-received` and `update-webhook-received-and-delivery` of a number, `POST /api/v1/lead-score/events`, `GET /api/v1/flows/{flow}/active-contacts-list`, a campaign's `participants`, `campaign-participants`, `webhooks` and `webhooks/logs`, and `GET /api/v1/stats/countries`.
+- The events `billing.plan_blocked`, `subscription.expiring`, `ai_quota.low_balance`, `ai_quota.topup_succeeded` and `ai_quota.topup_failed`.
+
+And one name changed, to be the Node SDK's: `connectLinks->retrieve()` is `connectLinks->get()`.
+
+If the portal publishes one of them again, `composer generate -- --spec` brings it back.
 
 ## Pending of the spec
 
-What production has and the snapshot does not, or has with another shape, is in a separate layer, marked as such in the code (`pending` in `Routes::ALL` and in `WebhookEvents::CATALOG`, and "Pending of the spec" in the method's PHPDoc):
+What production answers with another shape than the spec says is in a separate layer, marked as such in the code (`pending` in `Routes::ALL` and in `WebhookEvents::CATALOG`, and "Pending of the spec" in the method's PHPDoc):
 
-- `spec/pending.json`: paths, fields, query parameters, responses, schemas and events, in OpenAPI format, with the source of each entry (`x-fc-pending`, explained in its `sources`).
-- Each correction carries the condition that ends it (`while`, `x-fc-replace-while`): a top-level key, or a JSON pointer into the snapshot's operation or event (`/responses/200/content/application~1json/schema/type`). When a new snapshot changes the very thing a correction corrects, the generation stops applying it and lists it as obsolete.
+- `spec/pending.json`: fields, query parameters, responses, schemas and the type of some events, in OpenAPI format, with the source of each entry (`x-fc-pending`, explained in its `sources`). It never adds an operation or an event: an entry for one the spec does not publish is left out, and the generation lists it.
+- Each correction carries the condition that ends it (`while`, `x-fc-replace-while`): a top-level key, or a JSON pointer into the spec's operation or event (`/responses/200/content/application~1json/schema/type`). When a new spec changes the very thing a correction corrects, the generation stops applying it and lists it as obsolete.
 
-All of it comes from the code of the domains at the tags running in production on 04-11 (read only, `git show <tag>:<file>`; sending by phone, from conversations `v1.19.21` of 05-11 as the spec has it): accounts `v1.5.97` (`558332bc`), conversations `v1.19.7` (`4e35ddb8`), communities `v2.35.5` (`2be913d4`) and platform-gate `v0.9.1` (`cc2cee4b`), plus the API entrypoint, api-edge `main` @ `975d8154` (deployed to production on 25-10; its latest tag is `v0.3.0`).
+All of it was checked against the versions in production on 04-11 (sending by phone, against conversations `v1.19.21` of 05-11, as the spec has it): accounts `v1.5.97`, conversations `v1.19.7`, communities `v2.35.5` and platform-gate `v0.9.1`, plus the API entrypoint deployed to production on 25-10. With the published spec of 11-11, the forms routes are the spec's, so they left this layer, and so did what the spec does not publish (`rotateSecret()` and five events); every correction below still applies, because the published spec still has the shape it corrects. That communities sends `message.uid` in the group events was checked again on 11-11, against communities `v2.35.28`.
 
 | What stays in the pending layer | Why |
 |---|---|
-| WhatsApp forms (`/api/v1/forms…`, the `forms` resource) | In production (conversations `v1.19.7`; api-edge routes `forms`), but the portal leaves them out of its spec: its map of the API entrypoint lacks `forms`. |
-| `webhooks->rotateSecret()` | Not open to API keys, so it is not in the spec; the method stays. |
 | The answer of `groups->retrieveAction()` | The spec types `data` as a list; communities answers the action as an object. |
-| The events accounts delivers: `device.*`, billing, subscription, MAC and AI quota, `group_action.*`, `group.message_received`, `group.reaction_added`, `group_join_request.*`, `group.full`… | The spec's `webhooks` has only those of conversations and communities' own catalog. |
-| `data.workspace_id` in every event | No event of the spec has it yet. |
+| `data.workspace_id` in every event whose shape lacks it | accounts writes it in every event it delivers. |
 | `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`. |
+| The events accounts delivers typed from production: `device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added` and `group_join_request.*` | The spec has them since 11-11, but only by an example (and three without one), which loses what can be `null` (`connect_link_id`, `external_reference`, a group's `name`…) and the values of `reason`, `state` and `identity_type`. For `group.message_received` and `group.reaction_added` its example says `message.id`; communities sends `message.uid`, so they are typed with `uid` while the example lacks it. |
 | The answer of the four sends (`message` is never `null` for an API key), the QR (`{data}` only), a connect link read (`url` is `null`), `connectLinks->revoke()` and `devices->delete()` (empty body), `webhooks->update()`, `templates->list()` and `tags->listContacts()` | The spec infers them from the code and gets them wrong: a nullable message, three extra QR shapes, a `string` body, an empty object, `object` and `string` items. |
 | `perPage` of `webhooks->list()` and `connectLinks->list()`; `per_page`, `event_type` and `event_id` of `webhooks->listDeliveries()` | Production accepts them; the spec does not declare them. |
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -41,30 +41,6 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: AccountBlockedData,
  * }
- * @phpstan-type AiQuotaLowBalanceData array<string, mixed>
- * @phpstan-type AiQuotaLowBalanceEvent array{
- *     id: string,
- *     type: 'ai_quota.low_balance',
- *     version: int,
- *     occurred_at: string,
- *     data: AiQuotaLowBalanceData,
- * }
- * @phpstan-type AiQuotaTopupFailedData array<string, mixed>
- * @phpstan-type AiQuotaTopupFailedEvent array{
- *     id: string,
- *     type: 'ai_quota.topup_failed',
- *     version: int,
- *     occurred_at: string,
- *     data: AiQuotaTopupFailedData,
- * }
- * @phpstan-type AiQuotaTopupSucceededData array<string, mixed>
- * @phpstan-type AiQuotaTopupSucceededEvent array{
- *     id: string,
- *     type: 'ai_quota.topup_succeeded',
- *     version: int,
- *     occurred_at: string,
- *     data: AiQuotaTopupSucceededData,
- * }
  * @phpstan-type BillingPaymentFailedData array{
  *     amount_cents: int,
  *     currency: string,
@@ -76,14 +52,6 @@ namespace Funnelchat\Generated;
  *     version: int,
  *     occurred_at: string,
  *     data: BillingPaymentFailedData,
- * }
- * @phpstan-type BillingPlanBlockedData array<string, mixed>
- * @phpstan-type BillingPlanBlockedEvent array{
- *     id: string,
- *     type: 'billing.plan_blocked',
- *     version: int,
- *     occurred_at: string,
- *     data: BillingPlanBlockedData,
  * }
  * @phpstan-type BillingUpcomingChargeData array{
  *     charge_date: string,
@@ -254,6 +222,28 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: ContactTagRemovedData,
  * }
+ * @phpstan-type ContactUpdatedData array{
+ *     contact: array{
+ *         id: int,
+ *         name: string,
+ *         phone: string,
+ *         email: string,
+ *     },
+ *     changed: list<string>,
+ *     custom_fields: list<array{
+ *         id: int,
+ *         name: string,
+ *         value: string,
+ *     }>,
+ *     workspace_id: PendingWorkspaceId,
+ * }
+ * @phpstan-type ContactUpdatedEvent array{
+ *     id: string,
+ *     type: 'contact.updated',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: ContactUpdatedData,
+ * }
  * @phpstan-type ConversationAssignedData array{
  *     contact: array{
  *         id: int,
@@ -346,6 +336,30 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: DeviceDisconnectedData,
  * }
+ * @phpstan-type DeviceDisplayNameReviewedData array{
+ *     device: array{
+ *         id: int,
+ *         name: string,
+ *         'number': string,
+ *         connection: string,
+ *         external_reference: string,
+ *     },
+ *     decision: string,
+ *     previous_status: string,
+ *     status: string,
+ *     verified_name: string,
+ *     rejection_reason: mixed,
+ *     reviewed_at: string,
+ *     connect_link_id: mixed,
+ *     workspace_id: int,
+ * }
+ * @phpstan-type DeviceDisplayNameReviewedEvent array{
+ *     id: string,
+ *     type: 'device.display_name_reviewed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: DeviceDisplayNameReviewedData,
+ * }
  * @phpstan-type DeviceHealthChangedData array{
  *     device: PendingWebhookDevice,
  *     previous_state: PendingDeviceHealthState,
@@ -360,6 +374,48 @@ namespace Funnelchat\Generated;
  *     version: int,
  *     occurred_at: string,
  *     data: DeviceHealthChangedData,
+ * }
+ * @phpstan-type DeviceMessagingLimitChangedData array{
+ *     device: array{
+ *         id: int,
+ *         name: string,
+ *         'number': string,
+ *         connection: string,
+ *         external_reference: string,
+ *     },
+ *     previous: string,
+ *     current: string,
+ *     changed_at: string,
+ *     connect_link_id: mixed,
+ *     workspace_id: int,
+ * }
+ * @phpstan-type DeviceMessagingLimitChangedEvent array{
+ *     id: string,
+ *     type: 'device.messaging_limit_changed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: DeviceMessagingLimitChangedData,
+ * }
+ * @phpstan-type DeviceQualityChangedData array{
+ *     device: array{
+ *         id: int,
+ *         name: string,
+ *         'number': string,
+ *         connection: string,
+ *         external_reference: string,
+ *     },
+ *     previous: string,
+ *     current: string,
+ *     changed_at: string,
+ *     connect_link_id: mixed,
+ *     workspace_id: int,
+ * }
+ * @phpstan-type DeviceQualityChangedEvent array{
+ *     id: string,
+ *     type: 'device.quality_changed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: DeviceQualityChangedData,
  * }
  * @phpstan-type FlowCompletedData array{
  *     flow: array{
@@ -726,6 +782,23 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: MacUsage80Data,
  * }
+ * @phpstan-type MessageReactionFailedData array{
+ *     message_id: int,
+ *     contact_id: int,
+ *     device_id: int,
+ *     emoji: string,
+ *     reason: string,
+ *     requested_at: string,
+ *     occurred_at: string,
+ *     workspace_id: PendingWorkspaceId,
+ * }
+ * @phpstan-type MessageReactionFailedEvent array{
+ *     id: string,
+ *     type: 'message.reaction_failed',
+ *     version: int,
+ *     occurred_at: string,
+ *     data: MessageReactionFailedData,
+ * }
  * @phpstan-type MessageReceivedData array{
  *     message: array{
  *         id: int,
@@ -913,14 +986,6 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: SubscriptionDormantEndingData,
  * }
- * @phpstan-type SubscriptionExpiringData array<string, mixed>
- * @phpstan-type SubscriptionExpiringEvent array{
- *     id: string,
- *     type: 'subscription.expiring',
- *     version: int,
- *     occurred_at: string,
- *     data: SubscriptionExpiringData,
- * }
  * @phpstan-type SubscriptionReactivatedData array{
  *     renews_at: string,
  *     workspace_id: PendingWorkspaceId,
@@ -998,7 +1063,7 @@ namespace Funnelchat\Generated;
  *     occurred_at: string,
  *     data: WhatsappFormCompletedData,
  * }
- * @phpstan-type WebhookEventType 'account.blocked'|'ai_quota.low_balance'|'ai_quota.topup_failed'|'ai_quota.topup_succeeded'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.deleted'|'device.disconnected'|'device.health_changed'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.completed'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.expiring'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
+ * @phpstan-type WebhookEventType 'account.blocked'|'billing.payment_failed'|'billing.upcoming_charge'|'broadcast.finished'|'broadcast.paused'|'campaign.no_groups_available'|'campaign.status_changed'|'contact.created'|'contact.stage_changed'|'contact.tag_added'|'contact.tag_removed'|'contact.updated'|'conversation.assigned'|'conversation.closed'|'daily_report.generated'|'device.connected'|'device.deleted'|'device.disconnected'|'device.display_name_reviewed'|'device.health_changed'|'device.messaging_limit_changed'|'device.quality_changed'|'flow.completed'|'flow.failed'|'group.blocked'|'group.created'|'group.full'|'group.invite_link_down'|'group.invite_link_renewed'|'group.message_received'|'group.reaction_added'|'group.recovered'|'group_action.completed'|'group_action.failed'|'group_join_request.created'|'group_join_request.revoked'|'group_participant.joined'|'group_participant.left'|'mac.expiring'|'mac.usage_100'|'mac.usage_80'|'message.reaction_failed'|'message.received'|'message.status_changed'|'pipeline.finished'|'poll.voted'|'scheduled_message.finished'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'subscription.reactivated'|'subscription.trial_ending'|'template.status_changed'|'webhook.test'|'whatsapp_form.completed'
  * @phpstan-type WebhookEvent array{
  *     id: string,
  *     type: string,
@@ -1018,11 +1083,7 @@ final class WebhookEvents
      */
     public const CATALOG = [
         'account.blocked' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The account was blocked for usage: the 24-hour grace period after using up its monthly active contacts ended.'],
-        'ai_quota.low_balance' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'no example or schema yet', 'description' => 'The AI message quota is about to run out. Planned: not emitted yet.'],
-        'ai_quota.topup_failed' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'no example or schema yet', 'description' => 'An AI quota top-up could not be processed. Planned: not emitted yet.'],
-        'ai_quota.topup_succeeded' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'no example or schema yet', 'description' => 'An AI quota top-up was credited. Planned: not emitted yet.'],
         'billing.payment_failed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'A subscription charge could not be processed (Stripe subscriptions only).'],
-        'billing.plan_blocked' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'no example or schema yet', 'description' => 'The plan was blocked because of an unprocessed charge. Planned: not emitted yet.'],
         'billing.upcoming_charge' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The next subscription charge is approaching (Stripe subscriptions only).'],
         'broadcast.finished' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una campaña llegó a su estado final (enviada, fallida o con fallos parciales), con sus conteos.\n\n`status` es `success`, `failed` o `partially_failed`. `reason` dice por qué terminó: `completed` (se enviaron todas las páginas), `cancelled` (se cerró una campaña pausada), `template_rejected` (Meta rechazó la plantilla, o su categoría cambió, mientras la campaña esperaba; también cuando Meta la pausó durante el envío y se detuvo la campaña), `approval_expired` (la plantilla no se aprobó a tiempo), `mac_lockout` (la cuenta alcanzó su límite de contactos activos), `mac_check_unavailable` (la campaña la inició una API key y el límite de contactos activos no se pudo verificar, así que no se envió nada), `no_recipients` (la audiencia quedó vacía) o `error` (el envío no pudo despacharse). `totals` son los conteos del envío: `processed` (destinatarios procesados), `failed` y `skipped_unreachable` (destinatarios que el canal no puede alcanzar); valen 0 si la campaña terminó antes de enviar. Se emite una sola vez por campaña."],
         'broadcast.paused' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una campaña se pausó sola, por ejemplo porque bajó la calidad del número.\n\n`reason` es `quality_degraded` (la calidad del número bajó respecto de la del inicio, o llegó a RED), `quality_unreadable` (no se pudo leer la calidad en tres controles seguidos), `template_unavailable` (Meta dejó la plantilla en `PAUSED`, `DISABLED` o `REJECTED` antes de una tanda), `payment_issue` (el 2 % o más de los envíos de la misma campaña, con un mínimo de 20 envíos, fueron rechazados por Meta con el código 131042, un problema de pago o de facturación de la cuenta de WhatsApp Business; el 2 % y el mínimo de 20 envíos son los valores por defecto y se pueden configurar; aplica a cualquier campaña, tenga o no envío inteligente; no frena el número; al reanudar la campaña el conteo, incluidos los envíos que cuentan, vuelve a empezar de cero) o `rejection_rate` (entre los envíos recientes de la propia campaña, por defecto las últimas 24 horas, Meta rechazó una proporción igual o mayor al umbral configurable, por defecto 15 %, con los códigos que indican una restricción de la cuenta o del número; la lista es configurable y por defecto es 131048, 131031 y 368; los códigos 131049 y 131026 no pausan la campaña). Con `rejection_rate` llega además `rejection`: `codes` (los que llegaron a su umbral: hoy `failed`), `rates` (el porcentaje de cada uno; las tasas de `131049` y `131026` se informan como dato aunque no pausen), `attempts` (los envíos medidos) y `window_hours`. `quality` y `quality_baseline` son la calidad de Meta leída en el control y la del inicio del envío (`GREEN`, `YELLOW`, `RED`), o `null` si no se pudo leer, y siempre `null` en una difusión sin envío inteligente. `template` es `{name, status}` con el nombre de la plantilla y su estado en Meta cuando `reason` es `template_unavailable`, y `null` en las demás pausas (por calidad, pago o rechazos). Con `rejection_rate` el número además queda frenado 7 días (configurable): mientras dure no se pueden crear, ejecutar ni reanudar campañas desde ese número, ni mandar plantillas a contactos que no le escribieron en las últimas 24 horas, y solo soporte lo levanta antes. Las pausas por calidad, por plantilla y por rechazos son solo de las campañas con envío inteligente; la pausa por `payment_issue` puede ocurrir en cualquier campaña. Reanudar la campaña y que se pause otra vez emite otro evento."],
@@ -1032,20 +1093,24 @@ final class WebhookEvents
         'contact.stage_changed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Un contacto cambió de etapa en un tablero.\n\nSe envía un evento por cada contacto que cambia de etapa en un tablero por etapas. `kind` es entry (entra al tablero, `from_stage` es null), move (pasa de una etapa a otra), exit (sale del tablero, `to_stage` es null) o stage_deleted (se reubica porque su etapa se borró; el nombre de la etapa borrada es null). No se envía si el contacto se coloca en la etapa en la que ya estaba."],
         'contact.tag_added' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Un contacto recibió una etiqueta.\n\nSe envía un evento por cada contacto y etiqueta agregados, también en operaciones en bloque; no se envía si el contacto ya tenía la etiqueta. `source` indica el origen: manual, flow, bulk, import, sync, walink o ai. En operaciones en bloque grandes el límite de volumen de la cuenta puede descartar parte de los eventos."],
         'contact.tag_removed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Un contacto perdió una etiqueta.\n\nSe envía un evento por cada contacto y etiqueta quitados, también en operaciones en bloque; no se envía si el contacto no tenía la etiqueta. No se envía al borrar la etiqueta, al borrar o fusionar contactos ni al desvincular etiquetas de un tablero. `source` indica el origen: manual, flow, bulk o ai. En operaciones en bloque grandes el límite de volumen de la cuenta puede descartar parte de los eventos."],
+        'contact.updated' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Cambió el nombre, el email, el teléfono o el valor de un campo personalizado de un contacto.\n\nSe envía cuando cambia el nombre, el email o el teléfono de un contacto que ya existía, o cuando se pone, cambia o quita el valor de uno de sus campos personalizados, venga del panel, de la API, de un flujo o de una importación. Varios cambios del mismo contacto en una misma operación llegan en un solo evento. `changed` dice qué cambió (`name`, `email`, `phone`, `custom_fields`); `contact` trae el estado después del cambio y `custom_fields`, sólo los campos que cambiaron, con su valor nuevo (`null` si se quitó). No se envía al crear un contacto (eso es `contact.created`), por etiquetas, por el estado de la conversación ni si el valor nuevo es igual al anterior; tampoco al borrar un campo personalizado de la cuenta. En importaciones grandes el límite de volumen de la cuenta puede descartar parte de los eventos."],
         'conversation.assigned' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una conversación quedó asignada a una persona del equipo o a un agente de IA.\n\nSe envía cuando una conversación queda asignada a una persona del equipo (`assignee.type` = `human`) o a un agente de IA (`assignee.type` = `ai`), por cualquier camino. `assignee` trae el tipo y el nombre, nunca un identificador. No se envía al desasignar, ni cuando se vuelve a enviar el mismo asignado."],
         'conversation.closed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una conversación pasó a cerrada.\n\nSe envía cuando una conversación pasa de abierta a cerrada. No se envía si la conversación ya estaba cerrada ni cuando se reabre."],
         'daily_report.generated' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The account\'s daily report was generated (clicks, joins and exits).'],
         'device.connected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers connected: when the QR code was scanned or when a WhatsApp Cloud number finished onboarding, also from a connect link. With `device.connection`, `device.external_reference` and `connect_link_id` (the link of this connection, or `null`).'],
         'device.deleted' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'A number was deleted from the account (once per number, after the deletion, with the number as it was; `connect_link_id` is the last link that connected it, or `null`). The deletion is physical and frees the quota; an official number loses the app subscription but is not deregistered from Meta; a QR number\'s session is closed.'],
         'device.disconnected' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'One of the account\'s numbers disconnected and can no longer send or receive: a QR session closed or protected from a shadow ban, an official number left without registration, or disconnected in the panel. With `reason`, `device.connection`, `device.external_reference` and `connect_link_id` (the last link that connected the number, or `null`).'],
+        'device.display_name_reviewed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Meta aprobó o rechazó el nombre visible de uno de tus números oficiales (`decision`: `approved` o `rejected`). Trae los estados de Meta antes y después (`previous_status` y `status`), el nombre visible actual (`verified_name`) y, en un rechazo, el motivo de Meta (`rejection_reason`) cuando lo informa; si no, `null`.'],
         'device.health_changed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'The aggregated health of an official number changed, according to Meta (not on every Meta webhook; `connect_link_id` is the last link that connected it, or `null`). The reason is read with `GET /api/v1/devices/{device}/health`.'],
+        'device.messaging_limit_changed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Cambió el límite de mensajes por día de uno de tus números oficiales: `previous` y `current` valen `TIER_250`, `TIER_1K`, `TIER_2K`, `TIER_10K`, `TIER_100K` o `TIER_UNLIMITED`. Meta fija el límite para todos los números de una misma empresa: llega uno por cada número de la cuenta que cambió.'],
+        'device.quality_changed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => false, 'pendingFields' => [], 'typedFrom' => 'example', 'description' => 'Cambió la calidad que Meta le da a uno de tus números oficiales: `previous` y `current` valen `GREEN`, `YELLOW` o `RED`. Si baja, conviene frenar los envíos de ese número antes de que Meta lo limite. Sale una vez por cambio real.'],
         'flow.completed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Un contacto terminó un flujo de automatización.\n\nSe envía una sola vez por cada ejecución de un flujo, cuando termina con éxito. No se envía si la ejecución se cortó, se canceló, quedó bloqueada o falló. `contact` es `null` si la ejecución no tiene un contacto asociado. Un flujo muy usado puede generar muchos eventos seguidos."],
         'flow.failed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "La ejecución de un flujo para un contacto terminó por un error.\n\nSe envía una sola vez por cada ejecución de un flujo que termina por un error, no porque llegó al final. `reason` indica el motivo y toma uno de estos valores: `node_missing` (el paso a ejecutar ya no existe), `unknown_node_type` (el paso es de un tipo no reconocido), `missing_subflow` (el flujo que debía ejecutarse dentro de otro ya no existe), `malformed_node` (el paso tiene una configuración dañada), `loop_detected` (la ejecución dio vueltas sin esperar nada) y `execution_error` (un error inesperado detuvo la ejecución). No se envía si la ejecución se canceló, quedó bloqueada o se cortó porque se editó el flujo o se unieron contactos. `contact` es `null` si la ejecución no tiene un contacto asociado."],
         'group.blocked' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Un grupo quedó inoperable: sin administrador conectado, con el link de invitación inválido o suspendido por WhatsApp.'],
         'group.created' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Se creó o se importó un grupo dentro de una campaña de la cuenta.'],
         'group.full' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'A group went from not full to full.'],
         'group.invite_link_down' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'El enlace de invitación de un grupo quedó confirmado caído (WhatsApp respondió que no existe y la renovación no consiguió otro); no se publica por errores transitorios ni por grupos prohibidos o suspendidos, y se publica una sola vez por episodio de bloqueo.'],
-        'group.invite_link_renewed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'El enlace de invitación de un grupo cambió por una renovación, automática al detectarse inválido o pedida por el usuario; en v0 no se publican los cambios que detecta la sincronización ni el enlace inicial al crear el grupo.'],
+        'group.invite_link_renewed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'El enlace de invitación de un grupo cambió por una renovación, automática al detectarse inválido o pedida por el usuario; no se publican los cambios que detecta la sincronización ni el enlace inicial al crear el grupo.'],
         'group.message_received' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'Someone wrote in a group of one of the account\'s numbers. It does not arrive for messages from your own numbers.'],
         'group.reaction_added' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'Someone reacted to a message in a group.'],
         'group.recovered' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Un grupo que estaba bloqueado volvió a operar.'],
@@ -1058,6 +1123,7 @@ final class WebhookEvents
         'mac.expiring' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Some monthly active contacts expire in the next 7 days.'],
         'mac.usage_100' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The account used up its monthly active contacts for the cycle; a 24-hour grace period starts.'],
         'mac.usage_80' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The account reached 80 % of its monthly active contacts for the cycle.'],
+        'message.reaction_failed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una reacción a un mensaje que se aceptó no se pudo aplicar.\n\nSe emite cuando una reacción a un mensaje (ponerla, reemplazarla o quitarla) que se aceptó con `202` termina sin aplicarse, la haya pedido una clave o una persona del equipo desde el chat. Sale una sola vez por pedido: los reintentos internos del mismo pedido no generan otro evento. No se emite cuando la reacción se aplicó, cuando una reacción más nueva al mismo mensaje ya la reemplazó, ni cuando el mensaje ya no existe. `message_id` es el mensaje al que se reaccionaba (el mismo id de la ruta), `contact_id` el del contacto y `device_id` el número de tu cuenta por el que iba a salir (`null` si el mensaje ya no tiene número). `emoji` es el emoji pedido y `null` si el pedido era quitar la reacción. `reason` es uno de `no_provider_uid`, `message_not_reactable`, `message_deleted`, `device_disconnected`, `provider_unsupported`, `window_expired`, `provider_rejected`, `insufficient_balance`, `payment_expired`. `requested_at` es el momento en que se aceptó el pedido, en UTC y con microsegundos: sirve para relacionar el evento con la llamada que respondió `202`. `occurred_at` es el momento en que Funnelchat decidió el fallo, en UTC. Mientras tanto, `reactions` de `GET /contacts/{contact_id}/messages` queda como estaba."],
         'message.received' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'A contact wrote to one of the account\'s WhatsApp numbers. `device_id` is the number that received it: the same `device_id` you send with to answer from that number, `null` if the message has no number.'],
         'message.status_changed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'schema', 'description' => 'The delivery status of a sent 1:1 message changed. One notice per transition, never one that goes backward; `queued` never arrives here. Request it by name in `events`: a subscription lists its types, with no wildcard.'],
         'pipeline.finished' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Terminó un pipeline de operaciones sobre grupos, con su resultado agregado y la clave de idempotencia del pedido que lo originó, cuando la hay.'],
@@ -1067,7 +1133,6 @@ final class WebhookEvents
         'scheduled_message.response_received' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Alguien respondió a un envío programado votando una encuesta o respondiendo a un evento.'],
         'subscription.cancellation_confirmed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The subscription cancellation was confirmed (Stripe subscriptions only).'],
         'subscription.dormant_ending' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The dormant account period is about to end.'],
-        'subscription.expiring' => ['domains' => ['accounts'], 'status' => 'planned', 'pending' => true, 'pendingFields' => [], 'typedFrom' => 'no example or schema yet', 'description' => 'The subscription is about to expire. Planned: not emitted yet.'],
         'subscription.reactivated' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The scheduled cancellation of the subscription was reverted (Stripe subscriptions only).'],
         'subscription.trial_ending' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The trial period is about to end.'],
         'template.status_changed' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una plantilla cambió de estado de aprobación en Meta.\n\n`template` identifica la plantilla igual que `GET /templates` (`id`, `uid`, `name`, `category`). `previous_status` y `status` son los estados tal como los devuelve la API (por ejemplo `PENDING`, `APPROVED`, `REJECTED`, `PAUSED`); `previous_status` es `null` si la plantilla no tenía estado. `reason` trae la observación de rechazo (traducida como en la API y limitada a 500 caracteres) cuando el cambio es un rechazo informado al crear la plantilla, y es `null` en el resto. No se emite si Meta reenvía el estado que la plantilla ya tenía. Si una misma plantilla de Meta figura en varias cuentas, cada cuenta recibe su propio evento."],

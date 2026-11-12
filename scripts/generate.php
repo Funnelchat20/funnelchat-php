@@ -4,25 +4,33 @@
  * The single generation script of the SDK (`composer generate`).
  *
  *   php scripts/generate.php                  regenerate src/Generated and src/Resources from spec/
- *   php scripts/generate.php --spec <file>    copy a new unified spec into spec/, record where it came
- *                                             from in spec/procedencia.json, then regenerate
+ *   php scripts/generate.php --spec <file>    copy a new spec (the one the developers portal publishes)
+ *                                             into spec/, record where it came from in
+ *                                             spec/procedencia.json, then regenerate
+ *       [--source url=<url>] [--source portal_version=<v>]
+ *                                             say where a file downloaded from outside a repository
+ *                                             came from (never a local path)
  *   php scripts/generate.php --check          generate in memory and fail if anything on disk differs
  *
  * Steps:
  *   1. (with --spec) copy the spec and write spec/procedencia.json (repository, branch, commit, sha256).
- *   2. Merge spec/pending.json (the "pending of the spec" layer) into the snapshot: routes, request-body
- *      fields, query parameters, schema fields, responses and events. Every pending entry is applied only while the
- *      snapshot lacks it; the report lists the entries a new snapshot made
- *      obsolete so they can be deleted from spec/pending.json.
- *   3. src/Generated/Routes.php            every operation: method, path, domain, permission, SDK method.
+ *   2. Merge spec/pending.json (the "pending of the spec" layer) into the snapshot: request-body fields,
+ *      query parameters, schema fields, responses and events' shapes of operations and events the
+ *      snapshot has. Every correction is applied only while the snapshot lacks it; the layer never adds
+ *      an operation or an event. The report lists the entries a new snapshot made obsolete, and those
+ *      it does not publish, so they can be deleted from spec/pending.json.
+ *   3. src/Generated/Routes.php            every operation: method, path, domain, permission, portal
+ *                                          group and category, whether it can be undone, SDK method; and
+ *                                          the portal's groups.
  *   4. src/Generated/Schemas.php           every schema of the spec as a PHPStan type alias (array shape).
  *   5. src/Generated/WebhookEvents.php     the event catalog and the type of each event.
- *   6. src/Resources/*.php                 one class per resource of spec/resources.json, one method per
- *                                          operation, with its path parameters, query, body and response
- *                                          typed from the spec.
+ *   6. src/Resources/*.php                 one class per resource of spec/resources.json (the same as
+ *                                          funnelchat-node's), one method per operation, with its path
+ *                                          parameters, query, body and response typed from the spec.
  *   7. src/Generated/ResourceProperties.php  the resource properties of the client.
+ *   8. README.md                           its generated block: the counts and the portal's groups.
  *
- * Nothing in src/Generated or src/Resources is edited by hand.
+ * Nothing in src/Generated, src/Resources or the generated block of README.md is edited by hand.
  */
 
 declare(strict_types=1);
@@ -34,7 +42,8 @@ const SUCCESS_STATUSES = ['200', '201', '202', '203', '204', '206', '2XX'];
 
 /**
  * @phpstan-type Json array<array-key, mixed>
- * @phpstan-type Report array{applied: list<string>, superseded: list<string>, missing: list<string>}
+ * @phpstan-type Report array{applied: list<string>, superseded: list<string>, missing: list<string>, unpublished: list<string>}
+ * @phpstan-type ResourceSummary array{property: string, class: string, summary: string, methods: list<string>}
  */
 final class Generator
 {
@@ -42,8 +51,25 @@ final class Generator
     private const PROVENANCE_FILE = 'spec/procedencia.json';
     private const PENDING_FILE = 'spec/pending.json';
     private const RESOURCES_FILE = 'spec/resources.json';
+    private const README_FILE = 'README.md';
     private const GENERATED_DIRS = ['src/Generated', 'src/Resources'];
     private const MARKER = 'GENERATED FILE — do not edit. Run `composer generate`.';
+    /** The block of README.md the generation writes: every function, grouped as the portal groups them. */
+    private const README_BEGIN = '<!-- BEGIN GENERATED: functions (composer generate; do not edit by hand) -->';
+    private const README_END = '<!-- END GENERATED: functions -->';
+    /**
+     * Where a group of `x-tagGroups` says its category: the first of these keys it has, with the id of
+     * a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp») or its title. A spec
+     * without any of them has no categories.
+     */
+    private const CATEGORY_KEYS = ['x-fc-categoria', 'x-fc-category', 'x-fc-bloque'];
+    /**
+     * The fields of `source` in spec/procedencia.json that `--source key=value` declares, as the
+     * Node SDK's generator takes them (plus `portal_version`, the developers portal's version).
+     */
+    private const DECLARABLE_SOURCE_KEYS = ['url', 'portal_version', 'repository', 'path', 'branch', 'commit', 'commit_date', 'file_tracked_in_git'];
+    /** Members of the client a resource property must not take. */
+    private const CLIENT_MEMBERS = ['baseUrl', 'timeout', 'maxRetries', 'transport', 'request', 'paginate', 'lastResponse'];
     /**
      * Each permission as the panel shows it ("Developers" → "Create API key"): area → box. The
      * docblocks name a permission only like this; the value of the spec is never written in them.
@@ -93,6 +119,7 @@ final class Generator
     {
         $spec = null;
         $check = false;
+        $declared = [];
         for ($i = 0; $i < \count($args); ++$i) {
             $arg = $args[$i];
             if ($arg === '--check') {
@@ -101,15 +128,25 @@ final class Generator
                 $spec = $args[++$i] ?? throw new GeneratorError('--spec needs the path of the file');
             } elseif (str_starts_with($arg, '--spec=')) {
                 $spec = substr($arg, \strlen('--spec='));
+            } elseif ($arg === '--source' || str_starts_with($arg, '--source=')) {
+                $value = $arg === '--source' ? $args[++$i] ?? '' : substr($arg, \strlen('--source='));
+                [$key, $given] = array_pad(explode('=', $value, 2), 2, '');
+                if (!\in_array($key, self::DECLARABLE_SOURCE_KEYS, true) || $given === '') {
+                    throw new GeneratorError('--source takes key=value, with key one of: ' . implode(', ', self::DECLARABLE_SOURCE_KEYS));
+                }
+                $declared[$key] = $given;
             } else {
                 throw new GeneratorError("Unknown argument: {$arg}");
             }
+        }
+        if ($declared !== [] && $spec === null) {
+            throw new GeneratorError('--source goes with --spec');
         }
         if ($spec !== null) {
             if ($check) {
                 throw new GeneratorError('--check and --spec do not go together');
             }
-            $this->importSpec($spec);
+            $this->importSpec($spec, $declared);
         }
 
         $specPath = $this->path(self::SPEC_FILE);
@@ -134,7 +171,7 @@ final class Generator
         [$merged, $report] = self::mergePending($snapshot, $pending);
         $types = new Types(self::obj(self::obj($merged['components'] ?? null)['schemas'] ?? null));
 
-        [$resourceFiles, $sdkMethods, $mapErrors] = $this->generateResources($merged, $resources, $types);
+        [$resourceFiles, $sdkMethods, $mapErrors, $notices, $summaries] = $this->generateResources($merged, $resources, $types);
         if ($mapErrors !== []) {
             throw new GeneratorError("spec/resources.json does not match the spec:\n  - " . implode("\n  - ", $mapErrors));
         }
@@ -143,15 +180,22 @@ final class Generator
             'src/Generated/Routes.php' => $this->generateRoutes($merged, $sdkMethods),
             'src/Generated/Schemas.php' => $this->generateSchemas($types),
             'src/Generated/WebhookEvents.php' => $this->generateEvents($merged, $types),
-            'src/Generated/ResourceProperties.php' => $this->generateResourceProperties($resources),
+            'src/Generated/ResourceProperties.php' => $this->generateResourceProperties($summaries),
         ] + $resourceFiles;
         ksort($files);
         $this->assertNoPermissionValues($files);
+        $files[self::README_FILE] = $this->generateReadme($merged);
 
         echo 'pending of the spec: ' . \count($report['applied']) . " entries applied.\n";
         if ($report['superseded'] !== []) {
             echo 'the snapshot already brings ' . \count($report['superseded']) . " entries of spec/pending.json; they can be deleted from there:\n";
             foreach ($report['superseded'] as $label) {
+                echo "  - {$label}\n";
+            }
+        }
+        if ($report['unpublished'] !== []) {
+            echo 'the spec does not publish ' . \count($report['unpublished']) . " routes or events of spec/pending.json, so they are left out; they can be deleted from there:\n";
+            foreach ($report['unpublished'] as $label) {
                 echo "  - {$label}\n";
             }
         }
@@ -161,8 +205,12 @@ final class Generator
                 fwrite(\STDERR, "  - {$label}\n");
             }
         }
+        foreach ($notices as $notice) {
+            echo "{$notice}\n";
+        }
         $operations = self::countOperations($merged);
-        echo 'resources: ' . \count($sdkMethods) . " of {$operations} operations have a method; the rest are called with request().\n";
+        echo 'resources: ' . \count($sdkMethods) . " of {$operations} operations have a method"
+            . (\count($sdkMethods) === $operations ? ".\n" : '; the rest are called with request().' . "\n");
 
         $stale = $this->staleFiles($files);
         if ($check) {
@@ -179,7 +227,7 @@ final class Generator
 
                 return 1;
             }
-            echo "src/Generated and src/Resources are up to date.\n";
+            echo "src/Generated, src/Resources and the block of README.md are up to date.\n";
 
             return 0;
         }
@@ -243,7 +291,10 @@ final class Generator
 
     // ---- Step 1: import a spec ------------------------------------------------------------------
 
-    private function importSpec(string $source): void
+    /**
+     * @param array<string, string> $declared fields of `source` given with `--source key=value`
+     */
+    private function importSpec(string $source, array $declared): void
     {
         $sourcePath = realpath($source);
         if ($sourcePath === false || !is_file($sourcePath)) {
@@ -300,10 +351,21 @@ final class Generator
             ],
         ];
 
+        if ($declared !== []) {
+            // Outside a checkout of its repository (the spec the portal publishes, downloaded), where
+            // it came from is said by whoever imports it: the public URL, the portal's version. A
+            // local path is never recorded.
+            $provenance['source'] = $declared + $provenance['source'];
+            $provenance['source']['declared'] = array_keys($declared);
+            $provenance['source']['declared_note'] = 'The fields in `declared` were given on the command line (`--source`), not read from git.';
+        }
+
         file_put_contents($this->path(self::SPEC_FILE), $bytes);
         file_put_contents($this->path(self::PROVENANCE_FILE), json_encode($provenance, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR) . "\n");
         $commit = $provenance['source']['commit'];
-        echo 'spec: copied from ' . ($relPath ?? $sourcePath) . ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ")\n";
+        echo 'spec: copied from ' . ($declared['url'] ?? $relPath ?? basename($sourcePath))
+            . ($top !== null ? ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ')' : ' (not in a git repository)')
+            . ', sha256 ' . substr($provenance['sha256'], 0, 8) . "…\n";
     }
 
     private static function git(string $cwd, string ...$args): ?string
@@ -327,7 +389,7 @@ final class Generator
     private static function mergePending(array $spec, array $pending): array
     {
         $merged = $spec;
-        $report = ['applied' => [], 'superseded' => [], 'missing' => []];
+        $report = ['applied' => [], 'superseded' => [], 'missing' => [], 'unpublished' => []];
         $components = self::obj($merged['components'] ?? null);
         $schemas = self::obj($components['schemas'] ?? null);
         $paths = self::obj($merged['paths'] ?? null);
@@ -340,6 +402,9 @@ final class Generator
             $schemas[$name] = $schema;
         }
 
+        // The SDK has only what the portal publishes: this layer corrects the snapshot's operations
+        // and events, and never adds one. A route here is obsolete once the snapshot has it, and
+        // left out (reported, so it can be deleted) while it does not.
         foreach (self::obj($pending['paths'] ?? null) as $path => $item) {
             $item = self::obj($item);
             foreach (HTTP_METHODS as $method) {
@@ -347,15 +412,7 @@ final class Generator
                     continue;
                 }
                 $label = strtoupper($method) . " {$path}";
-                $current = self::obj($paths[$path] ?? null);
-                if (isset($current[$method])) {
-                    $report['superseded'][] = $label;
-
-                    continue;
-                }
-                $current[$method] = $item[$method];
-                $paths[$path] = $current;
-                $report['applied'][] = $label;
+                $report[isset(self::obj($paths[$path] ?? null)[$method]) ? 'superseded' : 'unpublished'][] = $label;
             }
         }
 
@@ -514,16 +571,20 @@ final class Generator
             $item = self::obj($item);
             $label = "webhook {$type}";
             $currentKey = $snapshotTypes[$type] ?? null;
-            if ($currentKey !== null) {
-                $replaceWhile = self::obj(self::obj($item['post'] ?? null)['x-fc-replace-while'] ?? null);
-                $currentPost = self::obj(self::obj($webhooks[$currentKey] ?? null)['post'] ?? null);
-                if ($replaceWhile === [] || !self::matches($currentPost, $replaceWhile)) {
-                    $report['superseded'][] = $label;
+            if ($currentKey === null) {
+                // An event the portal does not publish is not added.
+                $report['unpublished'][] = $label;
 
-                    continue;
-                }
-                unset($webhooks[$currentKey]);
+                continue;
             }
+            $replaceWhile = self::obj(self::obj($item['post'] ?? null)['x-fc-replace-while'] ?? null);
+            $currentPost = self::obj(self::obj($webhooks[$currentKey] ?? null)['post'] ?? null);
+            if ($replaceWhile === [] || !self::matches($currentPost, $replaceWhile)) {
+                $report['superseded'][] = $label;
+
+                continue;
+            }
+            unset($webhooks[$currentKey]);
             $webhooks[$type] = $item;
             $snapshotTypes[$type] = $type;
             $report['applied'][] = $label;
@@ -671,6 +732,7 @@ final class Generator
      */
     private function generateRoutes(array $merged, array $sdkMethods): string
     {
+        $groups = self::tagGroups($merged);
         $rows = [];
         foreach (self::obj($merged['paths'] ?? null) as $path => $item) {
             $item = self::obj($item);
@@ -679,7 +741,8 @@ final class Generator
                     continue;
                 }
                 $op = self::obj($item[$method]);
-                $tags = self::arr($op['tags'] ?? null);
+                $tag = self::str(self::arr($op['tags'] ?? null)[0] ?? null);
+                $destructive = $op['x-fc-destructive'] ?? null;
                 $label = strtoupper($method) . " {$path}";
                 $rows[] = [
                     'method' => strtoupper($method),
@@ -687,8 +750,11 @@ final class Generator
                     'operationId' => self::str($op['operationId'] ?? null),
                     'domain' => self::str($op['x-fc-domain'] ?? null),
                     'permission' => self::str($op['x-fc-permission'] ?? null),
-                    'tag' => self::str($tags[0] ?? null),
+                    'tag' => $tag,
+                    'group' => $tag !== null ? $groups[$tag]['group'] ?? null : null,
+                    'category' => $tag !== null ? $groups[$tag]['category'] ?? null : null,
                     'summary' => self::str($op['summary'] ?? null),
+                    'destructive' => \is_bool($destructive) ? $destructive : null,
                     'pending' => isset($op['x-fc-pending']) || isset($op['x-fc-pending-response']),
                     'sdk' => $sdkMethods[$label] ?? null,
                 ];
@@ -705,24 +771,50 @@ final class Generator
             $lines[] = '        [' . implode(', ', $parts) . '],';
         }
         $count = \count($rows);
+        $groupLines = [];
+        foreach (self::groupList($merged) as $group) {
+            $parts = [];
+            foreach ($group as $key => $value) {
+                $parts[] = "'{$key}' => " . Php::value($value);
+            }
+            $groupLines[] = '        [' . implode(', ', $parts) . '],';
+        }
+        $groupCount = \count($groupLines);
 
         return $this->header('Funnelchat\Generated') . <<<PHP
 
             /**
-             * The route table of the public API.
+             * The route table of the public API: every function the developers portal publishes.
              */
             final class Routes
             {
                 /**
-                 * Every operation of the spec ({$count}), sorted by path. `pending` = taken from
-                 * spec/pending.json, not from the snapshot. `sdk` = the resource method that calls it
-                 * (`contacts->list`), or `null`: call it with `\$funnelchat->request()`.
+                 * Every operation of the spec ({$count}), sorted by path. `group` = the portal's group
+                 * (`x-tagGroups`) and `category` = its category as the portal shows it, or `null` while
+                 * the spec does not give one. `destructive` = `x-fc-destructive`: `true` cannot be undone
+                 * (confirm with the person before calling it), `null` = the spec does not say. `pending` =
+                 * its shape is corrected by spec/pending.json. `sdk` = the resource method that calls it
+                 * (`contacts->list`), or `null`: call it with `\$funnelchat->request()` (or `paginate()`
+                 * for a list) by its method and path.
                  *
-                 * @var list<array{method: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE', path: string, operationId: string|null, domain: string|null, permission: string|null, tag: string|null, summary: string|null, pending: bool, sdk: string|null}>
+                 * @var list<array{method: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE', path: string, operationId: string|null, domain: string|null, permission: string|null, tag: string|null, group: string|null, category: string|null, summary: string|null, destructive: bool|null, pending: bool, sdk: string|null}>
                  */
                 public const ALL = [
 
-            PHP . implode("\n", $lines) . <<<'PHP'
+            PHP . implode("\n", $lines) . <<<PHP
+
+                ];
+
+                /**
+                 * The groups of the portal ({$groupCount}), in its order: the name (the `group` of its
+                 * routes), the category as the portal shows it (`null` while the spec does not give
+                 * one), how many operations it has and its description.
+                 *
+                 * @var list<array{name: string, category: string|null, operations: int, description: string|null}>
+                 */
+                public const GROUPS = [
+
+            PHP . implode("\n", $groupLines) . <<<'PHP'
 
                 ];
 
@@ -874,41 +966,48 @@ final class Generator
     // ---- Step 6: resources ----------------------------------------------------------------------
 
     /**
+     * The resources of spec/resources.json, the same as funnelchat-node's: the methods it describes,
+     * each typed from its operation. Every other operation of the spec is in Routes::ALL, and is
+     * called with request() or paginate(). A method whose operation the spec no longer has is left
+     * out with a notice: a new spec needs nothing edited by hand. Returns the files,
+     * "METHOD path" => "property->method", the errors, the notices and the resources.
+     *
      * @param Json $merged
      * @param Json $map
      *
-     * @return array{array<string, string>, array<string, string>, list<string>}
+     * @return array{array<string, string>, array<string, string>, list<string>, list<string>, list<ResourceSummary>}
      */
     private function generateResources(array $merged, array $map, Types $types): array
     {
-        $paths = self::obj($merged['paths'] ?? null);
+        $operations = self::operationsOf($merged);
+        $groups = self::tagGroups($merged);
         $files = [];
         $sdkMethods = [];
         $errors = [];
+        $notices = [];
+        $summaries = [];
+        $named = [];
         foreach (self::arr($map['resources'] ?? null) as $resource) {
             $resource = self::obj($resource);
             $class = self::str($resource['class'] ?? null) ?? '';
             $property = self::str($resource['property'] ?? null) ?? '';
-            if (preg_match('/^[A-Z][A-Za-z0-9]*$/', $class) !== 1 || preg_match('/^[a-z][A-Za-z0-9]*$/', $property) !== 1) {
+            if (preg_match('/^[A-Z][A-Za-z0-9]*$/', $class) !== 1 || preg_match('/^[a-z][A-Za-z0-9]*$/', $property) !== 1
+                || \in_array($property, self::CLIENT_MEMBERS, true)) {
                 $errors[] = "resource with an invalid class \"{$class}\" or property \"{$property}\"";
 
                 continue;
             }
             $types->startUsage();
             $methods = [];
+            $names = [];
             $usesPaginator = false;
+            $tagCount = [];
             foreach (self::arr($resource['methods'] ?? null) as $method) {
                 $method = self::obj($method);
                 $name = self::str($method['name'] ?? null) ?? '';
                 $label = self::str($method['op'] ?? null) ?? '';
-                if (preg_match('/^(GET|POST|PUT|PATCH|DELETE) (\/\S*)$/', $label, $m) !== 1) {
+                if (preg_match('/^(GET|POST|PUT|PATCH|DELETE) \/\S*$/', $label) !== 1) {
                     $errors[] = "{$class}::{$name}: op \"{$label}\" does not have the shape \"METHOD /path\"";
-
-                    continue;
-                }
-                $op = self::obj(self::obj($paths[$m[2]] ?? null)[strtolower($m[1])] ?? null);
-                if ($op === []) {
-                    $errors[] = "{$class}::{$name}: the operation {$label} is no longer in the spec";
 
                     continue;
                 }
@@ -918,14 +1017,27 @@ final class Generator
 
                     continue;
                 }
+                if (isset($named[$label])) {
+                    $errors[] = "{$class}::{$name}: {$label} is already {$named[$label]}";
+
+                    continue;
+                }
+                $named[$label] = "{$class}::{$name}";
+                $operation = $operations[$label] ?? null;
+                if ($operation === null) {
+                    // What the portal no longer publishes leaves the SDK; the generation goes on.
+                    $notices[] = "spec/resources.json: {$class}::{$name} is left out, the spec no longer has {$label}; it can be deleted from there.";
+
+                    continue;
+                }
                 $paginate = ($method['paginate'] ?? false) === true;
                 $usesPaginator = $usesPaginator || $paginate;
                 $query = $method['query'] ?? null;
                 $methods[] = $this->generateMethod(
                     $name,
-                    $m[1],
-                    $m[2],
-                    $op,
+                    $operation['method'],
+                    $operation['path'],
+                    $operation['op'],
                     $doc,
                     $paginate,
                     \is_bool($query) ? $query : null,
@@ -934,8 +1046,30 @@ final class Generator
                     ($method['optionsOnlyBefore'] ?? false) === true,
                     $types,
                 );
+                $names[] = $name;
                 $sdkMethods[$label] = "{$property}->{$name}";
+                $tagCount[$operation['tag']] = ($tagCount[$operation['tag']] ?? 0) + 1;
             }
+
+            // The portal groups of its methods, in the portal's order.
+            $resourceGroups = [];
+            foreach (array_keys($tagCount) as $tag) {
+                $group = $groups[(string) $tag] ?? ['group' => (string) $tag, 'category' => null, 'order' => \PHP_INT_MAX];
+                $resourceGroups[$group['group']] ??= $group;
+            }
+            uasort($resourceGroups, static fn(array $a, array $b): int => $a['order'] <=> $b['order']);
+            $groupNotes = [];
+            foreach ($resourceGroups as $groupName => $group) {
+                $groupNotes[] = "«{$groupName}»" . ($group['category'] !== null ? " ({$group['category']})" : '');
+            }
+            $resourceDoc = self::str($resource['doc'] ?? null) ?? '';
+            $doc = $resourceDoc . ($groupNotes === [] ? '' : ($resourceDoc === '' ? '' : "\n\n") . 'In the developers portal: ' . implode(', ', $groupNotes) . '.');
+            $summaries[] = [
+                'property' => $property,
+                'class' => $class,
+                'summary' => trim(explode("\n", $resourceDoc)[0]),
+                'methods' => $names,
+            ];
 
             $traits = array_values(array_filter(self::arr($resource['traits'] ?? null), 'is_string'));
             $uses = ['Funnelchat\Core\AbstractResource', 'Funnelchat\Funnelchat', ...$traits];
@@ -955,7 +1089,7 @@ final class Generator
 
             $files["src/Resources/{$class}.php"] = $this->header('Funnelchat\Resources')
                 . "\n" . implode('', array_map(static fn(string $use): string => "use {$use};\n", $uses))
-                . "\n/**\n" . Php::docText(self::str($resource['doc'] ?? null) ?? '', '') . " *\n"
+                . "\n/**\n" . Php::docText($doc, '') . " *\n"
                 . implode("\n", $imports) . "\n */\n"
                 . "final class {$class} extends AbstractResource\n{\n"
                 . implode('', $traitLines)
@@ -963,7 +1097,137 @@ final class Generator
                 . "}\n";
         }
 
-        return [$files, $sdkMethods, $errors];
+        return [$files, $sdkMethods, $errors, $notices, $summaries];
+    }
+
+    /**
+     * Every operation of a spec: "METHOD path" => its method, path, operation and first tag.
+     *
+     * @param Json $spec
+     *
+     * @return array<string, array{method: string, path: string, op: array<string, mixed>, tag: string}>
+     */
+    private static function operationsOf(array $spec): array
+    {
+        $operations = [];
+        foreach (self::obj($spec['paths'] ?? null) as $path => $item) {
+            $item = self::obj($item);
+            foreach (HTTP_METHODS as $method) {
+                if (!isset($item[$method])) {
+                    continue;
+                }
+                $op = self::obj($item[$method]);
+                $operations[strtoupper($method) . " {$path}"] = [
+                    'method' => strtoupper($method),
+                    'path' => (string) $path,
+                    'op' => $op,
+                    'tag' => self::str(self::arr($op['tags'] ?? null)[0] ?? null) ?? '',
+                ];
+            }
+        }
+
+        return $operations;
+    }
+
+    /**
+     * The categories of the portal (`x-fc-categorias` at the root: id, title and url), in its order.
+     *
+     * @param Json $spec
+     *
+     * @return array<string, array{title: string, url: string|null}>
+     */
+    private static function categories(array $spec): array
+    {
+        $categories = [];
+        foreach (self::arr($spec['x-fc-categorias'] ?? null) as $category) {
+            $category = self::obj($category);
+            $id = self::str($category['id'] ?? null);
+            if ($id !== null) {
+                $categories[$id] = ['title' => self::str($category['title'] ?? null) ?? $id, 'url' => self::str($category['url'] ?? null)];
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * The portal's groups (`x-tagGroups`): tag => its group, the group's category as the portal shows
+     * it (the title in `x-fc-categorias` of the id its entry gives, see CATEGORY_KEYS) and its place
+     * in the portal.
+     *
+     * @param Json $spec
+     *
+     * @return array<string, array{group: string, category: string|null, order: int}>
+     */
+    private static function tagGroups(array $spec): array
+    {
+        $categories = self::categories($spec);
+        $result = [];
+        foreach (array_values(self::arr($spec['x-tagGroups'] ?? null)) as $order => $group) {
+            $group = self::obj($group);
+            $name = self::str($group['name'] ?? null);
+            if ($name === null) {
+                continue;
+            }
+            $category = null;
+            foreach (self::CATEGORY_KEYS as $key) {
+                $category ??= self::str($group[$key] ?? null);
+            }
+            if ($category !== null) {
+                $category = $categories[$category]['title'] ?? $category;
+            }
+            foreach (self::strings($group['tags'] ?? null) as $tag) {
+                $result[$tag] ??= ['group' => $name, 'category' => $category, 'order' => $order];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * The groups of the portal in its order, with their category and description and how many
+     * operations each has (Routes::GROUPS, and the block of README.md).
+     *
+     * @param Json $spec
+     *
+     * @return list<array{name: string, category: string|null, operations: int, description: string|null}>
+     */
+    private static function groupList(array $spec): array
+    {
+        $descriptions = [];
+        foreach (self::arr($spec['tags'] ?? null) as $tag) {
+            $tag = self::obj($tag);
+            $name = self::str($tag['name'] ?? null);
+            if ($name !== null) {
+                $descriptions[$name] = self::str($tag['description'] ?? null);
+            }
+        }
+        $counts = [];
+        foreach (self::operationsOf($spec) as $operation) {
+            $counts[$operation['tag']] = ($counts[$operation['tag']] ?? 0) + 1;
+        }
+        $tagGroups = self::tagGroups($spec);
+        $groups = [];
+        foreach ($tagGroups as $tag => $group) {
+            $entry = $groups[$group['group']] ?? ['name' => $group['group'], 'category' => $group['category'], 'operations' => 0, 'description' => $descriptions[(string) $tag] ?? null, 'order' => $group['order']];
+            $entry['operations'] += $counts[(string) $tag] ?? 0;
+            $groups[$group['group']] = $entry;
+        }
+        // A tag the spec uses and no group lists is a group of its own, at the end.
+        foreach ($counts as $tag => $count) {
+            $tag = (string) $tag;
+            if ($tag !== '' && !isset($tagGroups[$tag]) && !isset($groups[$tag])) {
+                $groups[$tag] = ['name' => $tag, 'category' => null, 'operations' => $count, 'description' => $descriptions[$tag] ?? null, 'order' => \PHP_INT_MAX];
+            }
+        }
+        uasort($groups, static fn(array $a, array $b): int => $a['order'] <=> $b['order']);
+
+        return array_values(array_map(static fn(array $group): array => [
+            'name' => $group['name'],
+            'category' => $group['category'],
+            'operations' => $group['operations'],
+            'description' => $group['description'],
+        ], $groups));
     }
 
     /**
@@ -1112,6 +1376,9 @@ final class Generator
                 ?? throw new GeneratorError("The permission `{$permission}` has no panel name in PERMISSION_LABELS.");
             $notes[] = "Permission: **{$label}**.";
         }
+        if (($op['x-fc-destructive'] ?? null) === true) {
+            $notes[] = '**It cannot be undone** (`x-fc-destructive`): confirm with the person before calling it.';
+        }
         $pending = $op['x-fc-pending'] ?? null;
         if ($pending !== null) {
             $fields = array_filter(self::arr($op['x-fc-pending-fields'] ?? null), 'is_string');
@@ -1239,31 +1506,72 @@ final class Generator
     // ---- Step 7: the client's resource properties -----------------------------------------------
 
     /**
-     * @param Json $map
+     * @param list<ResourceSummary> $summaries
      */
-    private function generateResourceProperties(array $map): string
+    private function generateResourceProperties(array $summaries): string
     {
         $uses = [];
         $properties = [];
         $inits = [];
-        foreach (self::arr($map['resources'] ?? null) as $resource) {
-            $resource = self::obj($resource);
-            $class = self::str($resource['class'] ?? null) ?? '';
-            $property = self::str($resource['property'] ?? null) ?? '';
-            $uses[] = "Funnelchat\\Resources\\{$class}";
-            $summary = explode("\n", self::str($resource['doc'] ?? null) ?? '')[0];
-            $properties[] = "    /**\n" . Php::docText($summary, '    ') . "     */\n    public readonly {$class} \${$property};\n";
-            $inits[] = "        \$this->{$property} = new {$class}(\$this);";
+        foreach ($summaries as $resource) {
+            $uses[] = "Funnelchat\\Resources\\{$resource['class']}";
+            $properties[] = "    /**\n" . Php::docText($resource['summary'], '    ') . "     */\n    public readonly {$resource['class']} \${$resource['property']};\n";
+            $inits[] = "        \$this->{$resource['property']} = new {$resource['class']}(\$this);";
         }
         sort($uses);
 
         return $this->header('Funnelchat\Generated')
             . "\n" . implode('', array_map(static fn(string $use): string => "use {$use};\n", $uses))
-            . "\n/**\n * The resources of the client, one per piece of the API (spec/resources.json).\n */\n"
+            . "\n/**\n * The resources of the client (spec/resources.json): the most used functions, with the same\n"
+            . " * names as funnelchat-node. Every other one is called with request() or paginate() (Routes::ALL).\n */\n"
             . "trait ResourceProperties\n{\n"
             . implode("\n", $properties)
             . "\n    private function initResources(): void\n    {\n"
             . implode("\n", $inits) . "\n    }\n}\n";
+    }
+
+    // ---- Step 8: every function in README.md -------------------------------------------------------
+
+    /**
+     * README.md with its generated block written again: how many operations and events the spec
+     * has, and its groups in the portal's order, under each category when the spec gives them.
+     *
+     * @param Json $merged
+     */
+    private function generateReadme(array $merged): string
+    {
+        $readme = self::read($this->path(self::README_FILE));
+        $begin = strpos($readme, self::README_BEGIN);
+        $end = strpos($readme, self::README_END);
+        if ($begin === false || $end === false || $end < $begin) {
+            throw new GeneratorError('README.md lacks the generated block: ' . self::README_BEGIN . ' … ' . self::README_END);
+        }
+        $groups = self::groupList($merged);
+        $urls = [];
+        foreach (self::categories($merged) as $category) {
+            $urls[$category['title']] = $category['url'];
+        }
+        $byCategory = [];
+        foreach ($groups as $group) {
+            $byCategory[$group['category'] ?? ''][] = $group['name'];
+        }
+        // In the order of `x-fc-categorias`; one it does not list after those, and no category last.
+        $order = array_flip(array_keys($urls));
+        uksort($byCategory, static fn(int|string $a, int|string $b): int => [(string) $a === '' ? 2 : (isset($order[$a]) ? 0 : 1), $order[$a] ?? 0]
+            <=> [(string) $b === '' ? 2 : (isset($order[$b]) ? 0 : 1), $order[$b] ?? 0]);
+        $count = \count($groups);
+        $lines = ['**' . self::countOperations($merged) . ' operations and ' . self::countEventTypes($merged) . " webhook event types**, in the {$count} groups of the portal (named as the portal names them)"
+            . (array_keys($byCategory) === [''] ? ':' : ', by category:'), ''];
+        foreach ($byCategory as $category => $names) {
+            $category = (string) $category;
+            $url = $urls[$category] ?? null;
+            $title = $category === '' ? '' : ($url !== null ? "[{$category}]({$url})" : $category);
+            $lines[] = '- ' . ($title === '' ? (\count($byCategory) > 1 ? '**Other**, ' : '') : "**{$title}**, ")
+                . (\count($byCategory) > 1 ? \count($names) . ' ' . (\count($names) === 1 ? 'group' : 'groups') . ': ' : '')
+                . implode(', ', $names) . '.';
+        }
+
+        return substr($readme, 0, $begin) . self::README_BEGIN . "\n" . implode("\n", $lines) . "\n" . substr($readme, $end);
     }
 
     // ---- Helpers --------------------------------------------------------------------------------
@@ -1312,6 +1620,19 @@ final class Generator
         }
 
         return $n;
+    }
+
+    /**
+     * @param Json $spec
+     */
+    private static function countEventTypes(array $spec): int
+    {
+        $types = [];
+        foreach (array_keys(self::obj($spec['webhooks'] ?? null)) as $key) {
+            $types[self::eventTypeOfKey((string) $key)] = true;
+        }
+
+        return \count($types);
     }
 
     private function path(string $relative): string

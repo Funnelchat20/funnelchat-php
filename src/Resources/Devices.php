@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -17,6 +17,8 @@ use Funnelchat\Pagination\Paginator;
 /**
  * WhatsApp numbers of the account (accounts area). The `id` of a number is the `device_id` used to
  * send.
+ *
+ * In the developers portal: «Números» (Funciones de WhatsApp).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type DeviceConnectionEventResource from Schemas
@@ -140,6 +142,7 @@ final class Devices extends AbstractResource
      * session is closed. It emits `device.deleted`. There is no undo.
      *
      * Permission: **WhatsApp numbers → Create, connect and delete**.
+     * **It cannot be undone** (`x-fc-destructive`): confirm with the person before calling it.
      * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
      * change.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
@@ -215,61 +218,6 @@ final class Devices extends AbstractResource
     {
         /** @var DeviceHealthDetailResource $result */
         $result = $this->client->request('GET', '/api/v1/devices/{device}/health', ['path' => ['device' => $device]] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `GET /api/v1/devices/{device}/me`: the WhatsApp profile of the number.
-     *
-     * Permission: **WhatsApp numbers → View**.
-     *
-     * @param int $device
-     * @param RequestOptions $options
-     *
-     * @return array{
-     *     phone: string,
-     *     locale: '',
-     *     name: string,
-     *     avatar: string,
-     *     isBusiness: bool,
-     *     about: '',
-     * }|null
-     */
-    public function me(int|string $device, array $options = []): mixed
-    {
-        /**
-         * @var array{
-         *     phone: string,
-         *     locale: '',
-         *     name: string,
-         *     avatar: string,
-         *     isBusiness: bool,
-         *     about: '',
-         * }|null $result
-         */
-        $result = $this->client->request('GET', '/api/v1/devices/{device}/me', ['path' => ['device' => $device]] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `GET /api/v1/devices/{device}/check-phone`: whether a phone has WhatsApp.
-     *
-     * Permission: **WhatsApp numbers → View**.
-     *
-     * @param int $device
-     * @param array{
-     *     phone: string,
-     * } $query
-     * @param RequestOptions $options
-     *
-     * @return null
-     */
-    public function checkPhone(int|string $device, array $query, array $options = []): mixed
-    {
-        /** @var null $result */
-        $result = $this->client->request('GET', '/api/v1/devices/{device}/check-phone', ['path' => ['device' => $device], 'query' => $query] + $options);
 
         return $result;
     }

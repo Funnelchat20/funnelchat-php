@@ -8,8 +8,8 @@ namespace Funnelchat\Exception;
  * The stable error codes of creating and connecting numbers by API: `devices->create()`,
  * `devices->qr()` and `connectLinks`. When the API answers one of these, nothing was created.
  *
- * Source: written from the contract `1022-alta-de-numeros` v0.2 (23-10); every code is in the code of
- * accounts v1.5.97 (in production on 04-11). The quota codes are the ones the panel already answers.
+ * Source: accounts v1.5.97 (in production on 04-11), where every code is answered. The quota codes are
+ * the ones the panel already answers.
  */
 final class DeviceErrors
 {

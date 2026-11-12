@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -16,6 +16,8 @@ use Funnelchat\Pagination\Paginator;
 
 /**
  * WhatsApp message templates (conversations area): list, create, edit, send.
+ *
+ * In the developers portal: «Mensajes» (Primer uso), «Plantillas» (Funciones de WhatsApp).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type PublicMessageResource from Schemas
@@ -111,30 +113,6 @@ final class Templates extends AbstractResource
     public function update(int|string $template, array $body, array $options = []): mixed
     {
         return $this->client->request('PUT', '/api/v1/templates/{template}', ['path' => ['template' => $template], 'body' => $body] + $options);
-    }
-
-    /**
-     * `GET /api/v1/templates/{template}/quick-reply-buttons`.
-     *
-     * Permission: **Contacts and conversations → View**.
-     *
-     * @param int $template
-     * @param RequestOptions $options
-     *
-     * @return array{
-     *     data: list<mixed>,
-     * }
-     */
-    public function quickReplyButtons(int|string $template, array $options = []): mixed
-    {
-        /**
-         * @var array{
-         *     data: list<mixed>,
-         * } $result
-         */
-        $result = $this->client->request('GET', '/api/v1/templates/{template}/quick-reply-buttons', ['path' => ['template' => $template]] + $options);
-
-        return $result;
     }
 
     /**
