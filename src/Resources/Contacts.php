@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -18,6 +18,10 @@ use Funnelchat\Pagination\Paginator;
  * Contacts (conversations area): search, create, update, custom fields, notes and the 24-hour
  * window.
  *
+ * In the developers portal: «Contactos» (Funciones de Funnelchat), «Etiquetas» (Funciones de
+ * Funnelchat), «Campos personalizados» (Funciones de Funnelchat), «Notas» (Funciones de
+ * Funnelchat).
+ *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ContactCustomFieldResource from Schemas
  * @phpstan-import-type ContactNoteResource from Schemas
@@ -26,6 +30,7 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type StoreContactNoteRequest from Schemas
  * @phpstan-import-type StoreContactRequest from Schemas
  * @phpstan-import-type UpdateContactRequest from Schemas
+ * @phpstan-import-type UpdateOrCreateContactRequest from Schemas
  */
 final class Contacts extends AbstractResource
 {
@@ -56,6 +61,7 @@ final class Contacts extends AbstractResource
      *     custom_field_numeric_value?: float|int,
      *     only_with_phone?: string,
      *     only_with_mac?: string,
+     *     only_paused?: string,
      *     scopeToAdvisor?: string,
      *     lead_score_categories?: list<'insufficient_data'|'hot'|'warm'|'cold'>,
      *     lead_score_min?: int,
@@ -66,7 +72,7 @@ final class Contacts extends AbstractResource
      *         tag_ids?: list<int>,
      *     }>,
      *     custom_field_filters?: list<array{
-     *         type: '0'|'1'|'2'|'3'|'4',
+     *         type: 0|1|2|3|4,
      *         mode?: 'all'|'any'|'exclude'|null,
      *         value?: string|null,
      *         date_from?: string|null,
@@ -118,11 +124,7 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param array{
-     *     phone: string,
-     *     name?: string|null,
-     *     email?: string|null,
-     * } $body
+     * @param UpdateOrCreateContactRequest $body
      * @param RequestOptions $options
      *
      * @return ContactResource
@@ -173,11 +175,10 @@ final class Contacts extends AbstractResource
      *     device_id: int|null,
      *     adviser_id: int|null,
      *     paused_at: string|null,
+     *     paused_by?: mixed,
      *     mac_date: string|null,
      *     is_mac_inactive?: bool,
      *     ai_assistant_name: string|null,
-     *     ai_assistant_email?: string,
-     *     account_main_email?: string,
      *     stage_since?: string,
      *     is_stagnant?: bool,
      *     follow_up_date?: string|null,
@@ -226,11 +227,10 @@ final class Contacts extends AbstractResource
          *     device_id: int|null,
          *     adviser_id: int|null,
          *     paused_at: string|null,
+         *     paused_by?: mixed,
          *     mac_date: string|null,
          *     is_mac_inactive?: bool,
          *     ai_assistant_name: string|null,
-         *     ai_assistant_email?: string,
-         *     account_main_email?: string,
          *     stage_since?: string,
          *     is_stagnant?: bool,
          *     follow_up_date?: string|null,
@@ -308,11 +308,11 @@ final class Contacts extends AbstractResource
      * } $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return null
      */
     public function delete(array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
+        /** @var null $result */
         $result = $this->client->request('POST', '/api/v1/contacts/delete', ['body' => $body] + $options);
 
         return $result;
@@ -381,6 +381,9 @@ final class Contacts extends AbstractResource
      *     message: string,
      *     status: 403,
      * }|array{
+     *     message: string|null,
+     *     status: 422,
+     * }|array{
      *     message: 'Custom field value attached successfully.',
      *     status: 201,
      * }>
@@ -391,6 +394,9 @@ final class Contacts extends AbstractResource
          * @var list<array{
          *     message: string,
          *     status: 403,
+         * }|array{
+         *     message: string|null,
+         *     status: 422,
          * }|array{
          *     message: 'Custom field value attached successfully.',
          *     status: 201,

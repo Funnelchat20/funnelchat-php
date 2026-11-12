@@ -372,7 +372,6 @@ final class RequestsTest extends TestCase
             $this->capture(static fn(Funnelchat $c) => $c->webhooks->create(['url' => 'https://example.com/hooks', 'events' => ['message.received', 'message.status_changed']]), Reply::json(201, [])),
         );
         self::assertSame(['PUT', "/api/v1/webhooks/{$id}"], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->update($id, ['url' => 'https://example.com/v2', 'events' => ['message.received']]))), 0, 2));
-        self::assertSame(['POST', "/api/v1/webhooks/{$id}/rotate-secret"], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->rotateSecret($id))), 0, 2));
         self::assertSame(['POST', "/api/v1/webhooks/{$id}/test"], \array_slice(array_values($this->capture(static fn(Funnelchat $c) => $c->webhooks->test($id))), 0, 2));
         self::assertSame(
             ['method' => 'GET', 'path' => "/api/v1/webhooks/{$id}/deliveries", 'query' => 'per_page=50', 'body' => null],
@@ -390,9 +389,10 @@ final class RequestsTest extends TestCase
         return [
             'devices->retrieve' => [static fn(Funnelchat $c) => $c->devices->retrieve(3), 'GET', '/api/v1/devices/3'],
             'devices->status' => [static fn(Funnelchat $c) => $c->devices->status(3), 'GET', '/api/v1/devices/3/status'],
-            'devices->checkPhone' => [static fn(Funnelchat $c) => $c->devices->checkPhone(3, ['phone' => '5491100000000']), 'GET', '/api/v1/devices/3/check-phone'],
+            'devices->health' => [static fn(Funnelchat $c) => $c->devices->health(3), 'GET', '/api/v1/devices/3/health'],
+            'connectLinks->get' => [static fn(Funnelchat $c) => $c->connectLinks->get(7), 'GET', '/api/v1/connect-links/7'],
             'groups->retrieve' => [static fn(Funnelchat $c) => $c->groups->retrieve('xK9mQz'), 'GET', '/api/v1/groups/xK9mQz'],
-            'groups->listMessages' => [static fn(Funnelchat $c) => $c->groups->listMessages('xK9mQz')->firstPage(), 'GET', '/api/v1/groups/xK9mQz/messages'],
+            'groups->listActions' => [static fn(Funnelchat $c) => $c->groups->listActions('xK9mQz')->firstPage(), 'GET', '/api/v1/groups/xK9mQz/actions'],
             'messages->get' => [static fn(Funnelchat $c) => $c->messages->get(2001, 9001), 'GET', '/api/v1/contacts/2001/messages/9001'],
             'forms->retrieve' => [static fn(Funnelchat $c) => $c->forms->retrieve(31), 'GET', '/api/v1/forms/31'],
             'forms->publish' => [static fn(Funnelchat $c) => $c->forms->publish(31), 'POST', '/api/v1/forms/31/publish'],
@@ -404,9 +404,11 @@ final class RequestsTest extends TestCase
             'templates->retrieve' => [static fn(Funnelchat $c) => $c->templates->retrieve(45), 'GET', '/api/v1/templates/45'],
             'templates->delete' => [static fn(Funnelchat $c) => $c->templates->delete(3, 45), 'DELETE', '/api/v1/devices/3/templates/45'],
             'conversations->countUnread' => [static fn(Funnelchat $c) => $c->conversations->countUnread(), 'GET', '/api/v1/conversations/count/unread'],
-            'conversations->update' => [static fn(Funnelchat $c) => $c->conversations->update(2001, ['active_conversation' => false]), 'PUT', '/api/v1/contacts/2001/update'],
             'contacts->createNote' => [static fn(Funnelchat $c) => $c->contacts->createNote(2001, ['body' => 'nota']), 'POST', '/api/v1/contacts/2001/notes'],
             'contacts->deleteNote' => [static fn(Funnelchat $c) => $c->contacts->deleteNote(2001, 9), 'DELETE', '/api/v1/contacts/2001/notes/9'],
+            // A function of «Más funciones» without a method, as the Node SDK calls it: by its method and path.
+            'request tickets' => [static fn(Funnelchat $c) => $c->request('GET', '/api/v1/tickets'), 'GET', '/api/v1/tickets'],
+            'paginate broadcasts' => [static fn(Funnelchat $c) => $c->paginate('/api/v1/broadcasts', ['query' => ['perPage' => 50]])->firstPage(), 'GET', '/api/v1/broadcasts'],
         ];
     }
 

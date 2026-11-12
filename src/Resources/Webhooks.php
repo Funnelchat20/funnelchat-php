@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -22,12 +22,13 @@ use Funnelchat\Webhooks\WebhookHelpers;
  * → Manage**, and a key only sees and manages the subscriptions of its workspace whose events are
  * of areas it can read (the area's **View**). A subscription receives only the events of its
  * workspace, and every event says which one in `data.workspace_id`. The catalog (`events()`) needs
- * **WhatsApp numbers → View**. The routes come from the full spec of 04-11 (accounts v1.5.97);
- * `rotateSecret()`, the answer of `update()` and the query parameters of `list()` and
- * `listDeliveries()` that production accepts, from spec/pending.json (`accounts-webhooks`).
+ * **WhatsApp numbers → View**. Rotating the secret is not open to API keys: it is done from the
+ * dashboard. The answer of `update()` and the query parameters of `list()` and `listDeliveries()`
+ * that production accepts come from spec/pending.json (`accounts-webhooks`).
+ *
+ * In the developers portal: «Webhooks» (Funciones de Funnelchat).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
- * @phpstan-import-type PendingWebhookSubscriptionWithSecret from Schemas
  * @phpstan-import-type StoreWebhookSubscriptionRequest from Schemas
  * @phpstan-import-type UpdateWebhookSubscriptionRequest from Schemas
  * @phpstan-import-type WebhookSubscriptionCreatedResource from Schemas
@@ -170,27 +171,6 @@ final class Webhooks extends AbstractResource
     {
         /** @var null $result */
         $result = $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `POST /api/v1/webhooks/{id}/rotate-secret`: the new secret comes once; the old one stops
-     * working. Not open to API keys (accounts v1.5.97): it answers `403 route_not_available`
-     * (rotate it in the panel).
-     *
-     * Permission: **Notifications (webhooks) → Manage**.
-     * Pending of the spec (`accounts-webhooks` in spec/pending.json).
-     *
-     * @param string $id
-     * @param RequestOptions $options
-     *
-     * @return PendingWebhookSubscriptionWithSecret
-     */
-    public function rotateSecret(int|string $id, array $options = []): mixed
-    {
-        /** @var PendingWebhookSubscriptionWithSecret $result */
-        $result = $this->client->request('POST', '/api/v1/webhooks/{id}/rotate-secret', ['path' => ['id' => $id]] + $options);
 
         return $result;
     }

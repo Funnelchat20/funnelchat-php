@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -22,7 +22,8 @@ use Funnelchat\Resources\Templates;
 use Funnelchat\Resources\Webhooks;
 
 /**
- * The resources of the client, one per piece of the API (spec/resources.json).
+ * The resources of the client (spec/resources.json): the most used functions, with the same
+ * names as funnelchat-node. Every other one is called with request() or paginate() (Routes::ALL).
  */
 trait ResourceProperties
 {
@@ -33,8 +34,8 @@ trait ResourceProperties
     public readonly Contacts $contacts;
 
     /**
-     * Conversations (conversations area): the inbox, its counters and the state of each
-     * conversation.
+     * Conversations (conversations area): the inbox, its counters, and marking everything as read
+     * or unread.
      */
     public readonly Conversations $conversations;
 
@@ -67,11 +68,11 @@ trait ResourceProperties
     public readonly CustomFields $customFields;
 
     /**
-     * WhatsApp groups (communities area): the groups, their participants, joins and leaves, the
-     * messages sent to them, scheduled messages and actions; following a group of a number
-     * (`follow()`), so its joins and leaves arrive as events; and sending a message to a group now
-     * (`sendMessage()`), whose result you read with `retrieveAction()` or receive in
-     * `group_action.completed`. The groups of a number, live from WhatsApp, are `listByDevice()`.
+     * WhatsApp groups (communities area): read them, their participants and who joins and leaves,
+     * and their scheduled messages and actions; following a group of a number (`follow()`), so its
+     * joins and leaves arrive as events; and sending a message to a group now (`sendMessage()`),
+     * whose result you read with `retrieveAction()` or receive in `group_action.completed`. The
+     * groups of a number, live from WhatsApp, are `listByDevice()`.
      */
     public readonly Groups $groups;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -26,6 +26,8 @@ use Funnelchat\Pagination\Paginator;
  * spec of 04-11 (accounts v1.5.97); spec/pending.json (`accounts-number-onboarding`) corrects a
  * link read (`url` is always there and `null`), the empty answer of `revoke()` and adds `perPage`
  * to `list()`.
+ *
+ * In the developers portal: «Números» (Funciones de WhatsApp).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ConnectLinkResource from Schemas
@@ -83,7 +85,7 @@ final class ConnectLinks extends AbstractResource
      *     data: PendingConnectLink,
      * }
      */
-    public function retrieve(int|string $link, array $options = []): mixed
+    public function get(int|string $link, array $options = []): mixed
     {
         /**
          * @var array{

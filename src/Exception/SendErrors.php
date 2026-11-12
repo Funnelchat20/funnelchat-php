@@ -8,11 +8,9 @@ namespace Funnelchat\Exception;
  * The stable error codes of sending with an API key: the WhatsApp rules and the other reasons a
  * send is refused. When the API answers one of these, nothing went out.
  *
- * Source: conversations v1.18.10 (`ApiSendRejection`, `ApiSendGuard`, `ApiSendRateLimiter`,
- * `ApiKeySendResponse`, `FormSendPreflight` and `lang/en/public_api.php`), in production since
- * 21-10 and the same in v1.19.7 (04-11). Sending to a group (`groups->sendMessage()`): communities
- * v2.35.5 (`ApiGroupActionTargetResolver`, `ApiGroupActionAcceptor` and `GroupActionsDocumentation`) and,
- * for following a group, v2.35.7 (`ApiGroupImporter`).
+ * Source: conversations v1.18.10, in production since 21-10 and the same in v1.19.7 (04-11).
+ * Sending to a group (`groups->sendMessage()`): communities v2.35.5 and, for following a group,
+ * v2.35.7.
  */
 final class SendErrors
 {

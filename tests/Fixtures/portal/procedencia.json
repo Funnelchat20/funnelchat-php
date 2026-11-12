@@ -3,14 +3,11 @@
   "file": "tests/Fixtures/portal/verificar-firma.php",
   "sha256": "4c24481ac51822f9397ee277a1dcf843f52799907f12a06c538251cd122d80bc",
   "source": {
-    "repository": "git@github.com:Funnelchat20/developers-portal.git",
-    "path": "snippets/verificar-firma.php",
-    "branch": "feat/armar-funnelchat-portal",
-    "commit": "dd7cd4273152ea6b41ec4da6de7f07b9ad56dba7",
-    "identical_in": "feat/openapi-unificada @ 0ef4abb"
+    "published_at": "https://developers-portal.funnelchat.app/docs/webhooks/#firma",
+    "name": "verificar-firma.php",
+    "note": "The PHP signature code the developer portal publishes, copied as is; the portal tests it, with the Node.js and Python ones, against the same vectors."
   },
   "vectors": {
-    "path": "tests/test_firmas.py",
     "sha256": "3feae28beafe48090127fa2d586c2f008efa1bbe99721240f664f713b5145c0e",
     "replicated_in": "tests/Fixtures/PortalSignatureVectors.php"
   },

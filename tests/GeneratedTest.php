@@ -11,7 +11,9 @@ use Funnelchat\Tests\Support\TestCase;
 
 /**
  * The generated layer and the pending-of-the-spec layer. Counts come from the spec files, so a
- * regeneration does not need to touch this test.
+ * regeneration does not need to touch this test. The spec is the one the developers portal
+ * publishes: the SDK has every operation and event it has, and nothing else; the resources are
+ * those of spec/resources.json (the Node SDK's), and every other operation is called with request().
  */
 final class GeneratedTest extends TestCase
 {
@@ -85,23 +87,94 @@ final class GeneratedTest extends TestCase
         return $operations;
     }
 
-    public function testHasEveryOperationOfTheSnapshotPlusThePendingOnesFlagged(): void
+    /**
+     * @return array<string, array<array-key, mixed>> "METHOD /path" => the operation, of a `paths` object
+     */
+    private static function operationsWithData(mixed $paths): array
+    {
+        $operations = [];
+        foreach (\is_array($paths) ? $paths : [] as $path => $item) {
+            foreach (['get', 'put', 'post', 'delete', 'patch'] as $method) {
+                if (\is_array($item) && \is_array($item[$method] ?? null)) {
+                    $operations[strtoupper($method) . " {$path}"] = $item[$method];
+                }
+            }
+        }
+
+        return $operations;
+    }
+
+    public function testHasEveryOperationOfTheSpecAndNoOther(): void
     {
         $snapshot = self::operations(self::readJson('funnelchat.json')['paths'] ?? null);
-        $pendingOnly = array_values(array_diff(self::operations(self::readJson('pending.json')['paths'] ?? null), $snapshot));
-        $routes = self::constant(Routes::class, 'ALL');
-
-        self::assertGreaterThan(0, \count($snapshot));
-        self::assertCount(\count($snapshot) + \count($pendingOnly), $routes);
-        foreach ($routes as $route) {
+        $labels = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
             self::assertIsArray($route);
             self::assertIsString($route['method']);
             self::assertIsString($route['path']);
-            $label = "{$route['method']} {$route['path']}";
-            if (\in_array($label, $pendingOnly, true)) {
-                self::assertTrue($route['pending'], "{$label} comes from spec/pending.json");
+            $labels[] = "{$route['method']} {$route['path']}";
+        }
+
+        self::assertGreaterThan(0, \count($snapshot));
+        // spec/pending.json never adds an operation: only what the portal publishes.
+        self::assertEqualsCanonicalizing($snapshot, $labels);
+    }
+
+    public function testTheRouteTableSaysTheGroupTheCategoryAndWhatCannotBeUndone(): void
+    {
+        $spec = self::readJson('funnelchat.json');
+        // The category of a group is the id of one of `x-fc-categorias`; the table says its title.
+        $titles = [];
+        foreach ((array) ($spec['x-fc-categorias'] ?? []) as $category) {
+            self::assertIsArray($category);
+            self::assertIsString($category['id']);
+            self::assertIsString($category['title']);
+            $titles[$category['id']] = $category['title'];
+        }
+        $groups = [];
+        $expectedGroups = [];
+        foreach ((array) ($spec['x-tagGroups'] ?? []) as $group) {
+            self::assertIsArray($group);
+            $category = $group['x-fc-categoria'] ?? $group['x-fc-category'] ?? $group['x-fc-bloque'] ?? null;
+            $category = \is_string($category) ? $titles[$category] ?? $category : null;
+            $expectedGroups[] = [$group['name'] ?? null, $category];
+            foreach ((array) ($group['tags'] ?? []) as $tag) {
+                self::assertIsString($tag);
+                $groups[$tag] ??= [$group['name'] ?? null, $category];
             }
         }
+        $actualGroups = [];
+        foreach (self::constant(Routes::class, 'GROUPS') as $group) {
+            self::assertIsArray($group);
+            $actualGroups[] = [$group['name'], $group['category']];
+        }
+        self::assertSame($expectedGroups, $actualGroups);
+        $routes = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
+            self::assertIsArray($route);
+            self::assertIsString($route['method']);
+            self::assertIsString($route['path']);
+            $routes["{$route['method']} {$route['path']}"] = $route;
+        }
+        $destructive = 0;
+        foreach (self::operationsWithData($spec['paths'] ?? null) as $label => $op) {
+            $route = $routes[$label] ?? null;
+            self::assertIsArray($route, $label);
+            $tags = $op['tags'] ?? [];
+            $tag = \is_array($tags) && \is_string($tags[0] ?? null) ? $tags[0] : null;
+            self::assertSame([$groups[$tag ?? ''][0] ?? null, $groups[$tag ?? ''][1] ?? null], [$route['group'], $route['category']], $label);
+            $flag = $op['x-fc-destructive'] ?? null;
+            self::assertSame(\is_bool($flag) ? $flag : null, $route['destructive'], $label);
+            if ($flag === true && \is_string($route['sdk'])) {
+                // What cannot be undone, and has a method, says so in the method's PHPDoc.
+                [$property, $name] = explode('->', $route['sdk']);
+                $doc = (string) (new \ReflectionMethod('Funnelchat\\Resources\\' . ucfirst($property), $name))->getDocComment();
+                self::assertStringContainsString('**It cannot be undone**', $doc, $route['sdk']);
+                ++$destructive;
+            }
+        }
+        // `devices->delete()`, at least.
+        self::assertGreaterThan(0, $destructive);
     }
 
     /**
@@ -155,13 +228,13 @@ final class GeneratedTest extends TestCase
                 ++$checked;
             }
         }
-        // The full spec of 04-11 still needs the corrections: the four sends, the QR, the links…
+        // The published spec of 11-11 still needs the corrections: the four sends, the QR, the links…
         self::assertGreaterThanOrEqual(4, $checked);
     }
 
     public function testTheSendsAnswerTheMessageNeverNull(): void
     {
-        // conversations v1.19.7 (ApiKeySendResponse::message): `{"message": <object>}` for an API key.
+        // conversations v1.19.7: `{"message": <object>}` for an API key.
         foreach (['send', 'sendDirect', 'sendForm'] as $method) {
             $doc = (string) (new \ReflectionMethod(\Funnelchat\Resources\Messages::class, $method))->getDocComment();
             self::assertMatchesRegularExpression('/@return array\{\s*\*\s*message: PublicMessageResource,\s*\*\s*\}/', $doc, $method);
@@ -188,7 +261,7 @@ final class GeneratedTest extends TestCase
         }
     }
 
-    public function testKnowsEveryEventOfTheSnapshotAndThePendingOnes(): void
+    public function testKnowsEveryEventOfTheSpecAndNoOther(): void
     {
         $catalog = self::constant(WebhookEvents::class, 'CATALOG');
         $types = [];
@@ -199,11 +272,11 @@ final class GeneratedTest extends TestCase
         foreach (array_keys($snapshotWebhooks) as $key) {
             $types[] = (string) preg_replace('/\s*\(.*\)\s*$/', '', (string) $key);
         }
-        foreach (array_keys($pendingWebhooks) as $type) {
-            $types[] = (string) $type;
-            self::assertArrayHasKey((string) $type, $catalog);
-        }
+        // spec/pending.json only corrects the type of an event the spec publishes; it adds none.
         self::assertEqualsCanonicalizing(array_values(array_unique($types)), array_keys($catalog));
+        foreach (array_keys($pendingWebhooks) as $type) {
+            self::assertContains((string) $type, $types, "{$type} is published");
+        }
         foreach (['message.received', 'webhook.test', 'message.status_changed', 'device.connected'] as $type) {
             self::assertArrayHasKey($type, $catalog);
         }
@@ -225,7 +298,7 @@ final class GeneratedTest extends TestCase
 
     public function testEveryEventWithAKnownShapeSaysItsWorkspace(): void
     {
-        // accounts v1.5.97 writes `data.workspace_id` on every event it delivers (Q35 of 04-11).
+        // accounts v1.5.97 writes `data.workspace_id` on every event it delivers.
         $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
         preg_match_all('/@phpstan-type (\w+)Data (array\{.*?\n \* \}|array<string, mixed>)\n/s', $source, $matches, \PREG_SET_ORDER);
         self::assertGreaterThan(40, \count($matches));
@@ -235,7 +308,8 @@ final class GeneratedTest extends TestCase
                 // A planned event whose `data` is not known yet keeps the open type.
                 continue;
             }
-            self::assertMatchesRegularExpression('/\n \*     workspace_id: PendingWorkspaceId,\n \* \}$/', $shape, $name);
+            // From spec/pending.json, or from the spec's own example.
+            self::assertMatchesRegularExpression('/\n \*     workspace_id: (?:PendingWorkspaceId|int),\n/', $shape, $name);
             ++$typed;
         }
         self::assertGreaterThan(40, $typed);
@@ -260,16 +334,14 @@ final class GeneratedTest extends TestCase
         self::assertMatchesRegularExpression("/@phpstan-type PendingEventParticipant array\\{\\s*\\*\\s*identity: string,\\s*\\*\\s*identity_type: 'phone'\\|'whatsapp_user',\\s*\\*\\s*name: string\\|null,/s", $schemas);
     }
 
-    public function testAddsThePendingFieldsOfASchemaOnlyWhileTheSnapshotLacksThem(): void
+    public function testANumberSaysWhatItCanDo(): void
     {
+        // The number's capabilities: the spec types them since 04-11, so spec/pending.json no longer does.
         $properties = self::at(self::readJson('funnelchat.json'), 'components', 'schemas', 'DeviceResource', 'properties');
         self::assertIsArray($properties);
+        self::assertArrayHasKey('capabilities', $properties);
         $schemas = (string) file_get_contents(self::ROOT . '/src/Generated/Schemas.php');
-        if (!\array_key_exists('capabilities', $properties)) {
-            // The number's capabilities (accounts v1.4.24), typed from spec/pending.json.
-            self::assertMatchesRegularExpression('/@phpstan-type DeviceResource array\{.*?capabilities: PendingDeviceCapabilities,/s', $schemas);
-        }
-        self::assertStringContainsString('@phpstan-type PendingDeviceCapabilities', $schemas);
+        self::assertMatchesRegularExpression('/@phpstan-type DeviceResource array\{.*?\n \*     capabilities: array\{/s', $schemas);
     }
 
     public function testAddsThePendingQueryParametersOnlyWhileTheSnapshotLacksThem(): void
@@ -313,6 +385,14 @@ final class GeneratedTest extends TestCase
     public function testHasEveryResource(): void
     {
         $client = $this->client(new MockHttpClient());
+        $resources = self::at(self::readJson('resources.json'), 'resources');
+        self::assertIsArray($resources);
+        self::assertCount(11, $resources);
+        foreach ($resources as $resource) {
+            self::assertIsArray($resource);
+            self::assertIsString($resource['property']);
+            self::assertTrue(property_exists($client, $resource['property']), $resource['property']);
+        }
         foreach (['contacts', 'conversations', 'messages', 'templates', 'forms', 'tags', 'customFields', 'groups', 'devices', 'connectLinks', 'webhooks'] as $property) {
             self::assertTrue(property_exists($client, $property), $property);
         }
@@ -335,6 +415,104 @@ final class GeneratedTest extends TestCase
             ++$mapped;
         }
         self::assertGreaterThanOrEqual(70, $mapped);
+    }
+
+    /**
+     * The next spec the portal publishes: a new group, whose category its entry gives by title
+     * (`x-fc-bloque`, as the portal's full spec calls it), an operation spec/resources.json names
+     * that leaves, and an event spec/pending.json corrects that leaves. The generation runs in a copy
+     * of the repository and needs nothing edited by hand.
+     */
+    public function testANewSpecNeedsNothingEditedByHand(): void
+    {
+        $spec = self::readJson('funnelchat.json');
+        $groups = $spec['x-tagGroups'] ?? null;
+        self::assertIsArray($groups);
+        $groups[] = ['name' => 'Prueba', 'x-fc-bloque' => 'Funciones de Funnelchat', 'tags' => ['Prueba']];
+        $spec['x-tagGroups'] = $groups;
+        $tags = $spec['tags'] ?? null;
+        self::assertIsArray($tags);
+        $tags[] = ['name' => 'Prueba', 'description' => 'Una prueba.'];
+        $spec['tags'] = $tags;
+        $paths = $spec['paths'] ?? null;
+        self::assertIsArray($paths);
+        $paths['/api/v1/prueba'] = ['get' => ['operationId' => 'sample.index', 'summary' => 'Ver la prueba', 'tags' => ['Prueba'], 'responses' => ['200' => ['description' => 'OK']]]];
+        unset($paths['/api/v1/tags/{tag}/contacts']);
+        $spec['paths'] = $paths;
+        $webhooks = $spec['webhooks'] ?? null;
+        self::assertIsArray($webhooks);
+        unset($webhooks['message.received']);
+        $spec['webhooks'] = $webhooks;
+
+        $dir = sys_get_temp_dir() . '/funnelchat-php-generate-' . bin2hex(random_bytes(6));
+        try {
+            foreach (['src', 'spec'] as $tree) {
+                self::copyTree(self::ROOT . "/{$tree}", "{$dir}/{$tree}");
+            }
+            mkdir("{$dir}/scripts");
+            copy(self::ROOT . '/scripts/generate.php', "{$dir}/scripts/generate.php");
+            copy(self::ROOT . '/README.md', "{$dir}/README.md");
+            file_put_contents("{$dir}/spec/funnelchat.json", json_encode($spec, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR));
+
+            $run = static function (string $arguments) use ($dir): array {
+                exec(escapeshellarg(\PHP_BINARY) . ' ' . escapeshellarg("{$dir}/scripts/generate.php") . "{$arguments} 2>&1", $output, $code);
+
+                return [$code, implode("\n", $output)];
+            };
+            [$code, $report] = $run('');
+            self::assertSame(0, $code, $report);
+            $operations = \count(self::operations($paths));
+            self::assertMatchesRegularExpression("/\\d+ of {$operations} operations have a method; the rest are called with request\\(\\)\\./", $report);
+            self::assertStringContainsString('Tags::listContacts is left out, the spec no longer has GET /api/v1/tags/{tag}/contacts', $report);
+            self::assertMatchesRegularExpression('/does not publish \d+ routes or events of spec\/pending\.json.*\n  - webhook message\.received\n/s', $report);
+
+            $routes = (string) file_get_contents("{$dir}/src/Generated/Routes.php");
+            self::assertMatchesRegularExpression("/'path' => '\\/api\\/v1\\/prueba', .*'group' => 'Prueba', 'category' => 'Funciones de Funnelchat', .*'sdk' => null\\]/", $routes);
+            self::assertStringContainsString("['name' => 'Prueba', 'category' => 'Funciones de Funnelchat', 'operations' => 1, 'description' => 'Una prueba.']", $routes);
+            self::assertStringNotContainsString('/api/v1/tags/{tag}/contacts', $routes);
+            self::assertStringNotContainsString('function listContacts(', (string) file_get_contents("{$dir}/src/Resources/Tags.php"));
+            self::assertStringNotContainsString("'message.received' =>", (string) file_get_contents("{$dir}/src/Generated/WebhookEvents.php"));
+
+            // The README lists the new group under its category.
+            $readme = (string) file_get_contents("{$dir}/README.md");
+            self::assertMatchesRegularExpression('/\n- \*\*\[Funciones de Funnelchat\]\([^)]+\)\*\*, \d+ groups: [^\n]*, Prueba\.\n/', $readme);
+
+            // And what it wrote is what it would write again.
+            [$code, $report] = $run(' --check');
+            self::assertSame(0, $code, $report);
+        } finally {
+            self::removeTree($dir);
+        }
+    }
+
+    private static function copyTree(string $from, string $to): void
+    {
+        mkdir($to, 0o777, true);
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($from, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST) as $file) {
+            self::assertInstanceOf(\SplFileInfo::class, $file);
+            $target = $to . substr($file->getPathname(), \strlen($from));
+            if ($file->isDir()) {
+                mkdir($target);
+            } else {
+                copy($file->getPathname(), $target);
+            }
+        }
+    }
+
+    private static function removeTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST) as $file) {
+            self::assertInstanceOf(\SplFileInfo::class, $file);
+            if ($file->isDir()) {
+                rmdir($file->getPathname());
+            } else {
+                unlink($file->getPathname());
+            }
+        }
+        rmdir($dir);
     }
 
     public function testTheGeneratedFilesAreUpToDate(): void

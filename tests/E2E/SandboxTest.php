@@ -296,7 +296,7 @@ final class SandboxTest extends TestCase
 
         // Opening the page does not use the link (a messenger's preview cannot burn it); its button does.
         self::assertSame(200, $this->openPage($link['url'])[0]);
-        self::assertSame('pending', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status']);
+        self::assertSame('pending', $this->funnelchat->connectLinks->get($link['id'])['data']['status']);
         [$status, $location] = $this->openPage($link['url'] . '/start', ['connection' => 'coexistence']);
         self::assertSame(303, $status);
         self::assertIsString($location);
@@ -305,7 +305,7 @@ final class SandboxTest extends TestCase
         self::assertSame('completed', $result['status'] ?? null);
         self::assertSame((string) $link['id'], $result['connect_link_id'] ?? null);
 
-        $read = $this->funnelchat->connectLinks->retrieve($link['id'])['data'];
+        $read = $this->funnelchat->connectLinks->get($link['id'])['data'];
         self::assertSame('completed', $read['status']);
         // Production sends `url: null` once the link is read (accounts v1.5.97); the sandbox 0.2.0 leaves it out.
         self::assertNull($read['url'] ?? null);
@@ -374,12 +374,12 @@ final class SandboxTest extends TestCase
 
         for ($attempt = 1; $attempt <= 4; ++$attempt) {
             $this->openPage($url . '/start', ['outcome' => 'failed', 'error_code' => 'meta_error']);
-            $status = $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status'];
+            $status = $this->funnelchat->connectLinks->get($link['id'])['data']['status'];
             self::assertSame('pending', $status, "after failure {$attempt}");
         }
 
         $this->openPage($url . '/start', ['outcome' => 'failed', 'error_code' => 'meta_error']);
-        $read = $this->funnelchat->connectLinks->retrieve($link['id'])['data'];
+        $read = $this->funnelchat->connectLinks->get($link['id'])['data'];
         self::assertSame('failed', $read['status']);
         self::assertSame('meta_error', $read['error_code']);
         self::assertNull($read['device_id']);
@@ -390,7 +390,7 @@ final class SandboxTest extends TestCase
         $link = $this->funnelchat->connectLinks->create(['type' => 'qr'])['data'];
 
         self::assertNull($this->funnelchat->connectLinks->revoke($link['id']));
-        self::assertSame('revoked', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['status']);
+        self::assertSame('revoked', $this->funnelchat->connectLinks->get($link['id'])['data']['status']);
         try {
             $this->funnelchat->connectLinks->revoke($link['id']);
             self::fail('should have thrown');
@@ -458,7 +458,7 @@ final class SandboxTest extends TestCase
         // The link keeps it in lower case, as accounts does.
         $link = $this->funnelchat->connectLinks->create(['type' => 'qr', 'country' => 'AR'])['data'];
         self::assertSame('ar', $link['country']);
-        self::assertSame('ar', $this->funnelchat->connectLinks->retrieve($link['id'])['data']['country']);
+        self::assertSame('ar', $this->funnelchat->connectLinks->get($link['id'])['data']['country']);
         self::assertNull($this->funnelchat->connectLinks->create(['type' => 'qr'])['data']['country']);
 
         $this->turnMetaOn();

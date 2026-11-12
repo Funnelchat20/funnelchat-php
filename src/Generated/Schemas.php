@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -16,71 +16,6 @@ namespace Funnelchat\Generated;
  *
  * Schemas that start with `Pending` come from spec/pending.json.
  *
- * @phpstan-type AccountsUserResource array{
- *     id: string,
- *     name: string,
- *     email: string,
- *     admin: string|0,
- *     role: string,
- *     token: string|'',
- *     first_login_at: string,
- *     last_login_at: string,
- *     first_login_form: bool|null,
- *     without_business_type: bool,
- *     image: string,
- *     phone: string,
- *     timezone: string,
- *     locale: string|'es',
- *     theme: string|'light',
- *     owner_id: string,
- *     owner: array{
- *         id: string,
- *         name: string,
- *         email: string,
- *     }|null,
- *     plan: list<mixed>|'',
- *     effective_business_numbers_limit?: int|null,
- *     effective_agents_limit?: int|null,
- *     advisor_scope: string,
- *     show_advisor_name: string,
- *     contacts: string|int,
- *     groups: string|int,
- *     devices: string,
- *     additional_devices: string,
- *     agents: string,
- *     payment_till: string,
- *     next_billing_at?: string,
- *     workspaces_billing?: string,
- *     last_payment_at: string|'',
- *     feature_versions?: string,
- *     effective_feature_versions?: list<mixed>,
- *     workspaces_enabled?: string,
- *     device_auto_sync_enabled?: bool,
- *     panel_usage?: array{
- *         percentage: string,
- *         ceiling: string,
- *         used_count: string,
- *         reachable_count: string,
- *         total_count: string,
- *         tier: string,
- *         is_agent: string,
- *         blocks: string,
- *         computed_at: string|null,
- *     }|null,
- *     created_at: string|'',
- *     updated_at: string|'',
- *     is_dormant: bool,
- *     dormant_expires_at: string|null,
- *     workspace_context?: string,
- *     dormant_provider: 'hotmart'|'manual'|'stripe',
- *     can_enter_dormant?: bool|null,
- *     stripe_migration_incomplete: bool,
- *     stripe_migration_incomplete_reason?: string,
- *     mac_enforcement_enabled: bool,
- *     available_mac_buckets_sum: int,
- *     password_set?: bool,
- *     password_set_at?: string|null,
- * }
  * @phpstan-type ActionGroupResource array{
  *     id: string,
  *     name: string,
@@ -125,7 +60,10 @@ namespace Funnelchat\Generated;
  *     subActions: list<array<string, mixed>>,
  * }
  * @phpstan-type ActionStatusEnum 0|1|2|3|4|5|6|7|8|9|10|11|12
- * @phpstan-type AlertAction 'disconnected'|'usage_80'|'expiring'|'usage_100'|'upcoming_charge'|'payment_failed'|'plan_blocked'|'reactivated'|'trial_ending'|'cancellation_confirmed'|'dormant_ending'|'blocked'|'no_groups_available'|'daily_report'|'action_failed'|'message_failed'|'full'|'invalid_link'|'started'|'paused'|'resumed'|'cancelled'|'low_balance'|'topup_succeeded'|'topup_failed'
+ * @phpstan-type AddFormNumberRequest array{
+ *     device_id: int,
+ * }
+ * @phpstan-type AlertAction 'disconnected'|'usage_80'|'expiring'|'usage_100'|'upcoming_charge'|'payment_failed'|'plan_blocked'|'reactivated'|'trial_ending'|'cancellation_confirmed'|'dormant_ending'|'blocked'|'no_groups_available'|'daily_report'|'action_failed'|'message_failed'|'full'|'invalid_link'|'started'|'paused'|'resumed'|'cancelled'|'finished'|'summary'|'low_balance'|'topup_succeeded'|'topup_failed'
  * @phpstan-type AlertCampaignResource array{
  *     id: string,
  *     uuid: string,
@@ -148,7 +86,6 @@ namespace Funnelchat\Generated;
  *     all_campaigns: bool,
  *     campaign_ids: string|list<string>,
  * }
- * @phpstan-type AlertDestinationCreatedResource list<mixed>
  * @phpstan-type AlertDestinationResource array{
  *     id: int,
  *     type: string,
@@ -159,7 +96,6 @@ namespace Funnelchat\Generated;
  *     created_at: string|null,
  *     settings?: list<AlertSettingResource>,
  * }
- * @phpstan-type AlertDestinationType 'phone'|'webhook'
  * @phpstan-type AlertModule 'device'|'mac'|'billing'|'subscription'|'account'|'campaign'|'group'|'broadcast'|'ai_quota'
  * @phpstan-type AlertQuietHourResource array{
  *     enabled: bool,
@@ -221,6 +157,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type AppModulesScheduledMessagesResourcesScheduledMessageResource array{
  *     id: string,
+ *     uuid: string,
  *     name: string|'',
  *     send_at: string|null,
  *     status: string,
@@ -362,6 +299,8 @@ namespace Funnelchat\Generated;
  *     lead_score_categories: list<mixed>|null,
  *     lead_score_min: int|null,
  *     lead_score_max: int|null,
+ *     custom_field_filters: list<mixed>|null,
+ *     custom_field_filter_fields: string|list<string>,
  *     exclude_never_replied: bool,
  *     date_from: string,
  *     date_to: string,
@@ -461,6 +400,7 @@ namespace Funnelchat\Generated;
  *     resume_from_contact: int|null,
  *     stop_reason: string|null,
  *     publish_as_status: string,
+ *     custom_field_filters: string|list<string>,
  * }
  * @phpstan-type BulkMoveStageRequest array{
  *     contact_ids: list<int>,
@@ -482,18 +422,6 @@ namespace Funnelchat\Generated;
  *     order: string,
  *     created_at: string,
  *     updated_at: string,
- * }
- * @phpstan-type CampaignParticipantResource array{
- *     id: string,
- *     phone: string,
- *     name: string,
- *     lid: string,
- *     group_id: string,
- *     group_name?: string|null,
- *     joined_at: string|null,
- *     left_at: string|null,
- *     status: string,
- *     source: string,
  * }
  * @phpstan-type CampaignResource array{
  *     id: string,
@@ -545,34 +473,11 @@ namespace Funnelchat\Generated;
  *     total_out: string,
  *     total_in_counter: int,
  *     total_out_counter: int,
- *     average_read_rate: int|null,
  *     auto_create_groups: bool,
  *     group_creation_suspended: string|bool,
  *     suspended_creator_phones: string|list<string>,
  *     group_creation_has_available_creator: string|bool,
  *     api_policy?: array<string, mixed>,
- * }
- * @phpstan-type CampaignWebhookLogResource array{
- *     id: string,
- *     campaign_id: string,
- *     webhook_id: string,
- *     webhook_type: string,
- *     url: string,
- *     payload: string,
- *     response_status: string,
- *     response_body: string,
- *     execution_time_ms: string,
- *     success: string,
- *     error_message: string,
- *     created_at: string,
- * }
- * @phpstan-type CampaignWebhookResource array{
- *     id: string,
- *     type: string,
- *     url: string,
- *     is_active: string,
- *     created_at: string,
- *     updated_at: string,
  * }
  * @phpstan-type CampaignsResource array{
  *     id: string,
@@ -632,13 +537,6 @@ namespace Funnelchat\Generated;
  *     role: string|null,
  *     group_id: string|null,
  * }
- * @phpstan-type CommunitiesMessageResource array{
- *     id: string,
- *     uid: string,
- *     type: string,
- *     value: mixed,
- *     scheduledMessage: ScheduledMessageResource,
- * }
  * @phpstan-type ConnectLinkResource array{
  *     id: int,
  *     type: string,
@@ -659,7 +557,7 @@ namespace Funnelchat\Generated;
  *     id: int,
  *     name: string,
  *     description: string,
- *     type: string,
+ *     type: 0|1|2|3|4,
  *     value: string,
  *     created_at: string,
  *     updated_at: string,
@@ -732,11 +630,10 @@ namespace Funnelchat\Generated;
  *     device_id: int|null,
  *     adviser_id: int|null,
  *     paused_at: string|null,
+ *     paused_by?: mixed,
  *     mac_date: string|null,
  *     is_mac_inactive?: bool,
  *     ai_assistant_name: string|null,
- *     ai_assistant_email?: string,
- *     account_main_email?: string,
  *     stage_since?: string,
  *     is_stagnant?: bool,
  *     follow_up_date?: string|null,
@@ -761,56 +658,6 @@ namespace Funnelchat\Generated;
  *     contact_count: string,
  *     assigned_at: string|null,
  *     last_updated: string|null,
- * }
- * @phpstan-type ConversationsMessageResource array{
- *     chat_id: string,
- *     contact_id: int|'',
- *     content: list<mixed>|array<string, mixed>|string,
- *     device_id: int|'',
- *     error_code: string,
- *     file: string,
- *     forwarded: int,
- *     group_id: int|'',
- *     id: int,
- *     origin: MessageOriginEnum|'',
- *     origin_id: int|'',
- *     own: int,
- *     reference_message: string|null,
- *     reference_message_uid: string|null,
- *     is_quotable: bool,
- *     status: MessageStatusEnum|null,
- *     temporal_uuid: string|'',
- *     text: string,
- *     time: string|null,
- *     type: MessageTypeEnum|null,
- *     uid: string,
- *     info: list<mixed>|'',
- *     user_id: int,
- *     deleted_at: string|null,
- *     deleted_scope: string|null,
- *     deleted_by: int|null,
- *     edited_at: string|null,
- *     poll_results?: string,
- *     event_rsvps?: string,
- *     form_answers?: string,
- *     reactions: list<mixed>,
- *     file_original_name: string|null,
- *     client_reference: string|null,
- *     scheduled?: bool,
- *     ai_assistant?: array{
- *         name: string,
- *         email: string,
- *         account_main_email: string,
- *     },
- * }
- * @phpstan-type ConversationsUserResource array{
- *     id: string,
- *     name: string,
- *     email: string,
- *     owner_id: string,
- *     advisor_scope: string,
- *     created_at: string,
- *     updated_at: string|'',
  * }
  * @phpstan-type CreateApiGroupRequest array{
  *     device_id: int,
@@ -850,31 +697,17 @@ namespace Funnelchat\Generated;
  * @phpstan-type CustomFieldResource array{
  *     id: int,
  *     name: string,
- *     type: CustomFieldTypeEnum,
+ *     type: 0|1|2|3|4,
  *     description: string|null,
  *     contact_count?: int,
  *     created_at: string|null,
  * }
- * @phpstan-type CustomFieldTypeEnum 0|1|2|3|4
  * @phpstan-type DeviceConnectionEventEnum 0|1
  * @phpstan-type DeviceConnectionEventResource array{
  *     id: int,
  *     phone: string|null,
  *     event: DeviceConnectionEventEnum,
  *     created_at: string,
- * }
- * @phpstan-type DeviceFleetLogResource array{
- *     id: int,
- *     method: string,
- *     url: string|null,
- *     status_code: int|null,
- *     is_error: bool,
- *     duration_ms: int|null,
- *     created_at: string|null,
- *     request_payload: list<mixed>|null,
- *     response_body: list<mixed>|null,
- *     device_id: string|null,
- *     device_label: string|null,
  * }
  * @phpstan-type DeviceHealthDetailResource array{
  *     health: string,
@@ -893,17 +726,6 @@ namespace Funnelchat\Generated;
  *         waba_id: string|null,
  *         business_id: string|null,
  *     }|null,
- * }
- * @phpstan-type DeviceLogResource array{
- *     id: int,
- *     method: string,
- *     url: string|null,
- *     status_code: int|null,
- *     is_error: bool,
- *     duration_ms: int|null,
- *     created_at: string|null,
- *     request_payload: list<mixed>|null,
- *     response_body: list<mixed>|null,
  * }
  * @phpstan-type DeviceResource array{
  *     id: int,
@@ -977,15 +799,6 @@ namespace Funnelchat\Generated;
  *     overloaded_alert_level: string,
  *     overloaded_dismissed_at: string|null,
  *     sync_all_groups: bool,
- * }
- * @phpstan-type DisconnectSurveyResource array{
- *     pending: bool,
- *     phone: string|null,
- * }
- * @phpstan-type ExtensionTokenResource array{
- *     token: string,
- *     expiresAt: int,
- *     expiresInSeconds: int,
  * }
  * @phpstan-type FlowResource array{
  *     id: string,
@@ -1085,8 +898,6 @@ namespace Funnelchat\Generated;
  *     order: string,
  *     participants_numbers: string,
  *     participants_count: string,
- *     read_rate: int|null,
- *     read_rate_messages_count: int,
  *     status: string,
  *     uid: string,
  *     updatedAt: string,
@@ -1099,20 +910,6 @@ namespace Funnelchat\Generated;
  *     adminOnlyMessage: bool|null,
  *     origin: 1|0,
  *     lastSyncAt: string|null,
- * }
- * @phpstan-type IngestLeadScoreEventsRequest array{
- *     events: list<array{
- *         signal: 'group_join'|'group_leave'|'group_reaction'|'group_poll_vote'|'link_click',
- *         owner_user_id: int,
- *         contact_id?: int|null,
- *         phone?: string|null,
- *         occurred_at: string,
- *         external_id: string,
- *         scope_key?: string|null,
- *         meta?: array{
- *             campaign_message_uid?: string|null,
- *         }|null,
- *     }>,
  * }
  * @phpstan-type KanbanSettingResource array{
  *     id: int,
@@ -1194,6 +991,45 @@ namespace Funnelchat\Generated;
  *     total: int,
  * }
  * @phpstan-type MessageOriginEnum 0|1|2|3
+ * @phpstan-type MessageResource array{
+ *     chat_id: string,
+ *     contact_id: int|'',
+ *     content: list<mixed>|array<string, mixed>|string,
+ *     device_id: int|'',
+ *     error_code: string,
+ *     file: string,
+ *     forwarded: int,
+ *     group_id: int|'',
+ *     id: int,
+ *     origin: MessageOriginEnum|'',
+ *     origin_id: int|'',
+ *     own: int,
+ *     reference_message: string|null,
+ *     reference_message_uid: string|null,
+ *     is_quotable: bool,
+ *     status: MessageStatusEnum|null,
+ *     temporal_uuid: string|'',
+ *     text: string,
+ *     time: string|null,
+ *     type: MessageTypeEnum|null,
+ *     uid: string,
+ *     info: list<mixed>|'',
+ *     user_id: int,
+ *     deleted_at: string|null,
+ *     deleted_scope: string|null,
+ *     deleted_by: int|null,
+ *     edited_at: string|null,
+ *     poll_results?: string,
+ *     event_rsvps?: string,
+ *     form_answers?: string,
+ *     reactions: list<mixed>,
+ *     file_original_name: string|null,
+ *     client_reference: string|null,
+ *     scheduled?: bool,
+ *     ai_assistant?: array{
+ *         name: string,
+ *     },
+ * }
  * @phpstan-type MessageResponseResource array{
  *     message_template_id: string,
  *     block_type: string,
@@ -1237,7 +1073,7 @@ namespace Funnelchat\Generated;
  *     flow_id: string,
  *     type: int,
  *     action: string,
- *     value: string,
+ *     value: list<mixed>|string|null,
  *     next_uuid: string,
  * }
  * @phpstan-type OperationPlanResource array{
@@ -1363,6 +1199,38 @@ namespace Funnelchat\Generated;
  *     distinct_buyers: string,
  *     repeat_purchase_rate: string,
  * }
+ * @phpstan-type SaveWhatsappFormRequest array{
+ *     name?: string,
+ *     definition: array{
+ *         screens: list<array{
+ *             id: string,
+ *             title?: string|null,
+ *             cta?: string|null,
+ *             next?: string|null,
+ *             routes?: array{
+ *                 field?: string|null,
+ *                 groups?: list<array{
+ *                     to?: string|null,
+ *                     options?: list<string>|null,
+ *                 }>|null,
+ *             }|null,
+ *             items?: list<array{
+ *                 type: string,
+ *                 name?: string,
+ *                 id?: string|null,
+ *                 label?: string|null,
+ *                 url?: string|null,
+ *                 src?: string|null,
+ *                 options?: list<array{
+ *                     id?: string|null,
+ *                     title?: string|null,
+ *                 }>|null,
+ *                 tagMap?: list<string|null>|null,
+ *             }>,
+ *         }>,
+ *     },
+ *     expected_updated_at?: string|null,
+ * }
  * @phpstan-type ScheduledMessageEditStatusEnum 1|2|3|4
  * @phpstan-type ScheduledMessageFolderResource array{
  *     id: string,
@@ -1371,6 +1239,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ScheduledMessageIndexResource array{
  *     id: string,
+ *     uuid: string,
  *     name: string|'',
  *     send_at: string|null,
  *     status: string,
@@ -1398,6 +1267,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ScheduledMessageResource array{
  *     id: string,
+ *     uuid: string,
  *     name: string,
  *     send_at: string,
  *     status: string,
@@ -1477,11 +1347,6 @@ namespace Funnelchat\Generated;
  *     device_id?: int,
  * }
  * @phpstan-type SslValidationMethod 'TXT'|'HTTP'
- * @phpstan-type StoreAlertDestinationRequest array{
- *     type: AlertDestinationType,
- *     destination: string,
- *     name?: string|null,
- * }
  * @phpstan-type StoreBroadcastFolderRequest array{
  *     name: string,
  * }
@@ -1511,6 +1376,10 @@ namespace Funnelchat\Generated;
  *     email?: string|null,
  *     image?: string|null,
  *     deviceId?: int|null,
+ *     custom_fields?: list<array{
+ *         id: int,
+ *         value: string,
+ *     }>,
  * }
  * @phpstan-type StoreCustomDomainRequest array{
  *     hostname: string,
@@ -1521,9 +1390,6 @@ namespace Funnelchat\Generated;
  *     external_reference?: string|null,
  *     same_number_as?: int|null,
  *     country?: string|null,
- * }
- * @phpstan-type StoreDisconnectReasonRequest array{
- *     reason: '1'|'2'|'4'|'5',
  * }
  * @phpstan-type StoreFolderRequest array{
  *     name: string,
@@ -1574,18 +1440,18 @@ namespace Funnelchat\Generated;
  *         phone_number?: string,
  *     }>|null,
  * }
- * @phpstan-type StoreWebhookEndpointRequest array{
- *     url: string,
- *     description?: string|null,
- *     events?: list<'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'subscription.expiring'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'ai_quota.low_balance'|'ai_quota.topup_succeeded'|'ai_quota.topup_failed'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked'>,
- * }
  * @phpstan-type StoreWebhookSubscriptionRequest array{
  *     url: string,
  *     description?: string|null,
- *     events: list<'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'subscription.expiring'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'ai_quota.low_balance'|'ai_quota.topup_succeeded'|'ai_quota.topup_failed'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked'|'message.received'|'flow.completed'|'broadcast.finished'|'contact.stage_changed'|'message.status_changed'|'conversation.closed'|'conversation.assigned'|'contact.tag_added'|'broadcast.paused'|'contact.tag_removed'|'contact.created'|'template.status_changed'|'flow.failed'|'whatsapp_form.completed'|'group.created'|'group.invite_link_down'|'group.invite_link_renewed'|'group_participant.joined'|'group_participant.left'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'poll.voted'|'pipeline.finished'|'group.blocked'|'group.recovered'|'campaign.status_changed'|'scheduled_message.finished'|'group_action.failed'|'daily_report.generated'|'campaign.no_groups_available'|'group.full'|'group_action.completed'|'group.message_received'|'group.reaction_added'|'group_join_request.created'|'group_join_request.revoked'>,
+ *     events: list<'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.upcoming_charge'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked'|'message.received'|'flow.completed'|'broadcast.finished'|'contact.stage_changed'|'message.status_changed'|'conversation.closed'|'conversation.assigned'|'contact.tag_added'|'broadcast.paused'|'contact.tag_removed'|'contact.created'|'template.status_changed'|'flow.failed'|'whatsapp_form.completed'|'contact.updated'|'message.reaction_failed'|'group.created'|'group.invite_link_down'|'group.invite_link_renewed'|'group_participant.joined'|'group_participant.left'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'poll.voted'|'pipeline.finished'|'group.blocked'|'group.recovered'|'campaign.status_changed'|'scheduled_message.finished'|'group_action.failed'|'daily_report.generated'|'campaign.no_groups_available'|'group.full'|'group_action.completed'|'group.message_received'|'group.reaction_added'|'group_join_request.created'|'group_join_request.revoked'>,
  *     filters?: array{
  *         campaign_ids?: list<string>|null,
  *     },
+ * }
+ * @phpstan-type StoreWhatsappFormRequest array{
+ *     device_id: int,
+ *     device_ids?: list<int>,
+ *     template_key: string,
  * }
  * @phpstan-type SwitchValidationMethodRequest array{
  *     method: SslValidationMethod,
@@ -1655,10 +1521,6 @@ namespace Funnelchat\Generated;
  *     all_campaigns: bool,
  *     campaign_ids?: list<int>|null,
  * }
- * @phpstan-type UpdateAlertDestinationRequest array{
- *     name?: string|null,
- *     destination?: string,
- * }
  * @phpstan-type UpdateAlertQuietHourRequest array{
  *     enabled: bool,
  *     start_time?: string|null,
@@ -1718,21 +1580,19 @@ namespace Funnelchat\Generated;
  *         phone_number?: string,
  *     }>|null,
  * }
- * @phpstan-type UpdateWebhookEndpointEventsRequest array{
- *     events: list<array{
- *         event_type: 'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'subscription.expiring'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'ai_quota.low_balance'|'ai_quota.topup_succeeded'|'ai_quota.topup_failed'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked',
- *         enabled?: bool,
+ * @phpstan-type UpdateOrCreateContactRequest array{
+ *     phone: string,
+ *     name?: string|null,
+ *     email?: string|null,
+ *     custom_fields?: list<array{
+ *         id: int,
+ *         value: string,
  *     }>,
- * }
- * @phpstan-type UpdateWebhookEndpointRequest array{
- *     url?: string,
- *     description?: string|null,
- *     status?: 'enabled'|'disabled',
  * }
  * @phpstan-type UpdateWebhookSubscriptionRequest array{
  *     url: string,
  *     description?: string|null,
- *     events: list<'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.plan_blocked'|'billing.upcoming_charge'|'subscription.expiring'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'ai_quota.low_balance'|'ai_quota.topup_succeeded'|'ai_quota.topup_failed'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked'|'message.received'|'flow.completed'|'broadcast.finished'|'contact.stage_changed'|'message.status_changed'|'conversation.closed'|'conversation.assigned'|'contact.tag_added'|'broadcast.paused'|'contact.tag_removed'|'contact.created'|'template.status_changed'|'flow.failed'|'whatsapp_form.completed'|'group.created'|'group.invite_link_down'|'group.invite_link_renewed'|'group_participant.joined'|'group_participant.left'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'poll.voted'|'pipeline.finished'|'group.blocked'|'group.recovered'|'campaign.status_changed'|'scheduled_message.finished'|'group_action.failed'|'daily_report.generated'|'campaign.no_groups_available'|'group.full'|'group_action.completed'|'group.message_received'|'group.reaction_added'|'group_join_request.created'|'group_join_request.revoked'>,
+ *     events: list<'device.disconnected'|'device.connected'|'device.deleted'|'device.health_changed'|'device.quality_changed'|'device.messaging_limit_changed'|'device.display_name_reviewed'|'billing.payment_failed'|'billing.upcoming_charge'|'subscription.trial_ending'|'subscription.reactivated'|'subscription.cancellation_confirmed'|'subscription.dormant_ending'|'mac.usage_80'|'mac.usage_100'|'mac.expiring'|'account.blocked'|'message.received'|'flow.completed'|'broadcast.finished'|'contact.stage_changed'|'message.status_changed'|'conversation.closed'|'conversation.assigned'|'contact.tag_added'|'broadcast.paused'|'contact.tag_removed'|'contact.created'|'template.status_changed'|'flow.failed'|'whatsapp_form.completed'|'contact.updated'|'message.reaction_failed'|'group.created'|'group.invite_link_down'|'group.invite_link_renewed'|'group_participant.joined'|'group_participant.left'|'scheduled_message.group_delivery_failed'|'scheduled_message.response_received'|'poll.voted'|'pipeline.finished'|'group.blocked'|'group.recovered'|'campaign.status_changed'|'scheduled_message.finished'|'group_action.failed'|'daily_report.generated'|'campaign.no_groups_available'|'group.full'|'group_action.completed'|'group.message_received'|'group.reaction_added'|'group_join_request.created'|'group_join_request.revoked'>,
  *     filters?: array{
  *         campaign_ids?: list<string>|null,
  *     },
@@ -1743,8 +1603,9 @@ namespace Funnelchat\Generated;
  *     action: AlertAction,
  *     enabled: bool,
  * }
- * @phpstan-type VerifyAlertOtpRequest array{
- *     code: string,
+ * @phpstan-type UserResource array{
+ *     id: string,
+ *     name: string,
  * }
  * @phpstan-type WabaCapiDatasetResource array{
  *     waba_id: string,
@@ -1752,52 +1613,6 @@ namespace Funnelchat\Generated;
  *     scope_ok: bool,
  *     consented_at: string|null,
  *     last_verified_at: string|null,
- * }
- * @phpstan-type WebhookDeliveryResource array{
- *     id: int,
- *     event_id: string,
- *     event_type: string,
- *     attempt: int,
- *     url: string,
- *     response_status: int|null,
- *     succeeded: bool,
- *     error: string|null,
- *     duration_ms: int|null,
- *     attempted_at: string,
- * }
- * @phpstan-type WebhookEndpointCreatedResource array{
- *     id: int,
- *     url: string,
- *     description: string|null,
- *     status: string,
- *     disabled_reason: string|null,
- *     events?: list<string>,
- *     health: array{
- *         consecutive_failures: int,
- *         last_delivery_at: string|null,
- *         last_success_at: string|null,
- *     },
- *     secret_rotated_at: string|null,
- *     created_at: string|null,
- *     updated_at: string|null,
- *     secret: string,
- *     secret_notice: string,
- * }
- * @phpstan-type WebhookEndpointResource array{
- *     id: int,
- *     url: string,
- *     description: string|null,
- *     status: string,
- *     disabled_reason: string|null,
- *     events?: list<string>,
- *     health: array{
- *         consecutive_failures: int,
- *         last_delivery_at: string|null,
- *         last_success_at: string|null,
- *     },
- *     secret_rotated_at: string|null,
- *     created_at: string|null,
- *     updated_at: string|null,
  * }
  * @phpstan-type WebhookSubscriptionCreatedResource array{
  *     id: string,
@@ -1869,128 +1684,85 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type WhatsAppProviderEnum 1|2|3|4
  * @phpstan-type WhatsappCostSummaryResource array<string, mixed>
- * @phpstan-type PendingClientReference string
- * @phpstan-type PendingWebhookSubscriptionFilters array{
- *     campaign_ids?: list<string>,
- * }
- * @phpstan-type PendingWebhookSubscription WebhookSubscriptionResource
- * @phpstan-type PendingWebhookSubscriptionWithSecret array{
- *     id: string,
- *     url: string,
- *     description: string|null,
- *     events?: list<string>,
- *     filters: array<string, mixed>|null,
+ * @phpstan-type WhatsappForm array{
+ *     id: int,
+ *     user_id: int,
+ *     workspace_id: int|null,
+ *     phone_number_id: string,
+ *     family_id: int,
+ *     name: string,
+ *     category: string,
  *     status: string,
- *     disabled_reason: string|null,
- *     last_delivery_at: string|null,
- *     last_success_at: string|null,
- *     secret_rotated_at: string|null,
+ *     version: int,
+ *     parent_flow_id: int|null,
+ *     definition: list<mixed>,
+ *     flow_json: list<mixed>|null,
+ *     flow_json_hash: string|null,
+ *     fields: list<mixed>|null,
+ *     mapping: list<mixed>|null,
+ *     tag_rules: list<mixed>|null,
+ *     has_endpoint: bool,
+ *     first_screen: string|null,
+ *     first_screen_dynamic: bool,
+ *     meta_flow_id: string|null,
+ *     validation_errors: list<mixed>|null,
+ *     lint_errors_count: int,
+ *     retained_reason: string|null,
+ *     published_at: string|null,
+ *     deprecated_at: string|null,
  *     created_at: string|null,
  *     updated_at: string|null,
- *     migration: array{
- *         origin: string,
- *         status: string,
- *         activated_via: string|null,
- *         activated_at: string|null,
- *         last_result: string|null,
- *     }|null,
- *     secret: string,
- *     secret_notice: string,
+ *     deleted_at: string|null,
+ *     actor_user_id: int|null,
  * }
+ * @phpstan-type WhatsappFormResource array{
+ *     id: int,
+ *     family_id: int,
+ *     name: string,
+ *     label: string,
+ *     category: string,
+ *     status: string,
+ *     version: int,
+ *     definition?: list<mixed>,
+ *     fields?: list<mixed>|null,
+ *     mapping?: list<mixed>|null,
+ *     tag_rules?: list<mixed>|null,
+ *     has_endpoint: bool,
+ *     first_screen: string|null,
+ *     first_screen_dynamic: bool,
+ *     lint_errors_count: int,
+ *     draft_id?: int,
+ *     draft_version?: int,
+ *     sends?: int,
+ *     responses?: int,
+ *     meta_flow_id: string|null,
+ *     flow_json?: list<mixed>|null,
+ *     validation_errors?: list<mixed>|null,
+ *     published_at: string|null,
+ *     updated_at: string|null,
+ * }
+ * @phpstan-type WhatsappFormTemplate array{
+ *     id: int,
+ *     key: string,
+ *     title: string,
+ *     description: string,
+ *     category: string,
+ *     definition: list<mixed>,
+ *     sort: int,
+ *     created_at: string|null,
+ *     updated_at: string|null,
+ * }
+ * @phpstan-type PendingWebhookSubscription WebhookSubscriptionResource
  * @phpstan-type PendingWebhookSubscriptionCreate StoreWebhookSubscriptionRequest
  * @phpstan-type PendingWebhookSubscriptionUpdate UpdateWebhookSubscriptionRequest
  * @phpstan-type PendingWebhookSubscriptionDelivery WebhookSubscriptionDeliveryResource
- * @phpstan-type PendingWebhookSubscriptionTestResult array{
- *     succeeded: bool,
- *     response_status: int|null,
- *     error: string|null,
- *     duration_ms: int|null,
- *     delivery_id: int,
- * }
  * @phpstan-type PendingPublicMessage PublicMessageResource
- * @phpstan-type PendingForwardResult array{
- *     contact_id: int,
- *     mode: 'internal'|'native',
- *     status: 'queued'|'blocked',
- *     reason: 'mac_lockout_24h'|'mac_limit_reached'|'device_unavailable'|'not_sent'|'target_not_found'|null,
- *     message: PendingPublicMessage|null,
- * }
- * @phpstan-type PendingMessage array{
- *     message: string,
- * }
- * @phpstan-type PendingDeviceCapabilities array{
- *     messages: array{
- *         text: bool,
- *         media: bool,
- *         buttons: bool,
- *         lists: bool,
- *         templates: bool,
- *         location: bool,
- *         voice_note: bool,
- *         polls: bool,
- *         events: bool,
- *         contact_card: bool,
- *         reactions: bool,
- *     },
- *     groups: array{
- *         create: bool,
- *         add_participants: 'direct'|'invite'|false,
- *         remove_participants: bool,
- *         admins: bool,
- *         photo: bool,
- *         settings: bool,
- *         invite_link: bool,
- *         send: bool,
- *         join_requests: 'list'|'list_and_decide'|false,
- *     },
- *     statuses: list<'sent'|'delivered'|'read'|'failed'>,
- * }
  * @phpstan-type PendingMessageError array{
  *     code: int|null,
  *     title: string|null,
  *     reason: 'device_unavailable'|'insufficient_balance'|'window_closed'|'recipient_unreachable'|'template_not_found'|'template_unresolved_placeholder'|'not_queued'|'not_sent'|null,
  * }
- * @phpstan-type PendingFormLintIssue array{
- *     code: string,
- *     severity: string,
- *     screenId: string|null,
- *     itemId: string|null,
- *     message: string,
- * }
- * @phpstan-type PendingFormNumber array{
- *     device_id: int|null,
- *     primary: bool,
- *     status: 'draft'|'published'|'publishing'|'failed',
- *     error: string|null,
- * }
- * @phpstan-type PendingForm array{
- *     id: int,
- *     family_id: int,
- *     name: string,
- *     label: string|null,
- *     category: string|null,
- *     status: 'draft'|'published'|'deprecated',
- *     version: int,
- *     has_endpoint: bool,
- *     first_screen: string|null,
- *     first_screen_dynamic: bool,
- *     lint_errors_count: int,
- *     meta_flow_id: string|null,
- *     published_at: string|null,
- *     updated_at: string,
- *     definition?: array<string, mixed>,
- *     fields?: list<mixed>,
- *     mapping?: mixed,
- *     tag_rules?: mixed,
- *     flow_json?: mixed,
- *     validation_errors?: mixed,
- *     sends?: int,
- *     responses?: int,
- *     draft_id?: int,
- *     draft_version?: int,
- * }
  * @phpstan-type PendingExternalReference string|null
- * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null
  * @phpstan-type PendingDeviceCreate StoreDeviceRequest
  * @phpstan-type PendingDeviceQr array{
  *     connected: bool,
@@ -2015,15 +1787,6 @@ namespace Funnelchat\Generated;
  *     created_at: string,
  *     completed_at: string|null,
  * }
- * @phpstan-type PendingWebhookDevice array{
- *     id: int,
- *     name: string|null,
- *     'number': string|null,
- *     connection: PendingConnectionType,
- *     external_reference: PendingExternalReference,
- * }
- * @phpstan-type PendingConnectLinkId int|null
- * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'
  * @phpstan-type PendingWorkspaceId int|null
  * @phpstan-type PendingEventGroup array{
  *     uid: string,
@@ -2063,6 +1826,16 @@ namespace Funnelchat\Generated;
  *     started_at: string|null,
  *     completed_at: string|null,
  *     failed_at: string|null,
+ * }
+ * @phpstan-type PendingConnectLinkId int|null
+ * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null
+ * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'
+ * @phpstan-type PendingWebhookDevice array{
+ *     id: int,
+ *     name: string|null,
+ *     'number': string|null,
+ *     connection: PendingConnectionType,
+ *     external_reference: PendingExternalReference,
  * }
  */
 final class Schemas

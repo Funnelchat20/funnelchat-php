@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -24,9 +24,12 @@ use Funnelchat\Pagination\Paginator;
  * send goes nowhere (see `Funnelchat\Exception\SendErrors`). Send operations are never retried
  * automatically unless you pass `retrySend: true`.
  *
+ * In the developers portal: «Mensajes» (Primer uso), «Conversaciones» (Funciones de
+ * Funnelchat), «Atender una conversación» (Funciones de WhatsApp).
+ *
  * @phpstan-import-type RequestOptions from Funnelchat
- * @phpstan-import-type ConversationsMessageResource from Schemas
  * @phpstan-import-type ForwardMessageRequest from Schemas
+ * @phpstan-import-type MessageResource from Schemas
  * @phpstan-import-type PublicMessageResource from Schemas
  * @phpstan-import-type SendDirectMessageRequest from Schemas
  * @phpstan-import-type SendWhatsappFormRequest from Schemas
@@ -175,11 +178,11 @@ final class Messages extends AbstractResource
      * } $query
      * @param RequestOptions $options
      *
-     * @return Paginator<ConversationsMessageResource>
+     * @return Paginator<MessageResource>
      */
     public function list(int|string $contactId, array $query = [], array $options = []): Paginator
     {
-        /** @var Paginator<ConversationsMessageResource> $result */
+        /** @var Paginator<MessageResource> $result */
         $result = $this->client->paginate('/api/v1/contacts/{contactId}/messages', ['path' => ['contactId' => $contactId], 'query' => $query] + $options);
 
         return $result;
@@ -272,38 +275,34 @@ final class Messages extends AbstractResource
      * `PUT /api/v1/contacts/{contact}/messages/{message}/reaction`: reacts with an emoji.
      *
      * Permission: **Contacts and conversations → Send**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param int $message
      * @param StoreMessageReactionRequest $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function react(int|string $contact, int|string $message, array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('PUT', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('PUT', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
     }
 
     /**
      * `DELETE /api/v1/contacts/{contact}/messages/{message}/reaction`: removes your reaction.
      *
      * Permission: **Contacts and conversations → Send**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param int $message
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function removeReaction(int|string $contact, int|string $message, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('DELETE', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
-
-        return $result;
+        return $this->client->request('DELETE', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
     }
 }

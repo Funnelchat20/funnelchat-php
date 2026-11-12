@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 38ae497ab7e6089b…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -15,16 +15,19 @@ use Funnelchat\Generated\Schemas;
 use Funnelchat\Pagination\Paginator;
 
 /**
- * WhatsApp groups (communities area): the groups, their participants, joins and leaves, the
- * messages sent to them, scheduled messages and actions; following a group of a number
- * (`follow()`), so its joins and leaves arrive as events; and sending a message to a group now
- * (`sendMessage()`), whose result you read with `retrieveAction()` or receive in
- * `group_action.completed`. The groups of a number, live from WhatsApp, are `listByDevice()`.
+ * WhatsApp groups (communities area): read them, their participants and who joins and leaves, and
+ * their scheduled messages and actions; following a group of a number (`follow()`), so its joins
+ * and leaves arrive as events; and sending a message to a group now (`sendMessage()`), whose result
+ * you read with `retrieveAction()` or receive in `group_action.completed`. The groups of a number,
+ * live from WhatsApp, are `listByDevice()`.
  *
  * Reading needs **Groups and campaigns → View**; sending, **Groups and campaigns → Send**. Who
- * joins and who leaves arrives in `group_participant.joined` and `group_participant.left`. From the
- * full spec of 05-11 (communities v2.35.5); spec/pending.json (`communities-group-messages`)
- * corrects the answer of `retrieveAction()` and adds the `group_action.*` events.
+ * joins and who leaves arrives in `group_participant.joined` and `group_participant.left`.
+ * spec/pending.json (`communities-group-messages`) corrects the answer of `retrieveAction()` and
+ * types the `group_action.*` events from production.
+ *
+ * In the developers portal: «Grupos» (Funciones de WhatsApp), «Acciones de grupo» (Funciones de
+ * WhatsApp).
  *
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
@@ -32,7 +35,6 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type ApiGroupDeviceRequest from Schemas
  * @phpstan-import-type ApiGroupImportResource from Schemas
  * @phpstan-import-type ChannelMetadataResource from Schemas
- * @phpstan-import-type CommunitiesMessageResource from Schemas
  * @phpstan-import-type GroupMetadataResource from Schemas
  * @phpstan-import-type GroupMinResource from Schemas
  * @phpstan-import-type GroupResource from Schemas
@@ -198,28 +200,6 @@ final class Groups extends AbstractResource
     {
         /** @var Paginator<ParticipantEventResource> $result */
         $result = $this->client->paginate('/api/v1/groups/{group}/participant-events', ['path' => ['group' => $group], 'query' => $query] + $options);
-
-        return $result;
-    }
-
-    /**
-     * `GET /api/v1/groups/{group}/messages`, paginated.
-     *
-     * Permission: **Groups and campaigns → View**.
-     *
-     * @param string $group
-     * @param array{
-     *     page?: int,
-     *     cursor?: string,
-     * } $query
-     * @param RequestOptions $options
-     *
-     * @return Paginator<CommunitiesMessageResource>
-     */
-    public function listMessages(int|string $group, array $query = [], array $options = []): Paginator
-    {
-        /** @var Paginator<CommunitiesMessageResource> $result */
-        $result = $this->client->paginate('/api/v1/groups/{group}/messages', ['path' => ['group' => $group], 'query' => $query] + $options);
 
         return $result;
     }

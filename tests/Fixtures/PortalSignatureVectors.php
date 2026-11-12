@@ -7,11 +7,10 @@ namespace Funnelchat\Tests\Fixtures;
 /**
  * The signature vectors of the developer portal, replicated case by case.
  *
- * Source: developers-portal `tests/test_firmas.py` (branch feat/armar-funnelchat-portal @ dd7cd42;
- * identical in feat/openapi-unificada @ 0ef4abb), which tests `snippets/verificar-firma.js`,
- * `verificar-firma.php` and `verificar_firma.py`. Same secret, same body bytes, same cases (see
- * tests/Fixtures/portal/procedencia.json). The secret is a test value published in the portal, not
- * a real one.
+ * Source: the vectors with which the developer portal tests the signature code it publishes in
+ * Node.js, Python and PHP (https://developers-portal.funnelchat.app/docs/webhooks/#firma). Same
+ * secret, same body bytes, same cases (see tests/Fixtures/portal/procedencia.json). The secret is a
+ * test value published in the portal, not a real one.
  */
 final class PortalSignatureVectors
 {
@@ -36,14 +35,14 @@ final class PortalSignatureVectors
 
     public const FIXED_V1_UTF8_BODY = 'af96d19b25835145e88625eaf33ba41f72cd0c25e741918340db190e7c98e213';
 
-    /** `firmar()` of test_firmas.py. */
+    /** How the portal's vectors sign a body. */
     public static function sign(string $body, string $secret, int $t): string
     {
         return "t={$t},v1=" . hash_hmac('sha256', "{$t}." . $body, $secret);
     }
 
     /**
-     * `casos()` of test_firmas.py, for a given current time `t`.
+     * The portal's cases, for a given current time `t`.
      *
      * @return array<string, array{body: string, header: string, secret: string, expected: bool}>
      */
