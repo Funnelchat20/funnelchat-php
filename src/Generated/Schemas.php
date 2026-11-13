@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -110,6 +110,41 @@ namespace Funnelchat\Generated;
  * @phpstan-type ApiGroupActionAcceptedResource array{
  *     action_id: string,
  *     status: 'queued',
+ * }
+ * @phpstan-type ApiGroupActionResource array{
+ *     action_id: string,
+ *     type: 'create_group'|'add_participants'|'remove_participants'|'promote_admins'|'demote_admins'|'update_name'|'update_description'|'update_photo'|'update_settings'|'renew_invite_link'|'send_message'|'approve_join_requests'|'reject_join_requests',
+ *     status: 'queued'|'running'|'completed'|'failed',
+ *     device_id: int|null,
+ *     group: array{
+ *         uid: string,
+ *         name: string|null,
+ *     }|null,
+ *     result: array{
+ *         participants: list<array{
+ *             identity: string|null,
+ *             identity_type: string|null,
+ *             status: 'added'|'invited'|'removed'|'promoted'|'demoted'|'approved'|'rejected'|'failed',
+ *             reason: string|null,
+ *         }>,
+ *     }|array{
+ *         group: array{
+ *             uid: string,
+ *             name: string|null,
+ *         },
+ *         invite_link: string|null,
+ *     }|array{
+ *         invite_link: string|null,
+ *     }|array{
+ *         message: array{
+ *             uid: string|null,
+ *         },
+ *     }|array<string, mixed>|null,
+ *     reason: string|null,
+ *     created_at: string|null,
+ *     started_at: string|null,
+ *     completed_at: string|null,
+ *     failed_at: string|null,
  * }
  * @phpstan-type ApiGroupDescriptionRequest array{
  *     device_id: int,
@@ -1814,22 +1849,7 @@ namespace Funnelchat\Generated;
  *         reason: string|null,
  *     }>,
  * }
- * @phpstan-type PendingGroupAction array{
- *     action_id: string,
- *     type: 'create_group'|'add_participants'|'remove_participants'|'promote_admins'|'demote_admins'|'update_name'|'update_description'|'update_photo'|'update_settings'|'renew_invite_link'|'send_message'|'approve_join_requests'|'reject_join_requests',
- *     status: 'queued'|'running'|'completed'|'failed',
- *     device_id: int|null,
- *     group: array{
- *         uid: string,
- *         name: string|null,
- *     }|null,
- *     result: PendingGroupActionResult,
- *     reason: string|null,
- *     created_at: string|null,
- *     started_at: string|null,
- *     completed_at: string|null,
- *     failed_at: string|null,
- * }
+ * @phpstan-type PendingGroupAction ApiGroupActionResource
  * @phpstan-type PendingConnectLinkId int|null
  * @phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null
  * @phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'

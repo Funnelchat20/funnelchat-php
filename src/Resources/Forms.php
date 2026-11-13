@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -175,18 +175,16 @@ final class Forms extends AbstractResource
      * `DELETE /api/v1/forms/{id}`: deletes a draft (a published form is deprecated, not deleted).
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $id
      * @param RequestOptions $options
      *
-     * @return list<mixed>
+     * @return mixed
      */
     public function delete(int|string $id, array $options = []): mixed
     {
-        /** @var list<mixed> $result */
-        $result = $this->client->request('DELETE', '/api/v1/forms/{id}', ['path' => ['id' => $id]] + $options);
-
-        return $result;
+        return $this->client->request('DELETE', '/api/v1/forms/{id}', ['path' => ['id' => $id]] + $options);
     }
 
     /**
@@ -198,11 +196,23 @@ final class Forms extends AbstractResource
      * @param int $id
      * @param RequestOptions $options
      *
-     * @return string
+     * @return array{
+     *     data: WhatsappFormResource,
+     *     created: bool,
+     *     lint: list<mixed>,
+     *     numbers: list<mixed>,
+     * }
      */
     public function createVersion(int|string $id, array $options = []): mixed
     {
-        /** @var string $result */
+        /**
+         * @var array{
+         *     data: WhatsappFormResource,
+         *     created: bool,
+         *     lint: list<mixed>,
+         *     numbers: list<mixed>,
+         * } $result
+         */
         $result = $this->client->request('POST', '/api/v1/forms/{id}/versions', ['path' => ['id' => $id]] + $options);
 
         return $result;

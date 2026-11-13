@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -32,6 +32,7 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type RequestOptions from Funnelchat
  * @phpstan-import-type ActionGroupResource from Schemas
  * @phpstan-import-type ApiGroupActionAcceptedResource from Schemas
+ * @phpstan-import-type ApiGroupActionResource from Schemas
  * @phpstan-import-type ApiGroupDeviceRequest from Schemas
  * @phpstan-import-type ApiGroupImportResource from Schemas
  * @phpstan-import-type ChannelMetadataResource from Schemas
@@ -40,7 +41,6 @@ use Funnelchat\Pagination\Paginator;
  * @phpstan-import-type GroupResource from Schemas
  * @phpstan-import-type ParticipantEventResource from Schemas
  * @phpstan-import-type ParticipantResource from Schemas
- * @phpstan-import-type PendingGroupAction from Schemas
  * @phpstan-import-type ScheduledMessageResource from Schemas
  * @phpstan-import-type SendGroupMessageRequest from Schemas
  */
@@ -321,21 +321,19 @@ final class Groups extends AbstractResource
      * Another workspace's action answers `404 action_not_found`.
      *
      * Permission: **Groups and campaigns → View**.
-     * Response: pending of the spec (`communities-group-messages` in spec/pending.json); it may
-     * change.
      *
      * @param string $action
      * @param RequestOptions $options
      *
      * @return array{
-     *     data: PendingGroupAction,
+     *     data: ApiGroupActionResource,
      * }
      */
     public function retrieveAction(int|string $action, array $options = []): mixed
     {
         /**
          * @var array{
-         *     data: PendingGroupAction,
+         *     data: ApiGroupActionResource,
          * } $result
          */
         $result = $this->client->request('GET', '/api/v1/groups/actions/{action}', ['path' => ['action' => $action]] + $options);

@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace Funnelchat\Exception;
 
 /**
- * The stable error codes of creating and connecting numbers by API: `devices->create()`,
- * `devices->qr()` and `connectLinks`. When the API answers one of these, nothing was created.
+ * The stable error codes of the routes of a number: creating and connecting it (`devices->create()`,
+ * `devices->qr()`, `connectLinks`) and the others that refuse it for what the number is (its
+ * username, its health, its Conversions API dataset, editing it). When the API answers one of these,
+ * nothing was created or changed.
  *
  * Source: accounts v1.5.97 (in production on 04-11), where every code is answered. The quota codes are
  * the ones the panel already answers. `402 payment_required` and the `502 provider_error` of
- * `devices->status()`: the spec of portal v0.6.15, with the common error body.
+ * `devices->status()`: the spec of portal v0.6.15, with the common error body. The other routes of a
+ * number (`device_not_meta`, `device_not_ready`, `meta_error`, `unsupported_provider`): the spec of
+ * portal v0.6.16.
  */
 final class DeviceErrors
 {
     /**
-     * Error code => the HTTP statuses it comes with (some depend on the route).
+     * Error code => the HTTP statuses it comes with (some depend on the route; none listed when it is
+     * the one Meta gave).
      *
      * Quota and plan:
      * - `numbers_not_included` (403): the account's plan includes no numbers.
@@ -35,13 +40,19 @@ final class DeviceErrors
      * - `connection_type_mismatch` (422): the link's `type` is not the method of the number in `device_id`.
      * - `idempotency_key_mismatch` (422): the same `Idempotency-Key` came with a different body.
      * - `invalid_idempotency_key` (422): the `Idempotency-Key` is not 1 to 255 characters.
-     * - `provider_error` (500 creating, 502 `devices->qr()` and `devices->status()`): WhatsApp's provider failed. Try again.
+     * - `provider_error` (500 creating, 502 `devices->qr()`, `devices->status()` and the username routes): WhatsApp's provider, or Meta, did not answer. Try again.
      *
      * Connect links:
      * - `too_many_open_links` (429): the account has 20 open links. Revoke one or let them expire.
      * - `meta_connect_disabled` (503): the official signup by link (`type: 'meta'`) is off. It is off in production until Funnelchat registers its domain with Meta. QR links still work.
      * - `link_not_pending` (409): the link to revoke is no longer `pending`.
      * - `credentials_not_allowed` (403): the hosted page (`/connect/...`) was opened with an API key. The page is for your customer's browser, never with a key.
+     *
+     * The other routes of a number:
+     * - `device_not_meta` (422): the route is only for official numbers (WhatsApp Cloud API): its username, its health.
+     * - `device_not_ready` (422): the official number is not connected to Meta yet: its username, its Conversions API dataset and test.
+     * - `meta_error` (the status Meta gave): Meta refused it, for example a username already taken; `message` says why.
+     * - `unsupported_provider` (400, `devices->update()`): the number does not take that change.
      */
     public const CODES = [
         'numbers_not_included' => [403],
@@ -66,6 +77,10 @@ final class DeviceErrors
         'meta_connect_disabled' => [503],
         'link_not_pending' => [409],
         'credentials_not_allowed' => [403],
+        'device_not_meta' => [422],
+        'device_not_ready' => [422],
+        'meta_error' => [],
+        'unsupported_provider' => [400],
     ];
 
     /**
@@ -77,7 +92,8 @@ final class DeviceErrors
     private function __construct() {}
 
     /**
-     * Whether an `ApiException::$errorCode` is one of the refusals of creating or connecting a number.
+     * Whether an `ApiException::$errorCode` is one of the refusals of the routes of a number (creating
+     * or connecting it, its username, its health…).
      *
      * @phpstan-assert-if-true key-of<self::CODES> $code
      */

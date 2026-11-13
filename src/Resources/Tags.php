@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -95,6 +95,7 @@ final class Tags extends AbstractResource
      * `PUT /api/v1/tags/{tag}`.
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $tag
      * @param array{
@@ -104,34 +105,29 @@ final class Tags extends AbstractResource
      * } $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function update(int|string $tag, array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('PUT', '/api/v1/tags/{tag}', ['path' => ['tag' => $tag], 'body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('PUT', '/api/v1/tags/{tag}', ['path' => ['tag' => $tag], 'body' => $body] + $options);
     }
 
     /**
      * `POST /api/v1/tags/delete`: deletes the tags in `tagIds`.
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param array{
      *     tagIds: list<string>,
      * } $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function delete(array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('POST', '/api/v1/tags/delete', ['body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('POST', '/api/v1/tags/delete', ['body' => $body] + $options);
     }
 
     /**
