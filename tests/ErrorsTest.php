@@ -12,6 +12,7 @@ use Funnelchat\Exception\EdgeMisconfiguredException;
 use Funnelchat\Exception\InternalServerException;
 use Funnelchat\Exception\NotFoundException;
 use Funnelchat\Exception\OriginUnreachableException;
+use Funnelchat\Exception\PaymentRequiredException;
 use Funnelchat\Exception\PermissionDeniedException;
 use Funnelchat\Exception\RateLimitException;
 use Funnelchat\Exception\RouteNotFoundException;
@@ -44,6 +45,7 @@ final class ErrorsTest extends TestCase
         return [
             'HTTP 400' => [400, BadRequestException::class],
             'HTTP 401' => [401, AuthenticationException::class],
+            'HTTP 402' => [402, PaymentRequiredException::class],
             'HTTP 403' => [403, PermissionDeniedException::class],
             'HTTP 404' => [404, NotFoundException::class],
             'HTTP 409' => [409, ConflictException::class],

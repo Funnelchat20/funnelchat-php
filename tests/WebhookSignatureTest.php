@@ -175,6 +175,41 @@ final class WebhookSignatureTest extends TestCase
         self::assertSame('Hola, quiero más información', $event['data']['message']['text']);
     }
 
+    public function testParsesAMessageOfATypeTheSpecDoesNotListYet(): void
+    {
+        // WhatsApp adds message types before the spec lists them: the type takes any string
+        // (PHPStan checks this literal against `MessageReceivedEvent`), and parsing never fails.
+        $event = self::typed([
+            'id' => 'evt_000000000000000000000099',
+            'type' => 'message.received',
+            'version' => 1,
+            'occurred_at' => '2026-11-13T12:00:00Z',
+            'data' => [
+                'message' => ['id' => 1001, 'type' => 'a_type_from_the_future', 'text' => null, 'media' => null],
+                'contact' => ['id' => 2001, 'name' => null, 'phone' => '+5491100000000'],
+                'receiver' => ['phone' => '+5491100000001'],
+                'device_id' => 4521,
+                'workspace_id' => null,
+            ],
+        ]);
+        $body = json_encode($event, \JSON_THROW_ON_ERROR);
+        $t = V::FIXED_T;
+
+        $parsed = Webhook::constructEvent($body, V::sign($body, V::SECRET, $t), V::SECRET, now: $t);
+
+        self::assertSame($event, $parsed);
+    }
+
+    /**
+     * @param MessageReceivedEvent $event
+     *
+     * @return MessageReceivedEvent
+     */
+    private static function typed(array $event): array
+    {
+        return $event;
+    }
+
     public function testIsTheSameOnTheClient(): void
     {
         $t = V::FIXED_T;

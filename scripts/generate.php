@@ -211,6 +211,15 @@ final class Generator
         $operations = self::countOperations($merged);
         echo 'resources: ' . \count($sdkMethods) . " of {$operations} operations have a method"
             . (\count($sdkMethods) === $operations ? ".\n" : '; the rest are called with request().' . "\n");
+        $withKey = [];
+        foreach (self::obj($merged['paths'] ?? null) as $path => $item) {
+            foreach (HTTP_METHODS as $method) {
+                if (isset(self::obj($item)[$method]) && self::takesIdempotencyKey(self::obj(self::obj($item)[$method]), $merged)) {
+                    $withKey[] = strtoupper($method) . " {$path}";
+                }
+            }
+        }
+        echo 'idempotencyKey: ' . ($withKey === [] ? 'no operation of the spec declares the `Idempotency-Key` header' : 'only ' . implode(', ', $withKey) . ' (the spec declares the `Idempotency-Key` header)') . ".\n";
 
         $stale = $this->staleFiles($files);
         if ($check) {
@@ -362,9 +371,11 @@ final class Generator
 
         file_put_contents($this->path(self::SPEC_FILE), $bytes);
         file_put_contents($this->path(self::PROVENANCE_FILE), json_encode($provenance, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR) . "\n");
-        $commit = $provenance['source']['commit'];
+        // `--source` can declare any of them, so they are read back as what they are.
+        $branch = self::str($provenance['source']['branch'] ?? null);
+        $commit = self::str($provenance['source']['commit'] ?? null);
         echo 'spec: copied from ' . ($declared['url'] ?? $relPath ?? basename($sourcePath))
-            . ($top !== null ? ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ')' : ' (not in a git repository)')
+            . ($top !== null ? ' (' . ($branch ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ')' : ' (not in a git repository)')
             . ', sha256 ' . substr($provenance['sha256'], 0, 8) . "…\n";
     }
 
@@ -724,6 +735,32 @@ final class Generator
         return (string) preg_replace('/\s*\(.*\)\s*$/', '', $key);
     }
 
+    /**
+     * Whether the spec declares the `Idempotency-Key` header on an operation: as a header parameter
+     * (its own or a `#/components/parameters` one), or, as the portal publishes it today, in the
+     * operation's description (`Acepta el header `Idempotency-Key``). Only then does the API answer
+     * the same resource to a repeated key, so only then does the SDK take `idempotencyKey`.
+     *
+     * @param Json $op
+     * @param Json $spec
+     */
+    private static function takesIdempotencyKey(array $op, array $spec): bool
+    {
+        $shared = self::obj(self::obj($spec['components'] ?? null)['parameters'] ?? null);
+        foreach (self::arr($op['parameters'] ?? null) as $parameter) {
+            $parameter = self::obj($parameter);
+            $ref = self::str($parameter['$ref'] ?? null);
+            if ($ref !== null && str_starts_with($ref, '#/components/parameters/')) {
+                $parameter = self::obj($shared[substr($ref, \strlen('#/components/parameters/'))] ?? null);
+            }
+            if (self::str($parameter['in'] ?? null) === 'header' && strcasecmp(self::str($parameter['name'] ?? null) ?? '', 'Idempotency-Key') === 0) {
+                return true;
+            }
+        }
+
+        return str_contains(self::str($op['description'] ?? null) ?? '', '`Idempotency-Key`');
+    }
+
     // ---- Step 3: routes -------------------------------------------------------------------------
 
     /**
@@ -755,6 +792,7 @@ final class Generator
                     'category' => $tag !== null ? $groups[$tag]['category'] ?? null : null,
                     'summary' => self::str($op['summary'] ?? null),
                     'destructive' => \is_bool($destructive) ? $destructive : null,
+                    'idempotencyKey' => self::takesIdempotencyKey($op, $merged),
                     'pending' => isset($op['x-fc-pending']) || isset($op['x-fc-pending-response']),
                     'sdk' => $sdkMethods[$label] ?? null,
                 ];
@@ -792,12 +830,14 @@ final class Generator
                  * Every operation of the spec ({$count}), sorted by path. `group` = the portal's group
                  * (`x-tagGroups`) and `category` = its category as the portal shows it, or `null` while
                  * the spec does not give one. `destructive` = `x-fc-destructive`: `true` cannot be undone
-                 * (confirm with the person before calling it), `null` = the spec does not say. `pending` =
-                 * its shape is corrected by spec/pending.json. `sdk` = the resource method that calls it
-                 * (`contacts->list`), or `null`: call it with `\$funnelchat->request()` (or `paginate()`
-                 * for a list) by its method and path.
+                 * (confirm with the person before calling it), `null` = the spec does not say.
+                 * `idempotencyKey` = the spec declares the `Idempotency-Key` header: the only operations
+                 * that take the `idempotencyKey` option. `pending` = its shape is corrected by
+                 * spec/pending.json. `sdk` = the resource method that calls it (`contacts->list`), or
+                 * `null`: call it with `\$funnelchat->request()` (or `paginate()` for a list) by its
+                 * method and path.
                  *
-                 * @var list<array{method: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE', path: string, operationId: string|null, domain: string|null, permission: string|null, tag: string|null, group: string|null, category: string|null, summary: string|null, destructive: bool|null, pending: bool, sdk: string|null}>
+                 * @var list<array{method: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE', path: string, operationId: string|null, domain: string|null, permission: string|null, tag: string|null, group: string|null, category: string|null, summary: string|null, destructive: bool|null, idempotencyKey: bool, pending: bool, sdk: string|null}>
                  */
                 public const ALL = [
 

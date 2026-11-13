@@ -2,6 +2,7 @@
 
 # What the Composer package does not need (it ships src/, the README and composer.json).
 /.gitattributes export-ignore
+/.github export-ignore
 /.gitignore export-ignore
 /.php-cs-fixer.dist.php export-ignore
 /phpstan.neon.dist export-ignore

@@ -27,6 +27,9 @@ final class Retry
     /** @var list<string>|null */
     private static ?array $sendPatterns = null;
 
+    /** @var list<string>|null */
+    private static ?array $idempotencyKeyPatterns = null;
+
     private function __construct() {}
 
     /** Statuses worth retrying: rate limits and server errors. */
@@ -86,6 +89,37 @@ final class Retry
     }
 
     /**
+     * Whether `$method` + `$pathname` (already interpolated, without query) takes an
+     * `Idempotency-Key`: its spec declares the header (`idempotencyKey` in the generated route
+     * table), so the API answers the same resource to a repeated key and body. On any other
+     * operation the API ignores the header, so a repeat could create a duplicate.
+     */
+    public static function takesIdempotencyKey(string $method, string $pathname): bool
+    {
+        self::$idempotencyKeyPatterns ??= self::patterns(static fn(array $route): bool => $route['idempotencyKey']);
+
+        return self::matchesAny(self::$idempotencyKeyPatterns, $method, $pathname);
+    }
+
+    /**
+     * The operations that take an `Idempotency-Key` ("POST /api/v1/devices"), as the generated route
+     * table has them.
+     *
+     * @return list<string>
+     */
+    public static function idempotencyKeyOperations(): array
+    {
+        $operations = [];
+        foreach (Routes::ALL as $route) {
+            if ($route['idempotencyKey']) {
+                $operations[] = "{$route['method']} {$route['path']}";
+            }
+        }
+
+        return $operations;
+    }
+
+    /**
      * Whether `$method` + `$pathname` (already interpolated, without query) is a non-idempotent
      * send: a `POST` that needs a **Send** permission (**Contacts and conversations → Send**,
      * **Groups and campaigns → Send**). It delivers a WhatsApp message, so it is never retried
@@ -93,16 +127,9 @@ final class Retry
      */
     public static function isSendRequest(string $method, string $pathname): bool
     {
-        if (strtoupper($method) !== 'POST') {
-            return false;
-        }
-        foreach (self::sendPatterns() as $pattern) {
-            if (preg_match($pattern, $pathname) === 1) {
-                return true;
-            }
-        }
+        self::$sendPatterns ??= self::patterns(static fn(array $route): bool => $route['method'] === 'POST' && self::isSendPermission($route['permission']));
 
-        return false;
+        return self::matchesAny(self::$sendPatterns, $method, $pathname);
     }
 
     /** Whether the permission of a route, as `Routes::ALL` has it, is a **Send** one: the route delivers a message. */
@@ -112,22 +139,39 @@ final class Retry
     }
 
     /**
+     * A pattern of "METHOD /path" for each route of the generated table that `$include` takes.
+     *
+     * @param \Closure(value-of<Routes::ALL>): bool $include
+     *
      * @return list<string>
      */
-    private static function sendPatterns(): array
+    private static function patterns(\Closure $include): array
     {
-        if (self::$sendPatterns === null) {
-            self::$sendPatterns = [];
-            foreach (Routes::ALL as $route) {
-                if ($route['method'] !== 'POST' || !self::isSendPermission($route['permission'])) {
-                    continue;
-                }
-                $parts = preg_split('/\{[^}]+\}/', $route['path']);
-                $quoted = array_map(static fn(string $part): string => preg_quote($part, '#'), $parts === false ? [] : $parts);
-                self::$sendPatterns[] = '#^' . implode('[^/]+', $quoted) . '/?$#';
+        $patterns = [];
+        foreach (Routes::ALL as $route) {
+            if (!$include($route)) {
+                continue;
+            }
+            $parts = preg_split('/\{[^}]+\}/', $route['path']);
+            $quoted = array_map(static fn(string $part): string => preg_quote($part, '#'), $parts === false ? [] : $parts);
+            $patterns[] = '#^' . $route['method'] . ' ' . implode('[^/]+', $quoted) . '/?$#';
+        }
+
+        return $patterns;
+    }
+
+    /**
+     * @param list<string> $patterns
+     */
+    private static function matchesAny(array $patterns, string $method, string $pathname): bool
+    {
+        $request = strtoupper($method) . ' ' . $pathname;
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $request) === 1) {
+                return true;
             }
         }
 
-        return self::$sendPatterns;
+        return false;
     }
 }

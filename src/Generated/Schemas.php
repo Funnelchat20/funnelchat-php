@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -634,6 +634,7 @@ namespace Funnelchat\Generated;
  *     mac_date: string|null,
  *     is_mac_inactive?: bool,
  *     ai_assistant_name: string|null,
+ *     opted_out?: bool,
  *     stage_since?: string,
  *     is_stagnant?: bool,
  *     follow_up_date?: string|null,
@@ -653,6 +654,7 @@ namespace Funnelchat\Generated;
  *     name: string,
  *     description: string|'',
  *     color: string,
+ *     is_system: bool,
  *     created_at: string|null,
  *     updated_at: string|null,
  *     contact_count: string,
@@ -1461,6 +1463,7 @@ namespace Funnelchat\Generated;
  *     name: string,
  *     description: string,
  *     color: string|null,
+ *     is_system: bool,
  *     created_at: string|null,
  *     updated_at: string|null,
  *     contact_count: string|int,

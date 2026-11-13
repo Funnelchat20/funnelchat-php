@@ -70,12 +70,13 @@ final class Transport
         $url = Url::join($this->baseUrl, $pathname, Url::serializeQuery($options['query'] ?? []));
         $errorUrl = Url::join($this->baseUrl, explode('?', $pathname, 2)[0], '');
         $maxRetries = max(0, $options['maxRetries'] ?? $this->maxRetries);
-        $isSend = Retry::isSendRequest($verb, explode('?', $pathname, 2)[0]);
+        $route = explode('?', $pathname, 2)[0];
+        $isSend = Retry::isSendRequest($verb, $route);
         $retriesAllowed = ($options['retrySend'] ?? false) === true || !$isSend;
-        $idempotencyKey = self::idempotencyKey($options);
-        // With an `Idempotency-Key` the API answers the same resource to a repeated write, so a write
-        // that may have been applied can be repeated as safely as a `PUT`. Not a send: the send
-        // routes do not take the header.
+        $idempotencyKey = self::idempotencyKey($options, $verb, $route);
+        // With an `Idempotency-Key` on an operation whose spec declares it, the API answers the same
+        // resource to a repeated write, so a write that may have been applied can be repeated as
+        // safely as a `PUT`. Never a send, whatever a future spec says: a send is not repeated by itself.
         $retryAs = $idempotencyKey !== null && !$isSend ? 'PUT' : $verb;
         $onResponse = $options['onResponse'] ?? null;
         $timeout = $this->timeoutFor($options);
@@ -170,11 +171,13 @@ final class Transport
     private function __clone() {}
 
     /**
-     * The `idempotencyKey` option, checked: 1 to 255 characters.
+     * The `idempotencyKey` option, checked: 1 to 255 characters, and only on an operation whose spec
+     * declares the `Idempotency-Key` header. On any other the API ignores the header, so the key
+     * would not stop a repeat from creating a duplicate: it is refused before sending.
      *
      * @param RawRequestOptions $options
      */
-    private static function idempotencyKey(array $options): ?string
+    private static function idempotencyKey(array $options, string $method, string $route): ?string
     {
         $key = $options['idempotencyKey'] ?? null;
         if ($key === null) {
@@ -182,6 +185,16 @@ final class Transport
         }
         if (trim($key) === '' || \strlen($key) > 255) {
             throw new FunnelchatException('`idempotencyKey` must have between 1 and 255 characters.');
+        }
+        if (!Retry::takesIdempotencyKey($method, $route)) {
+            $operations = Retry::idempotencyKeyOperations();
+
+            throw new FunnelchatException(\sprintf(
+                '`idempotencyKey` is not accepted by %s %s: its spec does not declare the `Idempotency-Key` header, so the API would ignore it and repeating the call could create a duplicate. Nothing was sent. The operations that take it: %s.',
+                $method,
+                $route,
+                $operations === [] ? 'none' : implode(', ', $operations),
+            ));
         }
 
         return $key;

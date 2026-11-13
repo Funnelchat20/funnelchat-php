@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # The release workflow runs these same checks before publishing.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Generated code, style and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict
+
+      - name: Install
+        run: composer update --no-interaction --no-progress --prefer-dist
+
+      - name: The generated code is up to date with spec/
+        run: composer generate:check
+
+      - name: Style (PHP-CS-Fixer)
+        run: composer cs
+
+      - name: Types (PHPStan, max level)
+        run: composer analyse
+
+  tests:
+    name: Tests, PHP ${{ matrix.php }}, Guzzle ${{ matrix.guzzle }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # From the minimum composer.json allows (^8.1, with PHPUnit 10) to the latest (PHPUnit 12).
+        php: ['8.1', '8.2', '8.3', '8.4', '8.5']
+        guzzle: ['^7.8', '^8.0']
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Pin Guzzle ${{ matrix.guzzle }}
+        run: composer require --dev --no-update --no-interaction "guzzlehttp/guzzle:${{ matrix.guzzle }}"
+
+      - name: Install
+        run: composer update --no-interaction --no-progress --prefer-dist
+
+      - name: Tests (PHPUnit, no network and no keys)
+        run: composer test

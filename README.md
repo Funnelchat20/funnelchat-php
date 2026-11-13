@@ -98,6 +98,8 @@ if ($event['type'] === 'message.received') {
 }
 ```
 
+`message.type` is one of the values the spec lists (`text`, `image`, `audio`, `document`…) or a new one: WhatsApp adds types before the spec lists them, so its type is those values or any other string. Handle a type you do not know (a `default`) instead of failing.
+
 On an official number, a message received opens the 24-hour window for free text. Answer the webhook with a `2xx` within 10 seconds and do the slow work after (in Laravel, a queued job: [Receiving webhooks with Laravel](#receiving-webhooks-with-laravel)).
 
 ## Groups
@@ -460,7 +462,7 @@ Deleting is physical and frees the quota: an official number loses the app subsc
 
 ### Idempotency-Key
 
-`devices->create()` and `connectLinks->create()` take `idempotencyKey` in the options (1 to 255 characters), sent as the `Idempotency-Key` header. For 24 hours, the same key with the same body answers the same number or link without creating another, with the header `Idempotent-Replayed: true` (read it in `$funnelchat->lastResponse()->headers`). Only successful answers are replayed: a refusal is evaluated again. With a different body, `422 idempotency_key_mismatch`; while the first call runs, `409 operation_in_progress`. With a key, the SDK also repeats the create after a timeout or a `5xx` (see [Retries](#retries)).
+`devices->create()` and `connectLinks->create()` take `idempotencyKey` in the options (1 to 255 characters), sent as the `Idempotency-Key` header. They are the only operations whose spec declares that header (`idempotencyKey` in `Funnelchat\Generated\Routes::ALL`, generated from the spec); on any other call the API ignores it, so the SDK throws a `FunnelchatException` before sending anything, instead of letting you believe a repeat is safe. For 24 hours, the same key with the same body answers the same number or link without creating another, with the header `Idempotent-Replayed: true` (read it in `$funnelchat->lastResponse()->headers`). Only successful answers are replayed: a refusal is evaluated again. With a different body, `422 idempotency_key_mismatch`; while the first call runs, `409 operation_in_progress`. With a key, the SDK also repeats the create after a timeout or a `5xx` (see [Retries](#retries)).
 
 ### The events of a number
 
@@ -613,14 +615,14 @@ Everything the SDK throws extends `Funnelchat\Exception\FunnelchatException`. Wh
 | Property | What it is |
 |---|---|
 | `status` | The HTTP status (also `getCode()`). |
-| `errorCode` | The stable code of the body (`window_closed`, `rate_limited`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when there is none (for example a validation `422` or a `415`). In Node it is `code`; in PHP `getCode()` already exists and returns a number. |
+| `errorCode` | The stable code of the body (`validation_failed`, `not_found`, `payment_required`, `rate_limited`, `window_closed`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when there is none (for example a `415`). In Node it is `code`; in PHP `getCode()` already exists and returns a number. |
 | `getMessage()` | The `message` of the body, meant for people. Decide by `status` and `errorCode`, not by the message. |
 | `requestId` | The `X-Request-Id` of the response. **Quote it when you report a problem**, with the approximate time of the call. |
 | `retryAfter` | The seconds of `Retry-After`, when present (rounded up). |
-| `errors` | In a validation `422`, the messages per field. |
+| `errors` | In a `422 validation_failed`, the messages per field. |
 | `body`, `headers`, `method`, `url` | The response and the request (the URL without the query). |
 
-Each HTTP status has its class, in `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) and `InternalServerException` (5xx). Without a response: `ApiConnectionException`, and `ApiConnectionTimeoutException` when the timeout ran out.
+Each HTTP status has its class, in `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PaymentRequiredException` (402), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) and `InternalServerException` (5xx). Without a response: `ApiConnectionException`, and `ApiConnectionTimeoutException` when the timeout ran out.
 
 The errors of the API entrypoint itself, which answers without reaching any area, have their own:
 
@@ -643,7 +645,16 @@ try {
 }
 ```
 
-A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission. A record of another workspace answers `404`, the same as one that does not exist.
+With a key, every error of the API has the same body: `error`, the stable code (`errorCode`), and `message`, for people (`getMessage()`). The codes every route can answer:
+
+| Error | What it means | What to do |
+|---|---|---|
+| `422 validation_failed` | A field is wrong; `errors` has the messages per field. | Fix the request. |
+| `404 not_found` | The record does not exist, or it is of another account or another workspace: never a `403`. | Check the id and the key's workspace. |
+| `402 payment_required` | The account's payment is overdue. Never retried. | Settle it in the Funnelchat panel. |
+| `429 rate_limited` | Too many calls; it comes with `Retry-After`. | The SDK waits it out by itself when it is at most 60 seconds (see [Retries](#retries)). |
+
+A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
 
 The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
 
@@ -669,7 +680,7 @@ An id you send yourself in `X-Request-Id` is not used: the API sets its own. The
 - Without `Retry-After`, the wait is exponential: 0.5 s, 1 s, 2 s… up to 8 s, with some jitter.
 - **A send is never retried by itself**: the `POST`s that need a **Send** permission (**Contacts and conversations → Send** or **Groups and campaigns → Send**: messages, contact cards, forwards, templates, forms and messages to a group). They are retried only if you pass `'retrySend' => true` in that call. Reactions (`PUT` and `DELETE`) are retried, because repeating them changes nothing.
 - **A write that may have been applied is not repeated by itself**: a `POST` or a `PATCH` is retried only on a `429` or a `503`, when it was certainly not applied. On a `500`, `502` or `504`, a timeout or a dropped connection, the exception is thrown right away (a `502 origin_unreachable` does not guarantee the area did not get it): read the state before repeating it. `retrySend` does not change this. Reads, `PUT`s and `DELETE`s are retried on any transient failure. It is the same rule as in the Node SDK.
-- **A create with an `idempotencyKey`** (`devices->create()`, `connectLinks->create()`) is retried like a `PUT`: the API answers the same resource to the same key. A send is not, key or no key.
+- **A create with an `idempotencyKey`** (`devices->create()`, `connectLinks->create()`) is retried like a `PUT`: the API answers the same resource to the same key. Only the operations whose spec declares the `Idempotency-Key` header take the option: on any other (`tags->create()`, a send…) it throws a `FunnelchatException` before sending, because the API would ignore the header and a repeat could create a duplicate.
 - `429 mac_lockout_24h`, `429 mac_limit_reached`, `429 too_many_pending_actions`, `429 too_many_open_links` and `503 meta_connect_disabled` are never retried.
 - Per call you can change `maxRetries` and the headers, and with Guzzle the `timeout`:
 
@@ -695,7 +706,7 @@ It returns the decoded JSON (associative arrays), the text when the response is 
 
 The query is built the way Laravel reads it: arrays go as `key[]=a&key[]=b`, nested arrays with brackets, booleans as `1` and `0` and dates (`DateTimeInterface`) in ISO 8601, in UTC.
 
-`Funnelchat\Generated\Routes::ALL` has every operation of the spec with its domain, its permission, its group in the portal (`group`) and the group's category (`category`, `null` while the spec does not say it), whether it cannot be undone (`destructive`) and the SDK method that calls it (`sdk`).
+`Funnelchat\Generated\Routes::ALL` has every operation of the spec with its domain, its permission, its group in the portal (`group`) and the group's category (`category`, `null` while the spec does not say it), whether it cannot be undone (`destructive`), whether it takes `idempotencyKey` (`idempotencyKey`: its spec declares the `Idempotency-Key` header) and the SDK method that calls it (`sdk`).
 
 ## Regenerating
 
@@ -705,7 +716,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.13
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.15
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -723,6 +734,21 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.1
+
+Generated from the spec of portal v0.6.15: the same 253 operations and 56 event types. It declares the common error body of the API (above, [Errors](#errors)).
+
+- A `402` is a `PaymentRequiredException` (an `ApiException`, as before): `payment_required`, the account's payment is overdue. `DeviceErrors::CODES['payment_required']` is `[402]` (it was `[403]`).
+- New in the types: `is_system` on tags (`TagResource`, `ContactTagResource`) and `opted_out` on contacts.
+
+### What changed in 0.5.0
+
+Generated from the spec of portal v0.6.14: the same 253 operations and 56 event types as v0.6.13.
+
+- **`idempotencyKey` only where the API honours it.** Up to 0.4.0 any call took it, and with it the SDK repeated a `POST` after a timeout or a `5xx`; on an operation whose spec does not declare the `Idempotency-Key` header the API ignores it, so that repeat could create a duplicate. Now it is taken only by those operations (`devices->create()` and `connectLinks->create()` today, read from the spec at generation: `idempotencyKey` in `Routes::ALL`), and anywhere else it throws a `FunnelchatException` before sending. Remove the option from any other call.
+- **`group_join_request.created` and `.revoked`**: `participant.identity` is a `string`, never `null`, and `identity_type` is `'phone'|'whatsapp_user'` (no `'unknown'`).
+- **`message.received`**: `message.type` is the known values or any other `string`: an exhaustive `match` on it needs a `default`.
 
 ### What left in 0.4.0
 
@@ -743,14 +769,14 @@ What production answers with another shape than the spec says is in a separate l
 - `spec/pending.json`: fields, query parameters, responses, schemas and the type of some events, in OpenAPI format, with the source of each entry (`x-fc-pending`, explained in its `sources`). It never adds an operation or an event: an entry for one the spec does not publish is left out, and the generation lists it.
 - Each correction carries the condition that ends it (`while`, `x-fc-replace-while`): a top-level key, or a JSON pointer into the spec's operation or event (`/responses/200/content/application~1json/schema/type`). When a new spec changes the very thing a correction corrects, the generation stops applying it and lists it as obsolete.
 
-All of it was checked against the versions in production on 04-11 (sending by phone, against conversations `v1.19.21` of 05-11, as the spec has it): accounts `v1.5.97`, conversations `v1.19.7`, communities `v2.35.5` and platform-gate `v0.9.1`, plus the API entrypoint deployed to production on 25-10. With the published spec of 11-11, the forms routes are the spec's, so they left this layer, and so did what the spec does not publish (`rotateSecret()` and five events); every correction below still applies, because the published spec still has the shape it corrects. That communities sends `message.uid` in the group events was checked again on 11-11, against communities `v2.35.28`.
+All of it was checked against the versions in production on 04-11 (sending by phone, against conversations `v1.19.21` of 05-11, as the spec has it): accounts `v1.5.97`, conversations `v1.19.7`, communities `v2.35.5` and platform-gate `v0.9.1`, plus the API entrypoint deployed to production on 25-10. With the published spec of 11-11, the forms routes are the spec's, so they left this layer, and so did what the spec does not publish (`rotateSecret()` and five events); every correction below still applies, because the published spec still has the shape it corrects. That communities sends `message.uid` in the group events was checked again on 11-11, against communities `v2.35.28`. On 13-11, against the code that sends them: `group_join_request.*` always carries `participant.identity` (without one the event does not go out) and `identity_type` is `phone` or `whatsapp_user`; `answers[].label` of `whatsapp_form.completed` is always a string (the question's name when it has no label) and `answers[].value` can be `null`; `message.type` of `message.received` can take values the spec does not list yet.
 
 | What stays in the pending layer | Why |
 |---|---|
 | The answer of `groups->retrieveAction()` | The spec types `data` as a list; communities answers the action as an object. |
 | `data.workspace_id` in every event whose shape lacks it | accounts writes it in every event it delivers. |
-| `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`. |
-| The events accounts delivers typed from production: `device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added` and `group_join_request.*` | The spec has them since 11-11, but only by an example (and three without one), which loses what can be `null` (`connect_link_id`, `external_reference`, a group's `name`…) and the values of `reason`, `state` and `identity_type`. For `group.message_received` and `group.reaction_added` its example says `message.id`; communities sends `message.uid`, so they are typed with `uid` while the example lacks it. |
+| `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`; and its enum of `message.type` is closed, while new types can arrive. |
+| The events accounts delivers typed from production: `device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added` and `group_join_request.*` | The spec has them since 11-11, but only by an example (and three without one), which loses what can be `null` (`connect_link_id`, `external_reference`, a group's `name`…) and the values of `reason`, `state` and `identity_type`. Since v0.6.14 the example of `group.message_received` and `group.reaction_added` shows `message.uid`, as communities sends it (up to v0.6.13 it said `message.id`), but their `data` still has no schema. All of them are corrected while the spec's `data` has no schema. |
 | The answer of the four sends (`message` is never `null` for an API key), the QR (`{data}` only), a connect link read (`url` is `null`), `connectLinks->revoke()` and `devices->delete()` (empty body), `webhooks->update()`, `templates->list()` and `tags->listContacts()` | The spec infers them from the code and gets them wrong: a nullable message, three extra QR shapes, a `string` body, an empty object, `object` and `string` items. |
 | `perPage` of `webhooks->list()` and `connectLinks->list()`; `per_page`, `event_type` and `event_id` of `webhooks->listDeliveries()` | Production accepts them; the spec does not declare them. |
 
@@ -767,7 +793,13 @@ composer test             # PHPUnit, with no network and no keys: a simulated PS
 composer check            # all of the above, in order
 ```
 
-The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), with Guzzle 7 and with Guzzle 8.
+The suite runs from PHP 8.1 (with PHPUnit 10) to PHP 8.5 (with PHPUnit 12), with Guzzle 7 and with Guzzle 8. CI (`.github/workflows/ci.yml`) runs it on every pull request and every push to `main`, on each of those PHP versions with each Guzzle, after `composer generate:check`, `composer cs` and `composer analyse`.
+
+### Releasing
+
+A release is a tag `vX.Y.Z` on a commit of `main`, with `Funnelchat::VERSION` already set there to the tag without its `v`. `.github/workflows/release.yml` checks both (otherwise it fails and publishes nothing), runs every check of CI, and only then asks Packagist to read the tag and creates the GitHub release. A pre-release tag (`vX.Y.Z-rc.N`, `-beta.N`, `-alpha.N`) is a Composer pre-release, which `composer require` never installs under the default `minimum-stability` (`stable`), and a GitHub pre-release, never the latest.
+
+It needs the repository secrets `PACKAGIST_USERNAME` and `PACKAGIST_TOKEN`, and Packagist's automatic update by GitHub hook turned off for the package: Packagist reads every tag of the repository, so with the hook on, a tag would be published as soon as it is pushed, before any check. Delete a tag the workflow rejected before the next release.
 
 ### Testing against the sandbox
 
