@@ -13,15 +13,15 @@
       "parameterPatches": "A patch adds query parameters to a snapshot operation only while that operation does not declare them.",
       "conditions": "`while` and `x-fc-replace-while` take top-level keys of the snapshot's operation or event, or JSON pointers into it (`/responses/200/content/application~1json/schema/type`), where `null` means absent or null: a correction stops by itself, and is reported as obsolete, once the snapshot changes the very thing it corrects."
     },
-    "origin": "Reviewed on 22-10 against the code of the versions in production that day: conversations v1.18.10, communities v2.34.52, accounts v1.4.24, the API entrypoint (api-edge) v0.3.0 and platform-gate v0.8.0. It started from the Node SDK's pending layer; the accounts webhook entries of 16-10 were reviewed against v1.4.24. Reviewed again on 04-11 against the versions in production that day: accounts v1.5.97, conversations v1.19.7, communities v2.35.5, platform-gate v0.9.1 and the API entrypoint deployed on 25-10, which also routes `/connect-links` and `/connect`. What changed for the first use (connecting a number, sending, knowing when it was read, receiving, groups and workspaces): the numbers by API now come from accounts, sending to a group and reading its action are in, the participant events say that `campaign` can be `null`, and every event carries `data.workspace_id`. Phase 2, the same day: the snapshot became the portal's full unified spec (portal v0.6.0), made of accounts v1.5.97, conversations v1.19.7 and communities v2.35.5. What it brings was deleted from here. What stays is what it lacks (the forms routes, rotate-secret, sending to a group, the events accounts delivers that are not in its `webhooks`, `data.workspace_id`) and corrections where its shapes, inferred from the code, are not what production answers; each correction carries the condition that ends it. Phase 3, 05-11: the full spec of portal v0.6.2, with conversations v1.19.21 (sending by phone) and sending to a group: sending to a group is now in the snapshot. Phase 4, 05-11: the full spec of portal v0.6.3, with communities v2.35.7: following a group (`POST /api/v1/groups/{group}/import`) comes from the snapshot, nothing new here. Phase 5, 11-11: the snapshot is the spec the developers portal publishes (https://developers-portal.funnelchat.app/specs/funnelchat.json), no longer its full unified spec, by decision of 11-11: the SDK has only what the portal publishes, and this layer no longer adds anything (the generator leaves out and reports a route or an event the snapshot lacks). First v0.6.12 (sha256 f8baa487…, 241 operations), then v0.6.13 (sha256 a7b48074…, 253 operations and 56 event types; it adds `GET /me`, the alerts, the details of a flow, the result by group of a scheduled send and the category of each group). The forms routes are the snapshot's: deleted from here. `rotate-secret` and the events `billing.plan_blocked`, `subscription.expiring` and `ai_quota.*` are not published: deleted, with the schemas only they used. The events accounts delivers (`device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added`, `group_join_request.*`) are in the snapshot, but typed only by an example (three without one: `billing.payment_failed`, `billing.upcoming_charge`, `subscription.dormant_ending`), which loses what can be `null` and the values of `reason`, `state` and `identity_type`. So they stay here, typed from production, as corrections with `x-fc-replace-while` (while the snapshot's `data` has no schema), like the five of conversations and communities. For `group.message_received` and `group.reaction_added` the example says `message.id` where production sends `message.uid` (communities v2.35.28, in production, checked on 11-11): their correction holds while the example lacks `message.uid`. Every other correction stays too: the published spec still has the shapes they correct (the four sends, the QR, a link read, the revoke and the delete, `webhooks->update()`, the two listings, an action read, the query parameters and `data.workspace_id`).",
+    "origin": "Reviewed on 22-10 against the code of the versions in production that day: conversations v1.18.10, communities v2.34.52, accounts v1.4.24, the API entrypoint (api-edge) v0.3.0 and platform-gate v0.8.0. It started from the Node SDK's pending layer; the accounts webhook entries of 16-10 were reviewed against v1.4.24. Reviewed again on 04-11 against the versions in production that day: accounts v1.5.97, conversations v1.19.7, communities v2.35.5, platform-gate v0.9.1 and the API entrypoint deployed on 25-10, which also routes `/connect-links` and `/connect`. What changed for the first use (connecting a number, sending, knowing when it was read, receiving, groups and workspaces): the numbers by API now come from accounts, sending to a group and reading its action are in, the participant events say that `campaign` can be `null`, and every event carries `data.workspace_id`. Phase 2, the same day: the snapshot became the portal's full unified spec (portal v0.6.0), made of accounts v1.5.97, conversations v1.19.7 and communities v2.35.5. What it brings was deleted from here. What stays is what it lacks (the forms routes, rotate-secret, sending to a group, the events accounts delivers that are not in its `webhooks`, `data.workspace_id`) and corrections where its shapes, inferred from the code, are not what production answers; each correction carries the condition that ends it. Phase 3, 05-11: the full spec of portal v0.6.2, with conversations v1.19.21 (sending by phone) and sending to a group: sending to a group is now in the snapshot. Phase 4, 05-11: the full spec of portal v0.6.3, with communities v2.35.7: following a group (`POST /api/v1/groups/{group}/import`) comes from the snapshot, nothing new here. Phase 5, 11-11: the snapshot is the spec the developers portal publishes (https://developers-portal.funnelchat.app/specs/funnelchat.json), no longer its full unified spec, by decision of 11-11: the SDK has only what the portal publishes, and this layer no longer adds anything (the generator leaves out and reports a route or an event the snapshot lacks). First v0.6.12 (sha256 f8baa487…, 241 operations), then v0.6.13 (sha256 a7b48074…, 253 operations and 56 event types; it adds `GET /me`, the alerts, the details of a flow, the result by group of a scheduled send and the category of each group). The forms routes are the snapshot's: deleted from here. `rotate-secret` and the events `billing.plan_blocked`, `subscription.expiring` and `ai_quota.*` are not published: deleted, with the schemas only they used. The events accounts delivers (`device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added`, `group_join_request.*`) are in the snapshot, but typed only by an example (three without one: `billing.payment_failed`, `billing.upcoming_charge`, `subscription.dormant_ending`), which loses what can be `null` and the values of `reason`, `state` and `identity_type`. So they stay here, typed from production, as corrections with `x-fc-replace-while` (while the snapshot's `data` has no schema), like the five of conversations and communities. For `group.message_received` and `group.reaction_added` the example of v0.6.13 said `message.id` where production sends `message.uid` (communities v2.35.28, in production, checked on 11-11). Every other correction stays too: the published spec still has the shapes they correct (the four sends, the QR, a link read, the revoke and the delete, `webhooks->update()`, the two listings, an action read, the query parameters and `data.workspace_id`). Phase 6, 13-11: v0.6.14 (sha256 37c54a5a…), the same 253 operations and 56 event types. The only change is the example of `group.message_received` and `group.reaction_added`, which now shows `message.uid`, as production sends it; their `data` still has no schema, so those two are corrected like the other events accounts delivers: while the snapshot's `data` has no schema (until 13-11 their condition was that the example lacked `message.uid`, which v0.6.14 would have ended, leaving them typed only by an example). Checked on 13-11 against the code of the services that send them: `group_join_request.*` always carries `participant.identity` (without one the event does not go out) and its `identity_type` is `phone` or `whatsapp_user`; `answers[].label` of `whatsapp_form.completed` is always a string (the question's name when it has no label); and `message.type` of `message.received` can take values the spec does not list yet, so the type accepts any string besides the known ones.",
     "sources": {
       "accounts-webhooks": "accounts v1.4.24, checked again against v1.5.97 (in production on 04-11): the same routes and shapes; since workspaces, a key sees, counts and changes only the subscriptions of its workspace, and the limit of 50 is per workspace. With an API key: permissions `webhooks:read` / `webhooks:write` (the `GET /api/v1/webhooks/events` catalog requires `accounts:read`); the list and the history are paginated; `rotate-secret` is not open to API keys (403 route_not_available). What stays here: the query parameters production accepts and the spec lacks (`perPage` of the list; `per_page`, `event_type` and `event_id` of the history) and the answer of `PUT`, which the spec types as an empty object.",
       "communities-participant-events": "communities v2.35.5 (in production on 04-11): `campaign` is `null` for a group without a campaign, and the event goes out for any group of the account, not only campaign ones; `identity_type` is `phone` or `whatsapp_user`. accounts v1.5.97 delivers them (`active` in its catalog).",
       "communities-group-messages": "communities v2.35.5 (in production on 04-11): sending a message to a group and reading how it ended, open to API keys in production since 04-11, and the events `group_action.completed` and `group_action.failed`. The full spec of 05-11 brings both routes; what stays here is the answer of reading an action, which it types as a list (production answers an object), and the two events.",
-      "communities-events": "communities v2.34.52, unchanged in v2.35.5 (except the workspace, which travels to accounts apart): `group.message_received`, `group.reaction_added` and `group_join_request.*`; accounts delivers them (all `active` in its catalog). Checked again on 11-11 against communities v2.35.28 (in production): `group.message_received` and `group.reaction_added` carry `message.uid`, while the published spec's example says `message.id`; so those two are corrected while that example lacks `message.uid` (`x-fc-replace-while` on it), whatever the spec's schema says.",
+      "communities-events": "communities v2.34.52, unchanged in v2.35.5 (except the workspace, which travels to accounts apart): `group.message_received`, `group.reaction_added` and `group_join_request.*`; accounts delivers them (all `active` in its catalog). Checked again on 11-11 against communities v2.35.28 (in production): `group.message_received` and `group.reaction_added` carry `message.uid`; the published spec's example said `message.id` up to v0.6.13 and shows `message.uid` since v0.6.14. Checked again on 13-11: `group_join_request.*` is not sent without `participant.identity`, so it is never `null`, and `identity_type` is `phone` or `whatsapp_user`, never `unknown`. All four are corrected while the snapshot's `data` has no schema.",
       "conversations-send": "conversations v1.18.10 (in production since 21-10): sends made with an API key respond 200 with the message queued (the 13-10 snapshot still said 204), with the message, its status, the forward results, the file types, `client_reference` and the refusals. Checked again against v1.19.7 (in production on 04-11): the same answers; the routes now act in the key's workspace. The full spec of 04-11 types `message` as nullable: for an API key it never is, so the four sends keep `message` required here.",
       "conversations-listings": "conversations v1.19.7 (in production on 04-11): listing the templates answers template resources, and listing the contacts of a tag answers contact resources; the full spec types their items as `object` and as `string`.",
-      "conversations-events": "conversations v1.18.10: the 15 `live` event types and the payloads of `message.status_changed`, `message.received` and `whatsapp_form.completed`, the same in v1.19.7 (in production on 04-11). The full spec of 04-11 types these events only by an example (every id an `int`, `error` and `client_reference` always there, `answers[].value` a string): they stay typed from production here while it does.",
+      "conversations-events": "conversations v1.18.10: the 15 `live` event types and the payloads of `message.status_changed`, `message.received` and `whatsapp_form.completed`, the same in v1.19.7 (in production on 04-11). The full spec of 04-11 types these events only by an example (every id an `int`, `error` and `client_reference` always there, `answers[].value` a string): they stay typed from production here while it does. Checked again on 13-11: `answers[].label` is always a string (the question's name when it has no label) and `answers[].value` can be `null`; `message.type` of `message.received` has the values of the spec's enum, but new ones can appear, so it is typed as those values or any other string.",
       "accounts-workspace-id": "accounts v1.5.97 (in production on 04-11): every event it delivers carries `data.workspace_id`, the workspace the event is routed to (an integer, or `null`): its own events, the ones conversations and communities relay, and `webhook.test`; its catalog puts it in every example. platform-gate v0.9.1 lets `workspace_id` through in `data`.",
       "accounts-number-onboarding": "accounts v1.5.97 (in production on 04-11): `POST /api/v1/devices`, `GET /api/v1/devices/{device}/qr` (`expires_in` 5 with a QR), the `external_reference` filter of `GET /api/v1/devices`, the `connect-links` routes (`503 meta_connect_disabled` while the Meta sign-up by link is off), the `Idempotency-Key` header of both creates, `external_reference` and `connection` on the number, and the events `device.connected` (with `connection`, `external_reference` and `connect_link_id`), `device.disconnected` (with `reason`), `device.deleted` and `device.health_changed`, which always carry `device.connection`, `device.external_reference` and `connect_link_id`. They match accounts' own OpenAPI of 26-10. Since workspaces, the numbers and the links a key sees and creates are those of its workspace. What stays here corrects the spec: the QR answer (always `{data}`), a link read (`url` always there and `null`), the revoke and the delete of a number (an empty body), and `perPage` of the links list."
     }
@@ -1088,7 +1088,7 @@
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
-        "x-fc-replace-while": { "/requestBody/content/application~1json/example/data/message/uid": null },
+        "x-fc-replace-while": { "/requestBody/content/application~1json/schema/properties/data/properties": null },
         "requestBody": {
           "content": {
             "application/json": {
@@ -1146,7 +1146,7 @@
         "x-fc-status": "live",
         "x-fc-domain": "communities",
         "x-fc-pending": "communities-events",
-        "x-fc-replace-while": { "/requestBody/content/application~1json/example/data/message/uid": null },
+        "x-fc-replace-while": { "/requestBody/content/application~1json/schema/properties/data/properties": null },
         "requestBody": {
           "content": {
             "application/json": {
@@ -1207,8 +1207,8 @@
                       "participant": {
                         "type": "object",
                         "properties": {
-                          "identity": { "type": ["string", "null"] },
-                          "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user", "unknown"] },
+                          "identity": { "type": "string", "description": "The phone, or the WhatsApp ID (`…@lid` or a BSUID) if there is no phone. Never `null`: without an identity the event does not go out." },
+                          "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
                           "name": { "type": ["string", "null"] }
                         },
                         "required": ["identity", "identity_type", "name"]
@@ -1248,8 +1248,8 @@
                       "participant": {
                         "type": "object",
                         "properties": {
-                          "identity": { "type": ["string", "null"] },
-                          "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user", "unknown"] },
+                          "identity": { "type": "string", "description": "The phone, or the WhatsApp ID (`…@lid` or a BSUID) if there is no phone. Never `null`: without an identity the event does not go out." },
+                          "identity_type": { "type": "string", "enum": ["phone", "whatsapp_user"] },
                           "name": { "type": ["string", "null"] }
                         },
                         "required": ["identity", "identity_type", "name"]
@@ -1401,7 +1401,7 @@
                           "type": "object",
                           "properties": {
                             "key": { "type": "string" },
-                            "label": { "type": "string" },
+                            "label": { "type": "string", "description": "Always a string: the question's name when it has no label." },
                             "value": {
                               "anyOf": [
                                 { "type": "string" },
@@ -1456,34 +1456,40 @@
                             "description": "The message's `id` in the contact's history."
                           },
                           "type": {
-                            "type": "string",
-                            "enum": [
-                              "text",
-                              "image",
-                              "video",
-                              "document",
-                              "sticker",
-                              "contact",
-                              "audio",
-                              "note",
-                              "action",
-                              "invalid",
-                              "interactive",
-                              "location",
-                              "voice_call",
-                              "video_call",
-                              "event",
-                              "button",
-                              "template",
-                              "notification",
-                              "option_list",
-                              "template_button_reply",
-                              "poll",
-                              "whatsapp_form",
-                              "call_permission_request",
-                              "call_permission_reply",
-                              "request_contact_info"
-                            ]
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "text",
+                                  "image",
+                                  "video",
+                                  "document",
+                                  "sticker",
+                                  "contact",
+                                  "audio",
+                                  "note",
+                                  "action",
+                                  "invalid",
+                                  "interactive",
+                                  "location",
+                                  "voice_call",
+                                  "video_call",
+                                  "event",
+                                  "button",
+                                  "template",
+                                  "notification",
+                                  "option_list",
+                                  "template_button_reply",
+                                  "poll",
+                                  "whatsapp_form",
+                                  "call_permission_request",
+                                  "call_permission_reply",
+                                  "request_contact_info"
+                                ]
+                              },
+                              { "type": "string" }
+                            ],
+                            "description": "One of the known values, or a new one: the list can grow without a new version of the spec, so handle any other string too."
                           },
                           "text": {
                             "type": [

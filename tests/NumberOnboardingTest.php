@@ -12,6 +12,7 @@ use Funnelchat\Exception\InternalServerException;
 use Funnelchat\Exception\PermissionDeniedException;
 use Funnelchat\Exception\RateLimitException;
 use Funnelchat\Exception\UnprocessableEntityException;
+use Funnelchat\Funnelchat;
 use Funnelchat\Generated\WebhookEvents;
 use Funnelchat\Tests\Support\FakeNetworkException;
 use Funnelchat\Tests\Support\FakeTimeoutException;
@@ -358,16 +359,39 @@ final class NumberOnboardingTest extends TestCase
         self::assertCount(1, $http->requests);
     }
 
-    public function testAnIdempotencyKeyDoesNotMakeASendRetryable(): void
+    /**
+     * Writes whose spec does not declare the `Idempotency-Key` header: the API ignores it there, so
+     * a key would let the SDK repeat a write that may have been applied, and create a duplicate.
+     *
+     * @return array<string, array{\Closure(Funnelchat): mixed}>
+     */
+    public static function writesWithoutAnIdempotencyKey(): array
     {
-        $http = new MockHttpClient(Reply::json(500, ['message' => 'Server Error']), Reply::ok(['message' => []]));
+        return [
+            'tags->create()' => [static fn(Funnelchat $client): mixed => $client->tags->create(['name' => 'VIP'], ['idempotencyKey' => 'k-1'])],
+            'a send' => [static fn(Funnelchat $client): mixed => $client->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], ['idempotencyKey' => 'k-1'])],
+            'request() on a route without it' => [static fn(Funnelchat $client): mixed => $client->request('POST', '/api/v1/tags', ['body' => ['name' => 'VIP'], 'idempotencyKey' => 'k-1'])],
+        ];
+    }
+
+    /**
+     * @param \Closure(Funnelchat): mixed $call
+     */
+    #[DataProvider('writesWithoutAnIdempotencyKey')]
+    public function testAnIdempotencyKeyWhereTheSpecDoesNotDeclareItIsRefusedBeforeSending(\Closure $call): void
+    {
+        $http = new MockHttpClient(Reply::json(500, ['message' => 'Server Error']), Reply::json(201, ['data' => []]));
 
         try {
-            $this->client($http, maxRetries: 2)->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], ['idempotencyKey' => 'k-1']);
+            $call($this->client($http, maxRetries: 2));
             self::fail('should have thrown');
-        } catch (InternalServerException) {
+        } catch (FunnelchatException $exception) {
+            self::assertNotInstanceOf(\Funnelchat\Exception\ApiException::class, $exception);
+            self::assertStringContainsString('`idempotencyKey` is not accepted by POST /api/v1/', $exception->getMessage());
+            self::assertStringContainsString('POST /api/v1/devices', $exception->getMessage());
+            self::assertStringContainsString('POST /api/v1/connect-links', $exception->getMessage());
         }
-        self::assertCount(1, $http->requests);
+        self::assertSame([], $http->requests);
     }
 
     public function testAKeyStillRunningIsAConflictAndIsNotRepeated(): void

@@ -28,9 +28,12 @@ use Psr\Http\Message\StreamFactoryInterface;
  *
  * Request options, the last argument of every method: `headers`, `timeout`, `maxRetries`,
  * `retrySend` (see {@see Core\Retry}), `onResponse`, and `idempotencyKey`: sent as the
- * `Idempotency-Key` header (up to 255 characters), which `devices->create()` and
- * `connectLinks->create()` accept. With it, the API answers the same resource to the same key and
- * body, so the SDK may also repeat that write after a timeout or a `5xx`.
+ * `Idempotency-Key` header (up to 255 characters). Only the operations whose spec declares that
+ * header take it (`idempotencyKey` in {@see Generated\Routes::ALL}: `devices->create()` and
+ * `connectLinks->create()`); with it, the API answers the same resource to the same key and body,
+ * so the SDK may also repeat that write after a timeout or a `5xx`. On any other call it throws a
+ * {@see FunnelchatException} before sending: the API would ignore the header, and a repeat could
+ * create a duplicate.
  *
  * @phpstan-type RequestOptions array{
  *     headers?: array<string, string>,
@@ -57,7 +60,7 @@ final class Funnelchat
     use ResourceProperties;
 
     /** The SDK version, sent in the `User-Agent`. */
-    public const VERSION = '0.4.0';
+    public const VERSION = '0.5.0';
 
     /** Base URL of each environment: one URL for the whole public API. */
     public const BASE_URLS = [

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 a7b480743848dabc…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 37c54a5aad4cc467…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -679,8 +679,8 @@ namespace Funnelchat\Generated;
  *         name: string|null,
  *     },
  *     participant: array{
- *         identity: string|null,
- *         identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *         identity: string,
+ *         identity_type: 'phone'|'whatsapp_user',
  *         name: string|null,
  *     },
  *     workspace_id: PendingWorkspaceId,
@@ -698,8 +698,8 @@ namespace Funnelchat\Generated;
  *         name: string|null,
  *     },
  *     participant: array{
- *         identity: string|null,
- *         identity_type: 'phone'|'whatsapp_user'|'unknown',
+ *         identity: string,
+ *         identity_type: 'phone'|'whatsapp_user',
  *         name: string|null,
  *     },
  *     workspace_id: PendingWorkspaceId,
@@ -802,7 +802,7 @@ namespace Funnelchat\Generated;
  * @phpstan-type MessageReceivedData array{
  *     message: array{
  *         id: int,
- *         type: 'text'|'image'|'video'|'document'|'sticker'|'contact'|'audio'|'note'|'action'|'invalid'|'interactive'|'location'|'voice_call'|'video_call'|'event'|'button'|'template'|'notification'|'option_list'|'template_button_reply'|'poll'|'whatsapp_form'|'call_permission_request'|'call_permission_reply'|'request_contact_info',
+ *         type: 'text'|'image'|'video'|'document'|'sticker'|'contact'|'audio'|'note'|'action'|'invalid'|'interactive'|'location'|'voice_call'|'video_call'|'event'|'button'|'template'|'notification'|'option_list'|'template_button_reply'|'poll'|'whatsapp_form'|'call_permission_request'|'call_permission_reply'|'request_contact_info'|string,
  *         text: string|null,
  *         media: array{
  *             file: mixed,

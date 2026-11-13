@@ -334,6 +334,61 @@ final class GeneratedTest extends TestCase
         self::assertMatchesRegularExpression("/@phpstan-type PendingEventParticipant array\\{\\s*\\*\\s*identity: string,\\s*\\*\\s*identity_type: 'phone'\\|'whatsapp_user',\\s*\\*\\s*name: string\\|null,/s", $schemas);
     }
 
+    public function testTheGroupEventsStayTypedFromProductionWhenTheExampleShowsMessageUid(): void
+    {
+        // Since v0.6.14 the spec's example of the two message events shows `message.uid`; their
+        // `data` still has no schema, so the correction of spec/pending.json must still apply.
+        $source = (string) file_get_contents(self::ROOT . '/src/Generated/WebhookEvents.php');
+        $shape = static function (string $alias) use ($source): string {
+            self::assertSame(1, preg_match("/@phpstan-type {$alias} (array\\{.*?\\n \\* \\})\\n/s", $source, $match), $alias);
+
+            return $match[1];
+        };
+        $participant = "/\\n \\*     participant: array\\{\\s*\\*\\s*identity: string,\\s*\\*\\s*identity_type: 'phone'\\|'whatsapp_user',\\s*\\*\\s*name: string\\|null,/";
+        foreach (['GroupMessageReceivedData', 'GroupReactionAddedData'] as $alias) {
+            self::assertMatchesRegularExpression('/\\n \\*     message: array\\{\\s*\\*\\s*uid: string,/', $shape($alias), $alias);
+            self::assertMatchesRegularExpression($participant, $shape($alias), $alias);
+        }
+        // Without an identity a join request is not sent: never `null`, never `unknown`.
+        foreach (['GroupJoinRequestCreatedData', 'GroupJoinRequestRevokedData'] as $alias) {
+            self::assertMatchesRegularExpression($participant, $shape($alias), $alias);
+        }
+        foreach (['group.message_received', 'group.reaction_added', 'group_join_request.created', 'group_join_request.revoked'] as $type) {
+            self::assertTrue(self::event($type)['pending'], $type);
+        }
+    }
+
+    public function testOnlyTheOperationsWhoseSpecDeclaresTheIdempotencyKeyTakeIt(): void
+    {
+        $spec = self::readJson('funnelchat.json');
+        $expected = [];
+        foreach (self::operationsWithData($spec['paths'] ?? null) as $label => $op) {
+            $inHeader = false;
+            foreach (\is_array($op['parameters'] ?? null) ? $op['parameters'] : [] as $parameter) {
+                $inHeader = $inHeader || (\is_array($parameter) && ($parameter['in'] ?? null) === 'header' && \is_string($parameter['name'] ?? null) && strcasecmp($parameter['name'], 'Idempotency-Key') === 0);
+            }
+            if ($inHeader || str_contains(\is_string($op['description'] ?? null) ? $op['description'] : '', '`Idempotency-Key`')) {
+                $expected[] = $label;
+            }
+        }
+        $taking = [];
+        foreach (self::constant(Routes::class, 'ALL') as $route) {
+            self::assertIsArray($route);
+            [$method, $path, $takesIt] = [$route['method'] ?? null, $route['path'] ?? null, $route['idempotencyKey'] ?? null];
+            self::assertIsString($method);
+            self::assertIsString($path);
+            self::assertIsBool($takesIt, "{$method} {$path}");
+            if ($takesIt) {
+                $taking[] = "{$method} {$path}";
+            }
+        }
+
+        self::assertEqualsCanonicalizing($expected, $taking);
+        // The two creates the SDK documents with a key.
+        self::assertContains('POST /api/v1/devices', $taking);
+        self::assertContains('POST /api/v1/connect-links', $taking);
+    }
+
     public function testANumberSaysWhatItCanDo(): void
     {
         // The number's capabilities: the spec types them since 04-11, so spec/pending.json no longer does.
