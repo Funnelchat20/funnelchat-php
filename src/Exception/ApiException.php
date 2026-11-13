@@ -9,13 +9,17 @@ use Funnelchat\ResponseInfo;
 /**
  * The API answered with a non-2xx status.
  *
+ * With an API key every error of the API has the same body: `error`, the stable code, and
+ * `message`, for people; a validation `422` adds `errors`, the messages per field.
+ *
  * - `status`: the HTTP status (also `getCode()`).
- * - `errorCode`: the stable code of the body (`window_closed`, `rate_limited`,
- *   `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when the body has none (for example a
- *   Laravel validation `422`, which carries `errors` instead, or a `415`). It is `error` when that
- *   is a code; else `error_code`; else `reason` (a reaction's `422 provider_unsupported`). Some
- *   routes put a sentence in `error` (`"Contact not found."`): that is the message, not a code. In
- *   the Node SDK it is `code`; in PHP `getCode()` is final and returns an int, so it is `errorCode`.
+ * - `errorCode`: the stable code of the body (`validation_failed`, `not_found`,
+ *   `payment_required`, `rate_limited`, `window_closed`, `route_not_available`,
+ *   `NUMBER_NOT_ELIGIBLE`…), or `null` when the body has none (a `415`, or a body of another shape).
+ *   It is `error` when that is a code; else `error_code`; else `reason` (a reaction's
+ *   `422 provider_unsupported`). Some routes put a sentence in `error` (`"Contact not found."`): that
+ *   is the message, not a code. In the Node SDK it is `code`; in PHP `getCode()` is final and returns
+ *   an int, so it is `errorCode`.
  * - `getMessage()`: the `message` of the body (or that sentence), meant for people. Decide by
  *   `status` and `errorCode`.
  * - `retryAfter`: seconds from the `Retry-After` header (rounded up), when present.
@@ -87,6 +91,7 @@ class ApiException extends FunnelchatException
 
     /**
      * Builds the subclass that matches the status (and, for the API's own errors, the code).
+     * - `402` → {@see PaymentRequiredException}
      * - `404 route_not_found` → {@see RouteNotFoundException}
      * - `415` → {@see UnsupportedMediaTypeException}
      * - `500 edge_misconfigured` → {@see EdgeMisconfiguredException}
@@ -99,6 +104,7 @@ class ApiException extends FunnelchatException
         return match (true) {
             $status === 400 => new BadRequestException($status, $body, $headers, $method, $url, $now),
             $status === 401 => new AuthenticationException($status, $body, $headers, $method, $url, $now),
+            $status === 402 => new PaymentRequiredException($status, $body, $headers, $method, $url, $now),
             $status === 403 => new PermissionDeniedException($status, $body, $headers, $method, $url, $now),
             $status === 404 && self::codeOf($body) === 'route_not_found' => new RouteNotFoundException($status, $body, $headers, $method, $url, $now),
             $status === 404 => new NotFoundException($status, $body, $headers, $method, $url, $now),

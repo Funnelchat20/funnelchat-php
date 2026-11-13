@@ -60,7 +60,7 @@ final class Funnelchat
     use ResourceProperties;
 
     /** The SDK version, sent in the `User-Agent`. */
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.5.1';
 
     /** Base URL of each environment: one URL for the whole public API. */
     public const BASE_URLS = [

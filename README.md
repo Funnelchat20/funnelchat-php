@@ -615,14 +615,14 @@ Everything the SDK throws extends `Funnelchat\Exception\FunnelchatException`. Wh
 | Property | What it is |
 |---|---|
 | `status` | The HTTP status (also `getCode()`). |
-| `errorCode` | The stable code of the body (`window_closed`, `rate_limited`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when there is none (for example a validation `422` or a `415`). In Node it is `code`; in PHP `getCode()` already exists and returns a number. |
+| `errorCode` | The stable code of the body (`validation_failed`, `not_found`, `payment_required`, `rate_limited`, `window_closed`, `route_not_available`, `NUMBER_NOT_ELIGIBLE`…), or `null` when there is none (for example a `415`). In Node it is `code`; in PHP `getCode()` already exists and returns a number. |
 | `getMessage()` | The `message` of the body, meant for people. Decide by `status` and `errorCode`, not by the message. |
 | `requestId` | The `X-Request-Id` of the response. **Quote it when you report a problem**, with the approximate time of the call. |
 | `retryAfter` | The seconds of `Retry-After`, when present (rounded up). |
-| `errors` | In a validation `422`, the messages per field. |
+| `errors` | In a `422 validation_failed`, the messages per field. |
 | `body`, `headers`, `method`, `url` | The response and the request (the URL without the query). |
 
-Each HTTP status has its class, in `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) and `InternalServerException` (5xx). Without a response: `ApiConnectionException`, and `ApiConnectionTimeoutException` when the timeout ran out.
+Each HTTP status has its class, in `Funnelchat\Exception`: `BadRequestException` (400), `AuthenticationException` (401), `PaymentRequiredException` (402), `PermissionDeniedException` (403), `NotFoundException` (404), `ConflictException` (409), `UnsupportedMediaTypeException` (415), `UnprocessableEntityException` (422), `RateLimitException` (429) and `InternalServerException` (5xx). Without a response: `ApiConnectionException`, and `ApiConnectionTimeoutException` when the timeout ran out.
 
 The errors of the API entrypoint itself, which answers without reaching any area, have their own:
 
@@ -645,7 +645,16 @@ try {
 }
 ```
 
-A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission. A record of another workspace answers `404`, the same as one that does not exist.
+With a key, every error of the API has the same body: `error`, the stable code (`errorCode`), and `message`, for people (`getMessage()`). The codes every route can answer:
+
+| Error | What it means | What to do |
+|---|---|---|
+| `422 validation_failed` | A field is wrong; `errors` has the messages per field. | Fix the request. |
+| `404 not_found` | The record does not exist, or it is of another account or another workspace: never a `403`. | Check the id and the key's workspace. |
+| `402 payment_required` | The account's payment is overdue. Never retried. | Settle it in the Funnelchat panel. |
+| `429 rate_limited` | Too many calls; it comes with `Retry-After`. | The SDK waits it out by itself when it is at most 60 seconds (see [Retries](#retries)). |
+
+A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
 
 The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
 
@@ -707,7 +716,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.14
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.15
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -725,6 +734,13 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.1
+
+Generated from the spec of portal v0.6.15: the same 253 operations and 56 event types. It declares the common error body of the API (above, [Errors](#errors)).
+
+- A `402` is a `PaymentRequiredException` (an `ApiException`, as before): `payment_required`, the account's payment is overdue. `DeviceErrors::CODES['payment_required']` is `[402]` (it was `[403]`).
+- New in the types: `is_system` on tags (`TagResource`, `ContactTagResource`) and `opted_out` on contacts.
 
 ### What changed in 0.5.0
 

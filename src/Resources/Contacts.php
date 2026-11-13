@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 37c54a5aad4cc467…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -179,6 +179,7 @@ final class Contacts extends AbstractResource
      *     mac_date: string|null,
      *     is_mac_inactive?: bool,
      *     ai_assistant_name: string|null,
+     *     opted_out?: bool,
      *     stage_since?: string,
      *     is_stagnant?: bool,
      *     follow_up_date?: string|null,
@@ -231,6 +232,7 @@ final class Contacts extends AbstractResource
          *     mac_date: string|null,
          *     is_mac_inactive?: bool,
          *     ai_assistant_name: string|null,
+         *     opted_out?: bool,
          *     stage_since?: string,
          *     is_stagnant?: bool,
          *     follow_up_date?: string|null,

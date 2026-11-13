@@ -9,7 +9,8 @@ namespace Funnelchat\Exception;
  * `devices->qr()` and `connectLinks`. When the API answers one of these, nothing was created.
  *
  * Source: accounts v1.5.97 (in production on 04-11), where every code is answered. The quota codes are
- * the ones the panel already answers.
+ * the ones the panel already answers. `402 payment_required` and the `502 provider_error` of
+ * `devices->status()`: the spec of portal v0.6.15, with the common error body.
  */
 final class DeviceErrors
 {
@@ -20,7 +21,7 @@ final class DeviceErrors
      * - `numbers_not_included` (403): the account's plan includes no numbers.
      * - `number_limit_reached` (403, with `limit`, `used` and `pending_device_ids`): the plan's number quota is full. It is counted by phone number: QR and WhatsApp Cloud of the same phone count once.
      * - `connect_not_allowed` (403): the account cannot connect numbers.
-     * - `payment_required` (403, `devices->qr()`): the account has a payment pending.
+     * - `payment_required` (402, a {@see PaymentRequiredException}): the account's payment is overdue. Any route can answer it.
      * - `number_suspended_by_plan` (422 creating, 409 `devices->qr()`): the number is suspended by the plan.
      * - `trial_number_blocked`, `device_inactive`, `provisioning_quota_exceeded` (409, `devices->qr()`): the number cannot start a session now.
      *
@@ -34,7 +35,7 @@ final class DeviceErrors
      * - `connection_type_mismatch` (422): the link's `type` is not the method of the number in `device_id`.
      * - `idempotency_key_mismatch` (422): the same `Idempotency-Key` came with a different body.
      * - `invalid_idempotency_key` (422): the `Idempotency-Key` is not 1 to 255 characters.
-     * - `provider_error` (500 creating, 502 `devices->qr()`): WhatsApp's provider failed.
+     * - `provider_error` (500 creating, 502 `devices->qr()` and `devices->status()`): WhatsApp's provider failed. Try again.
      *
      * Connect links:
      * - `too_many_open_links` (429): the account has 20 open links. Revoke one or let them expire.
@@ -46,7 +47,7 @@ final class DeviceErrors
         'numbers_not_included' => [403],
         'number_limit_reached' => [403],
         'connect_not_allowed' => [403],
-        'payment_required' => [403],
+        'payment_required' => [402],
         'number_suspended_by_plan' => [422, 409],
         'trial_number_blocked' => [409],
         'device_inactive' => [409],

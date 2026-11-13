@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 37c54a5aad4cc467…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -29,12 +29,14 @@ final class Conversations extends AbstractResource
      * Permission: **Contacts and conversations → View**.
      *
      * @param array{
+     *     perName?: string,
+     *     contactId?: int,
+     *     cursor?: string,
+     *     updated_since?: string,
      *     favorites?: bool,
      *     ownContacts?: bool,
      *     ownAndUnassigned?: bool,
-     *     perName?: string,
      *     deviceId?: int,
-     *     contactId?: int,
      *     advisorId?: int,
      *     advisorIds?: string,
      *     activeConversation?: bool,
@@ -44,8 +46,6 @@ final class Conversations extends AbstractResource
      *     unreadMessages?: bool,
      *     awaitingReply?: bool,
      *     onlyWithMac?: bool,
-     *     cursor?: string,
-     *     updated_since?: string,
      *     paused?: 'true'|'false'|'1'|'0',
      *     leadScoreCategories?: string|null,
      *     leadScoreMin?: int,
