@@ -1,0 +1,105 @@
+name: Release
+
+# Packagist publishes the package from its git tags. This workflow is the only path to a release: it
+# checks the tag, runs every check of CI and only then asks Packagist to read the repository and
+# creates the GitHub release. For it to be the only path, Packagist's automatic update by GitHub hook
+# must be off for this package (see "Releasing" in the README).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: The tag is a version of a commit on main
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: tag
+        name: Check the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # vX.Y.Z, or a pre-release: vX.Y.Z-rc.N, -beta.N or -alpha.N (a Composer pre-release, which
+          # `composer require` never installs under the default minimum-stability, stable).
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$ ]]; then
+            echo "::error::The tag $TAG is not vX.Y.Z or vX.Y.Z-rc.N, -beta.N or -alpha.N."
+            exit 1
+          fi
+          version="${TAG#v}"
+          if [[ "$version" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Only a commit that is on main is released.
+          git fetch --no-tags origin main
+          commit="$(git rev-list -n 1 "$TAG")"
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "::error::The tag $TAG points to $commit, which is not on main. Nothing was published."
+            exit 1
+          fi
+
+          # The version the SDK declares (in its User-Agent) is the one of the tag.
+          declared="$(sed -n "s/^ *public const VERSION = '\(.*\)';$/\1/p" src/Funnelchat.php)"
+          if [[ "$declared" != "$version" ]]; then
+            echo "::error::Funnelchat::VERSION is '$declared' and the tag is $TAG: bump it on main first. Nothing was published."
+            exit 1
+          fi
+
+          echo "Releasing $TAG ($commit, on main)."
+
+  checks:
+    name: CI
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish
+    needs: [verify, checks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Ask Packagist to read the new tag
+        env:
+          PACKAGIST_USERNAME: ${{ secrets.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PACKAGIST_USERNAME}" || -z "${PACKAGIST_TOKEN}" ]]; then
+            echo "::error::The secrets PACKAGIST_USERNAME and PACKAGIST_TOKEN are missing."
+            exit 1
+          fi
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            "https://packagist.org/api/update-package?username=${PACKAGIST_USERNAME}&apiToken=${PACKAGIST_TOKEN}" \
+            -d "{\"repository\":{\"url\":\"https://github.com/${GITHUB_REPOSITORY}\"}}"
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          flags=(--repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$TAG")
+          if [[ "$PRERELEASE" == true ]]; then
+            # Never the latest release.
+            flags+=(--prerelease --latest=false)
+          fi
+          gh release create "$TAG" "${flags[@]}"

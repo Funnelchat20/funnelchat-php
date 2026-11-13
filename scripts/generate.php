@@ -371,9 +371,11 @@ final class Generator
 
         file_put_contents($this->path(self::SPEC_FILE), $bytes);
         file_put_contents($this->path(self::PROVENANCE_FILE), json_encode($provenance, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR) . "\n");
-        $commit = $provenance['source']['commit'];
+        // `--source` can declare any of them, so they are read back as what they are.
+        $branch = self::str($provenance['source']['branch'] ?? null);
+        $commit = self::str($provenance['source']['commit'] ?? null);
         echo 'spec: copied from ' . ($declared['url'] ?? $relPath ?? basename($sourcePath))
-            . ($top !== null ? ' (' . ($provenance['source']['branch'] ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ')' : ' (not in a git repository)')
+            . ($top !== null ? ' (' . ($branch ?? '?') . ' @ ' . ($commit !== null ? substr($commit, 0, 7) : '?') . ')' : ' (not in a git repository)')
             . ', sha256 ' . substr($provenance['sha256'], 0, 8) . "…\n";
     }
 

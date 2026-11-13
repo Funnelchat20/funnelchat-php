@@ -777,7 +777,13 @@ composer test             # PHPUnit, with no network and no keys: a simulated PS
 composer check            # all of the above, in order
 ```
 
-The suite runs on PHP 8.1 (with PHPUnit 10) and on PHP 8.5 (with PHPUnit 12), with Guzzle 7 and with Guzzle 8.
+The suite runs from PHP 8.1 (with PHPUnit 10) to PHP 8.5 (with PHPUnit 12), with Guzzle 7 and with Guzzle 8. CI (`.github/workflows/ci.yml`) runs it on every pull request and every push to `main`, on each of those PHP versions with each Guzzle, after `composer generate:check`, `composer cs` and `composer analyse`.
+
+### Releasing
+
+A release is a tag `vX.Y.Z` on a commit of `main`, with `Funnelchat::VERSION` already set there to the tag without its `v`. `.github/workflows/release.yml` checks both (otherwise it fails and publishes nothing), runs every check of CI, and only then asks Packagist to read the tag and creates the GitHub release. A pre-release tag (`vX.Y.Z-rc.N`, `-beta.N`, `-alpha.N`) is a Composer pre-release, which `composer require` never installs under the default `minimum-stability` (`stable`), and a GitHub pre-release, never the latest.
+
+It needs the repository secrets `PACKAGIST_USERNAME` and `PACKAGIST_TOKEN`, and Packagist's automatic update by GitHub hook turned off for the package: Packagist reads every tag of the repository, so with the hook on, a tag would be published as soon as it is pushed, before any check. Delete a tag the workflow rejected before the next release.
 
 ### Testing against the sandbox
 
