@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnelchat;
 
+use Funnelchat\Core\Secret;
 use Funnelchat\Core\Transport;
 use Funnelchat\Exception\FunnelchatException;
 use Funnelchat\Generated\ResourceProperties;
@@ -60,7 +61,7 @@ final class Funnelchat
     use ResourceProperties;
 
     /** The SDK version, sent in the `User-Agent`. */
-    public const VERSION = '0.5.1';
+    public const VERSION = '0.5.2';
 
     /** Base URL of each environment: one URL for the whole public API. */
     public const BASE_URLS = [
@@ -105,8 +106,11 @@ final class Funnelchat
         ?StreamFactoryInterface $streamFactory = null,
         ?\Closure $sleep = null,
     ) {
-        $apiKey = self::nonEmpty($apiKey) ?? self::readEnv('FUNNELCHAT_API_KEY');
-        if ($apiKey === null) {
+        // On PHP 8.1, which has no #[\SensitiveParameter], a stack trace would show the key while it
+        // is an argument: it leaves the argument before anything can throw (see Core\Secret).
+        $key = self::apiKey($apiKey);
+        $apiKey = null;
+        if ($key === null) {
             throw new FunnelchatException('Missing API key: pass it in `apiKey` or in the FUNNELCHAT_API_KEY environment variable.');
         }
         if (!\array_key_exists($environment, self::BASE_URLS)) {
@@ -129,7 +133,7 @@ final class Funnelchat
         $this->timeout = $timeout !== null ? (float) $timeout : ($sdkBuiltClient && $isGuzzle ? self::DEFAULT_TIMEOUT : null);
         $this->maxRetries = max(0, $maxRetries);
         $this->transport = new Transport(
-            $apiKey,
+            $key,
             $this->baseUrl,
             $this->timeout,
             $this->maxRetries,
@@ -224,6 +228,14 @@ final class Funnelchat
         }
 
         return Psr18ClientDiscovery::find();
+    }
+
+    /** The key given, or else the one of `FUNNELCHAT_API_KEY`. */
+    private static function apiKey(#[\SensitiveParameter] ?string $given): ?Secret
+    {
+        $value = self::nonEmpty($given) ?? self::readEnv('FUNNELCHAT_API_KEY');
+
+        return $value === null ? null : Secret::of($value);
     }
 
     private static function readEnv(string $name): ?string

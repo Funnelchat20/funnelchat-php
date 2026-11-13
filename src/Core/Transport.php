@@ -25,8 +25,8 @@ use Psr\Http\Message\StreamInterface;
  * Sends one logical request: builds it, retries it when the policy allows, and turns the answer
  * into a value or an exception.
  *
- * The API key is not a property of this object: it lives in a static map keyed by the object, so
- * `var_dump`, `print_r`, `var_export`, `dd()` or `serialize` of a client never show it.
+ * The API key arrives as a {@see Secret}, so `var_dump`, `print_r`, `var_export`, `dd()`,
+ * `serialize` of a client or a stack trace never show it.
  *
  * @internal
  *
@@ -34,9 +34,6 @@ use Psr\Http\Message\StreamInterface;
  */
 final class Transport
 {
-    /** @var \WeakMap<self, string>|null */
-    private static ?\WeakMap $keys = null;
-
     private ?ResponseInfo $lastResponse = null;
 
     /**
@@ -45,8 +42,7 @@ final class Transport
      * @param float|null             $timeout        seconds; `null` = the HTTP client's own setting
      */
     public function __construct(
-        #[\SensitiveParameter]
-        string $apiKey,
+        private readonly Secret $apiKey,
         public readonly string $baseUrl,
         public readonly ?float $timeout,
         public readonly int $maxRetries,
@@ -55,10 +51,7 @@ final class Transport
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
         private readonly \Closure $sleep,
-    ) {
-        self::$keys ??= new \WeakMap();
-        self::$keys[$this] = $apiKey;
-    }
+    ) {}
 
     /**
      * @param RawRequestOptions $options
@@ -230,7 +223,7 @@ final class Transport
         foreach ($headers as $name => $value) {
             $request = $request->withHeader($name, $value);
         }
-        $request = $request->withHeader('Authorization', 'Bearer ' . (self::$keys[$this] ?? ''));
+        $request = $request->withHeader('Authorization', 'Bearer ' . $this->apiKey->reveal());
         if ($body !== null) {
             $request = $request->withBody($this->streamFactory->createStream($body));
         }
