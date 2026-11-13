@@ -30,7 +30,12 @@ trait WebhookHelpers
         int $toleranceSeconds = Webhook::DEFAULT_TOLERANCE_SECONDS,
         ?int $now = null,
     ): bool {
-        return Webhook::verify($rawBody, $signatureHeader, $secret, $toleranceSeconds, $now);
+        // Not an argument of this frame while Webhook checks it: a stack trace shows the arguments as
+        // they are when the exception is created, and PHP 8.1 has no #[\SensitiveParameter].
+        $given = $secret;
+        $secret = null;
+
+        return Webhook::verify($rawBody, $signatureHeader, $given, $toleranceSeconds, $now);
     }
 
     /**
@@ -50,6 +55,9 @@ trait WebhookHelpers
         int $toleranceSeconds = Webhook::DEFAULT_TOLERANCE_SECONDS,
         ?int $now = null,
     ): array {
-        return Webhook::constructEvent($rawBody, $signatureHeader, $secret, $toleranceSeconds, $now);
+        $given = $secret;
+        $secret = null;
+
+        return Webhook::constructEvent($rawBody, $signatureHeader, $given, $toleranceSeconds, $now);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Funnelchat;
 
+use Funnelchat\Core\Secret;
 use Funnelchat\Exception\WebhookVerificationException;
 use Funnelchat\Generated\WebhookEvents;
 use Psr\Http\Message\StreamInterface;
@@ -52,7 +53,12 @@ final class Webhook
         int $toleranceSeconds = self::DEFAULT_TOLERANCE_SECONDS,
         ?int $now = null,
     ): bool {
-        return self::check($rawBody, $signatureHeader, $secret, $toleranceSeconds, $now) === null;
+        // On PHP 8.1, which has no #[\SensitiveParameter], a stack trace would show the secret while
+        // it is an argument: it leaves the argument before anything can fail (see Core\Secret).
+        $key = self::secret($secret);
+        $secret = null;
+
+        return self::failure($rawBody, $signatureHeader, $key, $toleranceSeconds, $now) === null;
     }
 
     /**
@@ -79,7 +85,9 @@ final class Webhook
         int $toleranceSeconds = self::DEFAULT_TOLERANCE_SECONDS,
         ?int $now = null,
     ): array {
-        $failure = self::check($rawBody, $signatureHeader, $secret, $toleranceSeconds, $now);
+        $key = self::secret($secret);
+        $secret = null;
+        $failure = self::failure($rawBody, $signatureHeader, $key, $toleranceSeconds, $now);
         if ($failure !== null) {
             throw $failure;
         }
@@ -120,7 +128,26 @@ final class Webhook
         int $toleranceSeconds = self::DEFAULT_TOLERANCE_SECONDS,
         ?int $now = null,
     ): ?WebhookVerificationException {
-        if ($secret === null || $secret === '') {
+        $key = self::secret($secret);
+        $secret = null;
+
+        return self::failure($rawBody, $signatureHeader, $key, $toleranceSeconds, $now);
+    }
+
+    /** The secret given, out of its argument; `null` when there is none. */
+    private static function secret(#[\SensitiveParameter] ?string $secret): ?Secret
+    {
+        return $secret === null || $secret === '' ? null : Secret::of($secret);
+    }
+
+    /**
+     * {@see self::check()}, with the secret already out of its argument.
+     *
+     * @param string|StreamInterface $rawBody
+     */
+    private static function failure(mixed $rawBody, ?string $signatureHeader, ?Secret $secret, int $toleranceSeconds, ?int $now): ?WebhookVerificationException
+    {
+        if ($secret === null) {
             return new WebhookVerificationException(WebhookVerificationException::MISSING_SECRET, 'Missing the secret of the subscription.');
         }
         $body = self::bytes($rawBody);
@@ -164,7 +191,7 @@ final class Webhook
             );
         }
 
-        $expected = hash_hmac('sha256', $t . '.' . $body, $secret);
+        $expected = hash_hmac('sha256', $t . '.' . $body, $secret->reveal());
         foreach ($signatures as $v1) {
             if (hash_equals($expected, $v1)) {
                 return null;

@@ -221,7 +221,7 @@ Client options (named arguments):
 
 **The timeout.** PSR-18 has no timeout, so the SDK can only apply one with Guzzle: the Guzzle it builds by itself gets 30 seconds, and if you pass your own, it applies the `timeout` you set (if you set none, your Guzzle configuration rules). With another client, configure the timeout in that client: if you pass `timeout`, the SDK fails right away so nobody believes there is one.
 
-Every request sends `Authorization: Bearer <key>`, `Accept: application/json` and `User-Agent: funnelchat-php/<version> php/<version>`. The key never shows up in a `var_dump`, `print_r`, `var_export`, `dd()` or `serialize` of the client, nor in the message of an error. A connection error carries your HTTP client's exception as `getPrevious()`, which may include the request with its headers: do not log it whole.
+Every request sends `Authorization: Bearer <key>`, `Accept: application/json` and `User-Agent: funnelchat-php/<version> php/<version>`. The key never shows up in a `var_dump`, `print_r`, `var_export`, `dd()` or `serialize` of the client, nor in the message of an error, nor among the arguments of a stack trace, also on PHP 8.1 (which has no `#[\SensitiveParameter]`); the same goes for the secret of a webhook subscription. A connection error carries your HTTP client's exception as `getPrevious()`, which may include the request with its headers: do not log it whole.
 
 In Laravel, register a single client for the whole app: see [examples/laravel/app/Providers/FunnelchatServiceProvider.php](examples/laravel/app/Providers/FunnelchatServiceProvider.php).
 
@@ -734,6 +734,10 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.2
+
+On PHP 8.1, which has no `#[\SensitiveParameter]`, the API key and the secret of a webhook subscription could show among the arguments of a stack trace (an error of the client's constructor, a failed webhook verification), when `zend.exception_ignore_args` is off. They no longer do, on any PHP version. The public signatures do not change.
 
 ### What changed in 0.5.1
 
