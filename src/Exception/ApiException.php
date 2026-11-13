@@ -91,7 +91,7 @@ class ApiException extends FunnelchatException
 
     /**
      * Builds the subclass that matches the status (and, for the API's own errors, the code).
-     * - `402` → {@see PaymentRequiredException}
+     * - `402` (`payment_required`, `plan_cap_reached`) → {@see PaymentRequiredException}
      * - `404 route_not_found` → {@see RouteNotFoundException}
      * - `415` → {@see UnsupportedMediaTypeException}
      * - `500 edge_misconfigured` → {@see EdgeMisconfiguredException}

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -189,7 +189,11 @@ final class Templates extends AbstractResource
     }
 
     /**
-     * `DELETE /api/v1/devices/{device}/templates/{template}`.
+     * `DELETE /api/v1/devices/{device}/templates/{template}`: deletes a template of an official
+     * number (`{device}` the number's id, `{template}` the template's). Refusals: `404` (the number
+     * or the template is not in your key's workspace), `422 number_not_connected_to_meta` (a QR
+     * number, or no WhatsApp Business account or credentials), `422 meta_rejected` (Meta refused;
+     * its code in `body['meta_code']`), `502 meta_unavailable` (Meta did not answer).
      *
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -257,25 +257,24 @@ final class Contacts extends AbstractResource
      * `PUT /api/v1/contacts/{contact}`.
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param int $contact
      * @param UpdateContactRequest $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function update(int|string $contact, array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('PUT', '/api/v1/contacts/{contact}', ['path' => ['contact' => $contact], 'body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('PUT', '/api/v1/contacts/{contact}', ['path' => ['contact' => $contact], 'body' => $body] + $options);
     }
 
     /**
      * `POST /api/v1/contacts/delete`: deletes the contacts of the body (`contactIds`, or a filter).
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param array{
      *     all?: bool,
@@ -310,14 +309,11 @@ final class Contacts extends AbstractResource
      * } $body
      * @param RequestOptions $options
      *
-     * @return null
+     * @return mixed
      */
     public function delete(array $body, array $options = []): mixed
     {
-        /** @var null $result */
-        $result = $this->client->request('POST', '/api/v1/contacts/delete', ['body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('POST', '/api/v1/contacts/delete', ['body' => $body] + $options);
     }
 
     /**
@@ -381,13 +377,7 @@ final class Contacts extends AbstractResource
      *
      * @return list<array{
      *     message: string,
-     *     status: 403,
-     * }|array{
-     *     message: string|null,
-     *     status: 422,
-     * }|array{
-     *     message: 'Custom field value attached successfully.',
-     *     status: 201,
+     *     status: int,
      * }>
      */
     public function attachCustomField(array $body, array $options = []): mixed
@@ -395,13 +385,7 @@ final class Contacts extends AbstractResource
         /**
          * @var list<array{
          *     message: string,
-         *     status: 403,
-         * }|array{
-         *     message: string|null,
-         *     status: 422,
-         * }|array{
-         *     message: 'Custom field value attached successfully.',
-         *     status: 201,
+         *     status: int,
          * }> $result
          */
         $result = $this->client->request('POST', '/api/v1/contacts/attach-custom-field', ['body' => $body] + $options);

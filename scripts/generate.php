@@ -737,9 +737,12 @@ final class Generator
 
     /**
      * Whether the spec declares the `Idempotency-Key` header on an operation: as a header parameter
-     * (its own or a `#/components/parameters` one), or, as the portal publishes it today, in the
-     * operation's description (`Acepta el header `Idempotency-Key``). Only then does the API answer
-     * the same resource to a repeated key, so only then does the SDK take `idempotencyKey`.
+     * (its own or a `#/components/parameters` one), or, as the portal publishes it today, in a
+     * sentence of the operation's description that names it with no negation before it (`Acepta el
+     * header `Idempotency-Key``, not `No acepta `Idempotency-Key``). Only then does the API answer
+     * the same resource to a repeated key, so only then does the SDK take `idempotencyKey`. A
+     * sentence it misreads leaves the operation out, which is the safe side: the SDK then refuses
+     * the key there, and never repeats a write the API does not make idempotent.
      *
      * @param Json $op
      * @param Json $spec
@@ -758,7 +761,15 @@ final class Generator
             }
         }
 
-        return str_contains(self::str($op['description'] ?? null) ?? '', '`Idempotency-Key`');
+        $sentences = preg_split('/(?<=[.!?])\s+/u', self::str($op['description'] ?? null) ?? '');
+        foreach ($sentences === false ? [] : $sentences as $sentence) {
+            $at = strpos($sentence, '`Idempotency-Key`');
+            if ($at !== false && preg_match('/\b(?:no|ni|nunca|sin|not|never|without)\b/iu', substr($sentence, 0, $at)) !== 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // ---- Step 3: routes -------------------------------------------------------------------------

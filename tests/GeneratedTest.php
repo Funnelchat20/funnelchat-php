@@ -361,14 +361,20 @@ final class GeneratedTest extends TestCase
     public function testOnlyTheOperationsWhoseSpecDeclaresTheIdempotencyKeyTakeIt(): void
     {
         $spec = self::readJson('funnelchat.json');
-        $expected = [];
+        $naming = [];
+        $refusing = [];
         foreach (self::operationsWithData($spec['paths'] ?? null) as $label => $op) {
             $inHeader = false;
             foreach (\is_array($op['parameters'] ?? null) ? $op['parameters'] : [] as $parameter) {
                 $inHeader = $inHeader || (\is_array($parameter) && ($parameter['in'] ?? null) === 'header' && \is_string($parameter['name'] ?? null) && strcasecmp($parameter['name'], 'Idempotency-Key') === 0);
             }
-            if ($inHeader || str_contains(\is_string($op['description'] ?? null) ? $op['description'] : '', '`Idempotency-Key`')) {
-                $expected[] = $label;
+            $description = \is_string($op['description'] ?? null) ? $op['description'] : '';
+            if ($inHeader || str_contains($description, '`Idempotency-Key`')) {
+                $naming[] = $label;
+            }
+            // The spec also says where the API does not take it (creating a subscription, since v0.6.16).
+            if (preg_match('/\bNo acepta `Idempotency-Key`|\bdoes not (?:accept|take) `Idempotency-Key`/i', $description) === 1) {
+                $refusing[] = $label;
             }
         }
         $taking = [];
@@ -383,7 +389,11 @@ final class GeneratedTest extends TestCase
             }
         }
 
-        self::assertEqualsCanonicalizing($expected, $taking);
+        // Only operations whose spec names the header, and never one whose spec says it does not take it.
+        self::assertSame([], array_values(array_diff($taking, $naming)));
+        foreach ($refusing as $label) {
+            self::assertNotContains($label, $taking, "{$label}: its spec says it does not take `Idempotency-Key`");
+        }
         // The two creates the SDK documents with a key.
         self::assertContains('POST /api/v1/devices', $taking);
         self::assertContains('POST /api/v1/connect-links', $taking);

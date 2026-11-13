@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3e5bc8ef01a2c746…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -119,19 +119,17 @@ final class CustomFields extends AbstractResource
      * `POST /api/v1/custom-fields/delete`.
      *
      * Permission: **Contacts and conversations → Edit**.
+     * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
      * @param array{
      *     customFieldIds: list<string>,
      * } $body
      * @param RequestOptions $options
      *
-     * @return array<string, mixed>
+     * @return mixed
      */
     public function delete(array $body, array $options = []): mixed
     {
-        /** @var array<string, mixed> $result */
-        $result = $this->client->request('POST', '/api/v1/custom-fields/delete', ['body' => $body] + $options);
-
-        return $result;
+        return $this->client->request('POST', '/api/v1/custom-fields/delete', ['body' => $body] + $options);
     }
 }

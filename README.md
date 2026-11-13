@@ -577,7 +577,7 @@ $subscription = $funnelchat->webhooks->create([
 ```
 
 - Subscriptions need **Notifications (webhooks) → View** and **Notifications (webhooks) → Manage**, and for each event type, the **View** of the event's area: **Contacts and conversations → View** for `message.received` and `message.status_changed`, **Groups and campaigns → View** for the group events, **WhatsApp numbers → View** for `device.*`. When it is missing, `create` and `update` answer `422` with the problem in `errors['events']`, and the others `403 permission_denied`.
-- They belong to the workspace of the key: `list()` (paginated) also brings the ones of other integrations of that workspace, except those with events of an area your key cannot read. A subscription receives only the events of its workspace. At most 50 per workspace.
+- They belong to the workspace of the key: `list()` (paginated) also brings the ones of other integrations of that workspace, except those with events of an area your key cannot read. A subscription receives only the events of its workspace. At most 50 per workspace, whatever their status: with 50, `create` answers `422 webhooks_limit_reached`. Creating one does not take `idempotencyKey`: a create that did arrive, repeated, makes another subscription with another secret, so after a timeout list them before creating it again.
 - To change the URL use `update($id, […])`, which replaces `url`, `events`, `description` and `filters` (the secret does not change). `test($id)` sends a signed `webhook.test` right now and `listDeliveries($id)` is the history.
 - Rotating the secret is not open to API keys, so it is not in the SDK: rotate it from the dashboard.
 - List every type you want by name: there is no wildcard (`*` answers `422`, accounts v1.5.97 accepts only the subscribable types of `events()`).
@@ -654,9 +654,13 @@ With a key, every error of the API has the same body: `error`, the stable code (
 | `402 payment_required` | The account's payment is overdue. Never retried. | Settle it in the Funnelchat panel. |
 | `429 rate_limited` | Too many calls; it comes with `Retry-After`. | The SDK waits it out by itself when it is at most 60 seconds (see [Retries](#retries)). |
 
+A `402` is a `PaymentRequiredException`: `payment_required`, or `plan_cap_reached` when creating an official group goes over the plan's cap of official groups (nothing is registered).
+
 A `403` with `errorCode` `route_not_available` means that route is not open to API keys, even if your key has the permission.
 
-The refusals of creating or connecting a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
+A `500 gate_misconfigured` comes from the area itself: its gate for API keys is not set up for that route (the spec declares it on the sends). Like `edge_misconfigured`, it is on our side: report it quoting `requestId`.
+
+The refusals of the routes of a number are in `Funnelchat\Exception\DeviceErrors`, each with the statuses it comes with, and `$exception->isDeviceError()` tells them apart. Besides creating and connecting it: `422 device_not_meta` (the route is only for official numbers: its username, its health), `422 device_not_ready` (the official number is not connected to Meta yet), `meta_error` (Meta refused it, with Meta's status and its reason in `message`; for example a username already taken), `502 provider_error` (Meta or the provider did not answer: try again) and `400 unsupported_provider` (`devices->update()`: the number does not take that change). The ones you will see most: `403 numbers_not_included`, `403 number_limit_reached` (with `limit`, `used` and `pending_device_ids` in `body`), `409 pending_number_exists` (with `device_id`), `422 method_already_present` (with `device_id`), `422 connection_type_mismatch`, `422 idempotency_key_mismatch`, `429 too_many_open_links` and `503 meta_connect_disabled`. Nothing was created.
 
 ### The request id
 
@@ -716,7 +720,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.15
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.16
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -734,6 +738,15 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.3
+
+Generated from the spec of portal v0.6.16: the same 253 operations and 56 event types.
+
+- New error codes, documented where the SDK names codes: `402 plan_cap_reached` (a `PaymentRequiredException`), `500 gate_misconfigured`, `422 webhooks_limit_reached`, and in `DeviceErrors` `device_not_meta`, `device_not_ready`, `meta_error` and `unsupported_provider` (with `provider_error` on the username routes).
+- `templates->delete()` documents its refusals, the same codes as `templates->sync()`: `422 number_not_connected_to_meta`, `422 meta_rejected` (Meta's code in `body['meta_code']`) and `502 meta_unavailable`.
+- Response shapes the spec corrected: `groups->retrieveAction()` is the spec's `ApiGroupActionResource` (`PendingGroupAction` stays as an alias of it, and its correction left `spec/pending.json`); its `result` is a union of shapes by type of action, so for PHPStan check `result['message']` before reading its `uid`; `forms->createVersion()` answers the form (`data`) with `created`, `lint` and `numbers`, no longer a `string`; `contacts->update()`, `tags->update()` and the `delete()` of contacts, custom fields, forms and tags are typed `mixed`, since the spec documents no body for them; the items of `contacts->attachCustomField()` have `status: int`.
+- The spec now says that creating a subscription does not take `Idempotency-Key`; the generation reads it so, and `idempotencyKey` stays only on `devices->create()` and `connectLinks->create()`.
 
 ### What changed in 0.5.2
 
@@ -777,7 +790,6 @@ All of it was checked against the versions in production on 04-11 (sending by ph
 
 | What stays in the pending layer | Why |
 |---|---|
-| The answer of `groups->retrieveAction()` | The spec types `data` as a list; communities answers the action as an object. |
 | `data.workspace_id` in every event whose shape lacks it | accounts writes it in every event it delivers. |
 | `message.received`, `message.status_changed`, `whatsapp_form.completed`, `group_participant.joined` and `.left` typed from production | The spec types them only by an example: every id an `int`, `error` and `client_reference` always there, `campaign` never `null`; and its enum of `message.type` is closed, while new types can arrive. |
 | The events accounts delivers typed from production: `device.*`, billing, subscription, MAC, `account.blocked`, `group_action.*`, `daily_report.generated`, `campaign.no_groups_available`, `group.full`, `group.message_received`, `group.reaction_added` and `group_join_request.*` | The spec has them since 11-11, but only by an example (and three without one), which loses what can be `null` (`connect_link_id`, `external_reference`, a group's `name`…) and the values of `reason`, `state` and `identity_type`. Since v0.6.14 the example of `group.message_received` and `group.reaction_added` shows `message.uid`, as communities sends it (up to v0.6.13 it said `message.id`), but their `data` still has no schema. All of them are corrected while the spec's `data` has no schema. |

@@ -152,7 +152,10 @@ final class GroupsAndWorkspacesTest extends TestCase
         self::assertSame('GET', $http->lastRequest()->getMethod());
         self::assertSame('/api/v1/groups/actions/' . self::ACTION, $http->lastRequest()->getUri()->getPath());
         self::assertSame('completed', $result['data']['status']);
-        self::assertSame('3EB0C431C26A1916E2BA', $result['data']['result']['message']['uid'] ?? null);
+        // `result` depends on the action (the spec's union): a send's has `message`.
+        $message = $result['data']['result']['message'] ?? null;
+        self::assertIsArray($message);
+        self::assertSame('3EB0C431C26A1916E2BA', $message['uid'] ?? null);
     }
 
     public function testTheRouteTableKnowsTheGroupSendAsASend(): void
