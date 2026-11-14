@@ -720,7 +720,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.16
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.18
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -738,6 +738,13 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.4
+
+Generated from the spec of portal v0.6.18 (sha256 19e91748…): the same 253 operations and 56 event types.
+
+- The examples of 12 webhook events changed (a short campaign uuid, `participant.identity` without `+`), and the descriptions of `whatsapp_form.completed`, `group.created` (`source`), the `device.*` events and `mac.usage_80` / `mac.usage_100` are new.
+- The body of `PUT /api/v1/lead-score/settings` is documented: new type `UpdateLeadScoreSettingsRequest` in `Funnelchat\Generated\Schemas`.
 
 ### What changed in 0.5.3
 
