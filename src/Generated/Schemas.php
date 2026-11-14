@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 7db2ead826697c80…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 19e91748ddfe19ee…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -1601,6 +1601,37 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type UpdateKanbanStageRequest array{
  *     name: string,
+ * }
+ * @phpstan-type UpdateLeadScoreSettingsRequest array{
+ *     hot_threshold: int,
+ *     warm_threshold: int,
+ *     min_signals: int,
+ *     hysteresis: int,
+ *     decay_enabled: bool,
+ *     rules: list<array{
+ *         id: string,
+ *         signal: 'tag_added'|'tag_removed'|'stage_advanced'|'broadcast_reply'|'message_reply'|'intent_keyword'|'group_join'|'group_leave'|'group_reaction'|'group_poll_vote'|'link_click'|'automation_completed',
+ *         mode: 'event'|'state',
+ *         points: int,
+ *         daily_cap?: int|null,
+ *         unique_scope: 'none'|'contact'|'contact_scope',
+ *         enabled: bool,
+ *         disqualifies: bool,
+ *         on_release: 'restore'|'keep',
+ *         config?: array{
+ *             keywords?: list<string>,
+ *             broadcast_ids?: list<int>|null,
+ *             group_ids?: list<string>|null,
+ *             flow_ids?: list<int>|null,
+ *             whalink_ids?: list<string>|null,
+ *             tag_ids?: list<int>|null,
+ *             stage_ids?: list<int>|null,
+ *         },
+ *     }>,
+ *     decay_steps: list<array{
+ *         days: int,
+ *         points: int,
+ *     }>,
  * }
  * @phpstan-type UpdateMessageTemplateRequest array{
  *     device_id: int,

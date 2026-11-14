@@ -1,11 +1,11 @@
 {
     "description": "Where spec/funnelchat.json came from. Written by `composer generate -- --spec <file>`; do not edit it by hand.",
     "file": "spec/funnelchat.json",
-    "sha256": "7db2ead826697c80fd8feef3f0ea556b5374dd3d2cb5e02f3cfe4584af79e33c",
-    "bytes": 888446,
+    "sha256": "19e91748ddfe19eef74886264ee984d360417596745e5a900a02a7a831b570a0",
+    "bytes": 891547,
     "source": {
         "url": "https://developers-portal.funnelchat.app/specs/funnelchat.json",
-        "portal_version": "v0.6.16",
+        "portal_version": "v0.6.18",
         "repository": null,
         "path": null,
         "branch": null,
@@ -13,14 +13,14 @@
         "commit_date": null,
         "file_tracked_in_git": null,
         "tracked_files_clean": null,
-        "file_modified_at": "2026-11-13T23:32:56Z",
+        "file_modified_at": "2026-11-14T12:30:29Z",
         "declared": [
             "url",
             "portal_version"
         ],
         "declared_note": "The fields in `declared` were given on the command line (`--source`), not read from git."
     },
-    "imported_at": "2026-11-13T23:33:33.807Z",
+    "imported_at": "2026-11-14T12:32:21.873Z",
     "spec": {
         "openapi": "3.1.0",
         "title": "Funnelchat API",
