@@ -651,7 +651,7 @@ With a key, every error of the API has the same body: `error`, the stable code (
 |---|---|---|
 | `422 validation_failed` | A field is wrong; `errors` has the messages per field. | Fix the request. |
 | `404 not_found` | The record does not exist, or it is of another account or another workspace: never a `403`. | Check the id and the key's workspace. |
-| `402 payment_required` | The account's payment is overdue. Never retried. | Settle it in the Funnelchat panel. |
+| `402 payment_required` | The payment of the account or of the workspace is overdue. Never retried. | Settle it in the Funnelchat panel. |
 | `429 rate_limited` | Too many calls; it comes with `Retry-After`. | The SDK waits it out by itself when it is at most 60 seconds (see [Retries](#retries)). |
 
 A `402` is a `PaymentRequiredException`: `payment_required`, or `plan_cap_reached` when creating an official group goes over the plan's cap of official groups (nothing is registered).
@@ -720,7 +720,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.18
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.19
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -738,6 +738,10 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.5.5
+
+Generated from the spec of portal v0.6.19 (sha256 3a5f39f1…): the same 253 operations and 56 event types. Only descriptions changed (46 operations, 11 webhook events and 1 schema): «workspace» where they said «account», the per-minute limits per workspace, the `402 payment_required` text (the payment of the account or of the workspace) and the `403` of an archived workspace. No new operations, fields or codes.
 
 ### What changed in 0.5.4
 
