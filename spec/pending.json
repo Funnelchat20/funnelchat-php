@@ -71,7 +71,7 @@
         "type": "object",
         "description": "A single-use link where your customer creates or reconnects a number, without a Funnelchat session. A `meta` link tolerates retries: after a Facebook or Meta failure it stays `pending` so your customer can try again on the page, and the fifth failure makes it `failed` (`facebook_auth_failed` or `meta_error`); `quota_exceeded`, `trial_number_blocked` and `number_not_owned` close it at the first attempt.",
         "properties": {
-          "id": { "type": "integer" },
+          "id": { "type": "string", "pattern": "^lnk_[A-Za-z0-9]{23}$" },
           "type": { "type": "string", "enum": ["meta", "qr"] },
           "status": { "type": "string", "enum": ["pending", "completed", "failed", "expired", "revoked"] },
           "url": {"type": ["string", "null"], "description": "`https://<public host>/connect/<token>` in the answer of the create; `null` when you read the link (the token is not stored)."},
@@ -81,7 +81,7 @@
             "items": { "type": "string", "enum": ["coexistence", "dedicated"] }
           },
           "provision_us_number": { "type": "boolean" },
-          "device_id": { "type": ["integer", "null"], "description": "The number to reconnect, or the one it created once `completed`; `null` otherwise." },
+          "device_id": { "type": ["string", "null"], "description": "The number to reconnect, or the one it created once `completed`; `null` otherwise." },
           "external_reference": { "$ref": "#/components/schemas/PendingExternalReference" },
           "country": { "type": ["string", "null"], "description": "The country given when creating the link, or `null`." },
           "return_url": { "type": ["string", "null"] },
@@ -141,7 +141,7 @@
       },
       "PendingGroupAction": {"$ref": "#/components/schemas/ApiGroupActionResource", "description": "Kept so `@phpstan-import-type PendingGroupAction` keeps working: since v0.6.16 it is the snapshot's `ApiGroupActionResource`."},
       "PendingConnectLinkId": {
-        "type": ["integer", "null"],
+        "type": ["string", "null"],
         "description": "The connect link that connected this number the last time, or `null`. In `device.connected`, the link of that connection."
       },
       "PendingConnectionType": {
@@ -157,7 +157,7 @@
         "type": "object",
         "description": "The number in the `device.*` events.",
         "properties": {
-          "id": { "type": "integer" },
+          "id": { "type": "string", "pattern": "^dev_[A-Za-z0-9]{23}$" },
           "name": { "type": ["string", "null"] },
           "number": { "type": ["string", "null"], "description": "Digits only, without `+`." },
           "connection": { "$ref": "#/components/schemas/PendingConnectionType" },
@@ -1228,9 +1228,9 @@
                   "data": {
                     "type": "object",
                     "properties": {
-                      "message_id": { "type": "integer", "description": "The message's `id` in the contact's history." },
-                      "contact_id": { "type": "integer" },
-                      "device_id": { "type": ["integer", "null"], "description": "The number on your account that sent the message." },
+                      "message_id": { "type": "string", "pattern": "^msg_[A-Za-z0-9]{23}$", "description": "The message's `id` in the contact's history." },
+                      "contact_id": { "type": "string", "pattern": "^ctc_[A-Za-z0-9]{23}$" },
+                      "device_id": { "type": ["string", "null"], "description": "The number on your account that sent the message." },
                       "status": { "type": "string", "enum": ["sent", "delivered", "read", "failed"] },
                       "previous_status": { "type": ["string", "null"], "enum": ["sent", "delivered", "read", "failed", null] },
                       "error": { "$ref": "#/components/schemas/PendingMessageError", "description": "Only when `status` is `failed`." },
@@ -1333,15 +1333,15 @@
                       "form": {
                         "type": "object",
                         "properties": {
-                          "id": { "type": "integer", "description": "The form ID (`family_id`)." },
+                          "id": { "type": "string", "pattern": "^frm_[A-Za-z0-9]{23}$", "description": "The form ID (`family_id`)." },
                           "name": { "type": "string" },
-                          "version_id": { "type": "integer" }
+                          "version_id": { "type": "string", "pattern": "^frv_[A-Za-z0-9]{23}$" }
                         },
                         "required": ["id", "name", "version_id"]
                       },
-                      "message_id": { "type": ["integer", "null"] },
-                      "contact_id": { "type": ["integer", "null"] },
-                      "device_id": { "type": ["integer", "null"] },
+                      "message_id": { "type": ["string", "null"] },
+                      "contact_id": { "type": ["string", "null"] },
+                      "device_id": { "type": ["string", "null"] },
                       "answers": {
                         "type": "array",
                         "items": {
@@ -1399,7 +1399,7 @@
                         "type": "object",
                         "properties": {
                           "id": {
-                            "type": "integer",
+                            "type": "string",
                             "description": "The message's `id` in the contact's history."
                           },
                           "type": {
@@ -1471,7 +1471,7 @@
                         "properties": {
                           "id": {
                             "type": [
-                              "integer",
+                              "string",
                               "null"
                             ]
                           },
@@ -1512,7 +1512,7 @@
                       },
                       "device_id": {
                         "type": [
-                          "integer",
+                          "string",
                           "null"
                         ]
                       }

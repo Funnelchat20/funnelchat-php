@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -128,7 +128,7 @@ final class Webhooks extends AbstractResource
      *
      * @return WebhookSubscriptionResource
      */
-    public function retrieve(int|string $id, array $options = []): mixed
+    public function retrieve(string $id, array $options = []): mixed
     {
         /** @var WebhookSubscriptionResource $result */
         $result = $this->client->request('GET', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
@@ -149,7 +149,7 @@ final class Webhooks extends AbstractResource
      *
      * @return WebhookSubscriptionResource
      */
-    public function update(int|string $id, array $body, array $options = []): mixed
+    public function update(string $id, array $body, array $options = []): mixed
     {
         /** @var WebhookSubscriptionResource $result */
         $result = $this->client->request('PUT', '/api/v1/webhooks/{id}', ['path' => ['id' => $id], 'body' => $body] + $options);
@@ -167,7 +167,7 @@ final class Webhooks extends AbstractResource
      *
      * @return null
      */
-    public function delete(int|string $id, array $options = []): mixed
+    public function delete(string $id, array $options = []): mixed
     {
         /** @var null $result */
         $result = $this->client->request('DELETE', '/api/v1/webhooks/{id}', ['path' => ['id' => $id]] + $options);
@@ -188,10 +188,10 @@ final class Webhooks extends AbstractResource
      *     response_status: int|null,
      *     error: 'non_2xx'|'internal_error'|'timeout'|'connection_failed'|'tls_error'|'destination_not_allowed'|'secret_unreadable'|null,
      *     duration_ms: int|null,
-     *     delivery_id: int,
+     *     delivery_id: string,
      * }
      */
-    public function test(int|string $id, array $options = []): mixed
+    public function test(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -199,7 +199,7 @@ final class Webhooks extends AbstractResource
          *     response_status: int|null,
          *     error: 'non_2xx'|'internal_error'|'timeout'|'connection_failed'|'tls_error'|'destination_not_allowed'|'secret_unreadable'|null,
          *     duration_ms: int|null,
-         *     delivery_id: int,
+         *     delivery_id: string,
          * } $result
          */
         $result = $this->client->request('POST', '/api/v1/webhooks/{id}/test', ['path' => ['id' => $id]] + $options);
@@ -226,7 +226,7 @@ final class Webhooks extends AbstractResource
      *
      * @return Paginator<WebhookSubscriptionDeliveryResource>
      */
-    public function listDeliveries(int|string $id, array $query = [], array $options = []): Paginator
+    public function listDeliveries(string $id, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<WebhookSubscriptionDeliveryResource> $result */
         $result = $this->client->paginate('/api/v1/webhooks/{id}/deliveries', ['path' => ['id' => $id], 'query' => $query] + $options);

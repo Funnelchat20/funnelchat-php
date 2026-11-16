@@ -28,12 +28,12 @@ final class SendResultTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private static function message(int $id, string $type = 'text', ?string $status = 'queued', ?array $error = null): array
+    private static function message(string $id, string $type = 'text', ?string $status = 'queued', ?array $error = null): array
     {
         return [
             'id' => $id,
-            'contact_id' => 2001,
-            'device_id' => 3,
+            'contact_id' => 'ctc_00000000000000000002001',
+            'device_id' => 'dev_00000000000000000000003',
             'direction' => 'outbound',
             'type' => $type,
             'status' => $status,
@@ -46,40 +46,40 @@ final class SendResultTest extends TestCase
 
     public function testMessagesSendReturnsTheQueuedMessage(): void
     {
-        $http = new MockHttpClient(Reply::ok(['message' => self::message(9001)]));
+        $http = new MockHttpClient(Reply::ok(['message' => self::message('msg_00000000000000000009001')]));
 
-        $result = $this->client($http)->messages->send(2001, [
-            'device_id' => 3,
+        $result = $this->client($http)->messages->send('ctc_00000000000000000002001', [
+            'device_id' => 'dev_00000000000000000000003',
             'phone' => '5491100000000',
             'text' => 'Hola',
             'client_reference' => 'pedido-8841',
         ]);
 
-        self::assertSame(9001, $result['message']['id']);
+        self::assertSame('msg_00000000000000000009001', $result['message']['id']);
         self::assertSame('queued', $result['message']['status']);
         self::assertSame('pedido-8841', $result['message']['client_reference']);
-        self::assertSame(self::message(9001), $result['message']);
+        self::assertSame(self::message('msg_00000000000000000009001'), $result['message']);
     }
 
     public function testASendByPhoneNeedsNoContactAndSaysWhichOneItIs(): void
     {
         // conversations v1.19.21: `contact_id` is optional with `phone`; the contact is created if needed.
-        $http = new MockHttpClient(Reply::ok(['message' => self::message(9008)]));
+        $http = new MockHttpClient(Reply::ok(['message' => self::message('msg_00000000000000000009008')]));
 
-        $result = $this->client($http)->messages->sendDirect(['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola']);
+        $result = $this->client($http)->messages->sendDirect(['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola']);
 
         self::assertSame('/api/v1/message/send-message', $http->lastRequest()->getUri()->getPath());
-        self::assertSame(['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], self::jsonBody($http->lastRequest()));
-        self::assertSame(2001, $result['message']['contact_id']);
+        self::assertSame(['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola'], self::jsonBody($http->lastRequest()));
+        self::assertSame('ctc_00000000000000000002001', $result['message']['contact_id']);
         self::assertSame('queued', $result['message']['status']);
     }
 
     public function testAFileFromASignedUrlCarriesItsTypeAndName(): void
     {
-        $http = new MockHttpClient(Reply::ok(['message' => self::message(9006, 'document')]));
+        $http = new MockHttpClient(Reply::ok(['message' => self::message('msg_00000000000000000009006', 'document')]));
 
-        $this->client($http)->messages->send(2001, [
-            'device_id' => 3,
+        $this->client($http)->messages->send('ctc_00000000000000000002001', [
+            'device_id' => 'dev_00000000000000000000003',
             'phone' => '5491100000000',
             'file' => 'https://files.example/descarga?firma=abc',
             'file_type' => 'document',
@@ -90,15 +90,15 @@ final class SendResultTest extends TestCase
         self::assertNotNull($body);
         self::assertSame('document', $body['file_type']);
         self::assertSame('factura.pdf', $body['file_name']);
-        self::assertSame(2001, $body['contact_id']);
+        self::assertSame('ctc_00000000000000000002001', $body['contact_id']);
     }
 
     public function testAMessageThatCouldNotBeQueuedComesFailedWithItsReason(): void
     {
-        $failed = self::message(9007, 'text', 'failed', ['code' => null, 'title' => 'No se pudo encolar.', 'reason' => 'not_queued']);
+        $failed = self::message('msg_00000000000000000009007', 'text', 'failed', ['code' => null, 'title' => 'No se pudo encolar.', 'reason' => 'not_queued']);
         $http = new MockHttpClient(Reply::ok(['message' => $failed]));
 
-        $message = $this->client($http)->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'])['message'];
+        $message = $this->client($http)->messages->send('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola'])['message'];
 
         self::assertSame('failed', $message['status']);
         self::assertSame('not_queued', $message['error']['reason'] ?? null);
@@ -106,36 +106,36 @@ final class SendResultTest extends TestCase
 
     public function testMessagesGetReadsOneMessageById(): void
     {
-        $http = new MockHttpClient(Reply::ok(self::message(9001, 'text', 'delivered')));
+        $http = new MockHttpClient(Reply::ok(self::message('msg_00000000000000000009001', 'text', 'delivered')));
 
-        $message = $this->client($http)->messages->get(2001, 9001);
+        $message = $this->client($http)->messages->get('ctc_00000000000000000002001', 'msg_00000000000000000009001');
 
         self::assertSame('delivered', $message['status']);
         self::assertSame('GET', $http->lastRequest()->getMethod());
-        self::assertSame('/api/v1/contacts/2001/messages/9001', $http->lastRequest()->getUri()->getPath());
+        self::assertSame('/api/v1/contacts/ctc_00000000000000000002001/messages/msg_00000000000000000009001', $http->lastRequest()->getUri()->getPath());
     }
 
     public function testSendContactCardReturnsOneMessagePerCard(): void
     {
-        $http = new MockHttpClient(Reply::ok(['messages' => [self::message(9002, 'contact'), self::message(9003, 'contact')]]));
+        $http = new MockHttpClient(Reply::ok(['messages' => [self::message('msg_00000000000000000009002', 'contact'), self::message('msg_00000000000000000009003', 'contact')]]));
 
-        $result = $this->client($http)->messages->sendContactCard(2001, ['device_id' => 3, 'contact_card_ids' => [11, 12]]);
+        $result = $this->client($http)->messages->sendContactCard('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'contact_card_ids' => ['ctc_00000000000000000000011', 'ctc_00000000000000000000012']]);
 
         self::assertCount(2, $result['messages']);
-        self::assertSame([9002, 9003], array_column($result['messages'], 'id'));
+        self::assertSame(['msg_00000000000000000009002', 'msg_00000000000000000009003'], array_column($result['messages'], 'id'));
     }
 
     public function testForwardReturnsOneItemPerDestinationWithItsMessage(): void
     {
         $http = new MockHttpClient(Reply::ok([
-            ['contact_id' => 2002, 'mode' => 'internal', 'status' => 'queued', 'reason' => null, 'message' => self::message(9003)],
-            ['contact_id' => 2003, 'mode' => 'native', 'status' => 'blocked', 'reason' => 'mac_lockout_24h', 'message' => null],
+            ['contact_id' => 'ctc_00000000000000000002002', 'mode' => 'internal', 'status' => 'queued', 'reason' => null, 'message' => self::message('msg_00000000000000000009003')],
+            ['contact_id' => 'ctc_00000000000000000002003', 'mode' => 'native', 'status' => 'blocked', 'reason' => 'mac_lockout_24h', 'message' => null],
         ]));
 
-        $items = $this->client($http)->messages->forward(2001, 77, ['targets' => [['contact_id' => 2002, 'device_id' => 3], ['contact_id' => 2003, 'device_id' => 3]]]);
+        $items = $this->client($http)->messages->forward('ctc_00000000000000000002001', 'msg_00000000000000000000077', ['targets' => [['contact_id' => 'ctc_00000000000000000002002', 'device_id' => 'dev_00000000000000000000003'], ['contact_id' => 'ctc_00000000000000000002003', 'device_id' => 'dev_00000000000000000000003']]]);
 
         self::assertCount(2, $items);
-        self::assertSame(9003, $items[0]['message']['id'] ?? null);
+        self::assertSame('msg_00000000000000000009003', $items[0]['message']['id'] ?? null);
         self::assertSame('blocked', $items[1]['status']);
         self::assertSame('mac_lockout_24h', $items[1]['reason']);
         self::assertNull($items[1]['message']);
@@ -143,9 +143,9 @@ final class SendResultTest extends TestCase
 
     public function testTemplatesSendReturnsTheMessage(): void
     {
-        $http = new MockHttpClient(Reply::ok(['message' => self::message(9004, 'template')]));
+        $http = new MockHttpClient(Reply::ok(['message' => self::message('msg_00000000000000000009004', 'template')]));
 
-        $result = $this->client($http)->templates->send(3, '45', ['phone' => '5491100000000', 'contact_id' => 2001, 'client_reference' => 'pedido-8841']);
+        $result = $this->client($http)->templates->send('dev_00000000000000000000003', 'tpl_00000000000000000000045', ['phone' => '5491100000000', 'contact_id' => 'ctc_00000000000000000002001', 'client_reference' => 'pedido-8841']);
 
         self::assertSame('template', $result['message']['type']);
         self::assertSame('pedido-8841', self::jsonBody($http->lastRequest())['client_reference'] ?? null);
@@ -153,12 +153,12 @@ final class SendResultTest extends TestCase
 
     public function testSendFormReturnsTheMessage(): void
     {
-        $http = new MockHttpClient(Reply::ok(['message' => self::message(9008, 'whatsapp_form')]));
+        $http = new MockHttpClient(Reply::ok(['message' => self::message('msg_00000000000000000009008', 'whatsapp_form')]));
 
-        $result = $this->client($http)->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Completar']);
+        $result = $this->client($http)->messages->sendForm('ctc_00000000000000000002001', ['form_id' => 'frv_00000000000000000000012', 'device_id' => 'dev_00000000000000000000003', 'button_text' => 'Completar']);
 
         self::assertSame('whatsapp_form', $result['message']['type']);
-        self::assertSame('/api/v1/contacts/2001/message/form', $http->lastRequest()->getUri()->getPath());
+        self::assertSame('/api/v1/contacts/ctc_00000000000000000002001/message/form', $http->lastRequest()->getUri()->getPath());
     }
 
     public function testAMethodWhoseSpecDocumentsNoBodyStillReturnsTheBodyTheApiSends(): void
@@ -166,8 +166,8 @@ final class SendResultTest extends TestCase
         $http = new MockHttpClient(Reply::json(202, ['ok' => true]), Reply::text(202, ''), Reply::noContent());
         $client = $this->client($http);
 
-        self::assertSame(['ok' => true], $client->messages->react(2001, 99, ['emoji' => '👍']));
-        self::assertNull(self::raw($client->messages->react(2001, 99, ['emoji' => '👍'])));
-        self::assertNull($client->contacts->deleteNote(2001, 9));
+        self::assertSame(['ok' => true], $client->messages->react('ctc_00000000000000000002001', 'msg_00000000000000000000099', ['emoji' => '👍']));
+        self::assertNull(self::raw($client->messages->react('ctc_00000000000000000002001', 'msg_00000000000000000000099', ['emoji' => '👍'])));
+        self::assertNull($client->contacts->deleteNote('ctc_00000000000000000002001', 'not_00000000000000000000009'));
     }
 }

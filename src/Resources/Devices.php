@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -91,12 +91,12 @@ final class Devices extends AbstractResource
      *
      * Permission: **WhatsApp numbers → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return DeviceResource
      */
-    public function retrieve(int|string $device, array $options = []): mixed
+    public function retrieve(string $device, array $options = []): mixed
     {
         /** @var DeviceResource $result */
         $result = $this->client->request('GET', '/api/v1/devices/{device}', ['path' => ['device' => $device]] + $options);
@@ -109,7 +109,7 @@ final class Devices extends AbstractResource
      *
      * Permission: **WhatsApp numbers → Edit**.
      *
-     * @param int $device
+     * @param string $device
      * @param array{
      *     alias?: string|null,
      *     color?: string|null,
@@ -126,11 +126,11 @@ final class Devices extends AbstractResource
      * } $body
      * @param RequestOptions $options
      *
-     * @return DeviceResource
+     * @return DeviceResource|string
      */
-    public function update(int|string $device, array $body, array $options = []): mixed
+    public function update(string $device, array $body, array $options = []): mixed
     {
-        /** @var DeviceResource $result */
+        /** @var DeviceResource|string $result */
         $result = $this->client->request('PUT', '/api/v1/devices/{device}', ['path' => ['device' => $device], 'body' => $body] + $options);
 
         return $result;
@@ -147,12 +147,12 @@ final class Devices extends AbstractResource
      * change.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function delete(int|string $device, array $options = []): mixed
+    public function delete(string $device, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/devices/{device}', ['path' => ['device' => $device]] + $options);
     }
@@ -162,12 +162,12 @@ final class Devices extends AbstractResource
      *
      * Permission: **WhatsApp numbers → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return array<string, mixed>
      */
-    public function status(int|string $device, array $options = []): mixed
+    public function status(string $device, array $options = []): mixed
     {
         /** @var array<string, mixed> $result */
         $result = $this->client->request('GET', '/api/v1/devices/{device}/status', ['path' => ['device' => $device]] + $options);
@@ -185,14 +185,14 @@ final class Devices extends AbstractResource
      * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
      * change.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return array{
      *     data: PendingDeviceQr,
      * }
      */
-    public function qr(int|string $device, array $options = []): mixed
+    public function qr(string $device, array $options = []): mixed
     {
         /**
          * @var array{
@@ -209,12 +209,12 @@ final class Devices extends AbstractResource
      *
      * Permission: **WhatsApp numbers → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return DeviceHealthDetailResource
      */
-    public function health(int|string $device, array $options = []): mixed
+    public function health(string $device, array $options = []): mixed
     {
         /** @var DeviceHealthDetailResource $result */
         $result = $this->client->request('GET', '/api/v1/devices/{device}/health', ['path' => ['device' => $device]] + $options);
@@ -227,7 +227,7 @@ final class Devices extends AbstractResource
      *
      * Permission: **WhatsApp numbers → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param array{
      *     orderBy?: string,
      *     orderByMethod?: string,
@@ -239,7 +239,7 @@ final class Devices extends AbstractResource
      *
      * @return Paginator<DeviceConnectionEventResource>
      */
-    public function listConnectionHistory(int|string $device, array $query = [], array $options = []): Paginator
+    public function listConnectionHistory(string $device, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<DeviceConnectionEventResource> $result */
         $result = $this->client->paginate('/api/v1/devices/{device}/connection-history', ['path' => ['device' => $device], 'query' => $query] + $options);

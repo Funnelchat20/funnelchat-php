@@ -1322,11 +1322,13 @@ final class Generator
             $variable = Php::variable($placeholder, $taken);
             $taken[$variable] = true;
             $docType = $types->render($schema, 0);
+            // The native type follows the spec: the ids are opaque strings (`ctc_…`), so a method takes
+            // a `string`, never a number. Only a path parameter the spec types otherwise keeps `int|string`.
             $docType = match ($docType) {
                 'int', 'string' => $docType,
                 default => 'int|string',
             };
-            $args[] = ['name' => $placeholder, 'doc' => $docType, 'native' => 'int|string', 'required' => true, 'variable' => $variable];
+            $args[] = ['name' => $placeholder, 'doc' => $docType, 'native' => $docType, 'required' => true, 'variable' => $variable];
             $pathEntries[] = Php::value($placeholder) . " => \${$variable}";
         }
         if ($pathEntries !== []) {

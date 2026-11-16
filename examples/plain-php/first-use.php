@@ -41,7 +41,7 @@ try {
         $deviceId = $funnelchat->devices->create(['connection' => 'qr', 'alias' => 'My first number'])['data']['id'];
     } catch (ConflictException $exception) {
         $pending = is_array($exception->body) ? ($exception->body['device_id'] ?? null) : null;
-        if ($exception->errorCode !== 'pending_number_exists' || !is_int($pending)) {
+        if ($exception->errorCode !== 'pending_number_exists' || !is_string($pending)) {
             throw $exception;
         }
         $deviceId = $pending;

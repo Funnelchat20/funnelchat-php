@@ -16,9 +16,9 @@ use Funnelchat\Funnelchat;
 
 require __DIR__ . '/../../vendor/autoload.php'; // in your project: vendor/autoload.php
 
-$contactId = (int) ($argv[1] ?? 0);
+$contactId = (string) ($argv[1] ?? ''); // opaque text, as it arrives: `ctc_…`
 $phone = (string) ($argv[2] ?? '');
-if ($contactId <= 0 || $phone === '') {
+if ($contactId === '' || $phone === '') {
     fwrite(\STDERR, "Usage: php send-message.php <contact_id> <phone without +>\n");
 
     exit(1);
@@ -54,7 +54,7 @@ try {
         echo "Queued: {$result['message']['id']} ({$result['message']['status']})\n";
     } else {
         // Closed window: an approved template (the id comes from $funnelchat->templates->list()).
-        $result = $funnelchat->templates->send($deviceId, '45', [
+        $result = $funnelchat->templates->send($deviceId, 'tpl_ABsza6Ialu1BCUyPFZ8WJvV', [
             'phone' => $phone,
             'contact_id' => $contactId,
             'template_variables' => ['body' => ['Lucía']],

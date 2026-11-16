@@ -215,7 +215,7 @@ final class RetriesTest extends TestCase
         try {
             $this->client($http, maxRetries: 2)->request('POST', '/api/v1/devices/{device}/templates/{template}/send-template', [
                 'path' => ['device' => 3, 'template' => '45'],
-                'body' => ['phone' => '5491100000000', 'contact_id' => 2001],
+                'body' => ['phone' => '5491100000000', 'contact_id' => 'ctc_00000000000000000002001'],
             ]);
             self::fail('should have thrown');
         } catch (InternalServerException) {
@@ -228,16 +228,16 @@ final class RetriesTest extends TestCase
         // Reactions are PUT and DELETE: repeating them gives the same result.
         $http = new MockHttpClient(Reply::serverError(), Reply::noContent());
 
-        $this->client($http, maxRetries: 2)->messages->react(2001, 99, ['emoji' => '👍']);
+        $this->client($http, maxRetries: 2)->messages->react('ctc_00000000000000000002001', 'msg_00000000000000000000099', ['emoji' => '👍']);
         self::assertCount(2, $http->requests);
     }
 
     public function testRetriesANonSendPost(): void
     {
-        $http = new MockHttpClient(Reply::serverError(), Reply::json(201, ['id' => 1, 'name' => 'VIP']));
+        $http = new MockHttpClient(Reply::serverError(), Reply::json(201, ['id' => 'tag_00000000000000000000001', 'name' => 'VIP']));
 
         $tag = $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP']);
-        self::assertSame(1, $tag['id']);
+        self::assertSame('tag_00000000000000000000001', $tag['id']);
         self::assertCount(2, $http->requests);
     }
 
@@ -258,7 +258,7 @@ final class RetriesTest extends TestCase
     #[DataProvider('answersAfterWhichAWriteMayHaveBeenApplied')]
     public function testDoesNotRepeatAPostThatMayHaveBeenApplied(ResponseInterface|\Throwable $reply): void
     {
-        $http = new MockHttpClient($reply, Reply::json(201, ['id' => 1, 'name' => 'VIP']));
+        $http = new MockHttpClient($reply, Reply::json(201, ['id' => 'tag_00000000000000000000001', 'name' => 'VIP']));
 
         try {
             $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP']);
@@ -277,7 +277,7 @@ final class RetriesTest extends TestCase
         $http = new MockHttpClient($reply, Reply::ok(['id' => 7]), $again, Reply::ok(['data' => []]));
         $client = $this->client($http, maxRetries: 2);
 
-        self::assertSame(['id' => 7], $client->tags->update(7, ['name' => 'VIP']));
+        self::assertSame(['id' => 7], $client->tags->update('tag_00000000000000000000007', ['name' => 'VIP']));
         self::assertSame(['data' => []], $client->request('GET', '/api/v1/tags'));
         self::assertCount(4, $http->requests);
     }
@@ -287,7 +287,7 @@ final class RetriesTest extends TestCase
         $http = new MockHttpClient(Reply::json(429, ['error' => 'mac_lockout_24h', 'message' => 'Tu cuenta está en bloqueo de 24h por agotamiento de MACs.']), Reply::ok());
 
         try {
-            $this->client($http, maxRetries: 2)->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], ['retrySend' => true]);
+            $this->client($http, maxRetries: 2)->messages->send('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola'], ['retrySend' => true]);
             self::fail('should have thrown');
         } catch (RateLimitException $exception) {
             self::assertSame('mac_lockout_24h', $exception->errorCode);
@@ -311,9 +311,9 @@ final class RetriesTest extends TestCase
 
     public function testRepeatsAPostThatWasCertainlyNotApplied(): void
     {
-        $http = new MockHttpClient(Reply::json(503, ['error' => 'gate_unavailable'], ['Retry-After' => '1']), Reply::json(201, ['id' => 1, 'name' => 'VIP']));
+        $http = new MockHttpClient(Reply::json(503, ['error' => 'gate_unavailable'], ['Retry-After' => '1']), Reply::json(201, ['id' => 'tag_00000000000000000000001', 'name' => 'VIP']));
 
-        self::assertSame(1, $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP'])['id']);
+        self::assertSame('tag_00000000000000000000001', $this->client($http, maxRetries: 2)->tags->create(['name' => 'VIP'])['id']);
         self::assertCount(2, $http->requests);
         self::assertSame([1000], $this->sleeps);
     }
@@ -325,13 +325,13 @@ final class RetriesTest extends TestCase
         foreach ($sendPosts as $route) {
             self::assertTrue(Retry::isSendRequest('POST', (string) preg_replace('/\{[^}]+\}/', '123', $route['path'])), $route['path']);
         }
-        self::assertTrue(Retry::isSendRequest('POST', '/api/v1/contacts/2001/message'));
+        self::assertTrue(Retry::isSendRequest('POST', '/api/v1/contacts/ctc_00000000000000000002001/message'));
         self::assertTrue(Retry::isSendRequest('post', '/api/v1/message/send-message'));
         self::assertFalse(Retry::isSendRequest('GET', '/api/v1/groups/120363000000000001@g.us/messages'));
-        self::assertFalse(Retry::isSendRequest('GET', '/api/v1/contacts/2001/messages'));
+        self::assertFalse(Retry::isSendRequest('GET', '/api/v1/contacts/ctc_00000000000000000002001/messages'));
         self::assertFalse(Retry::isSendRequest('POST', '/api/v1/contacts/delete'));
         self::assertFalse(Retry::isSendRequest('POST', '/api/v1/contacts'));
-        self::assertFalse(Retry::isSendRequest('PUT', '/api/v1/contacts/2001/messages/9/reaction'));
+        self::assertFalse(Retry::isSendRequest('PUT', '/api/v1/contacts/ctc_00000000000000000002001/messages/msg_00000000000000000000009/reaction'));
     }
 
     public function testCapsTheExponentialBackoff(): void
@@ -349,6 +349,6 @@ final class RetriesTest extends TestCase
 
     private static function send(Funnelchat $client, bool $retrySend = false): void
     {
-        $client->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], $retrySend ? ['retrySend' => true] : []);
+        $client->messages->send('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola'], $retrySend ? ['retrySend' => true] : []);
     }
 }

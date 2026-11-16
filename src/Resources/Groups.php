@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -58,7 +58,7 @@ final class Groups extends AbstractResource
      *     type?: '1'|'2'|'3'|'4',
      *     perPage?: int,
      *     status?: '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8',
-     *     deviceId?: int,
+     *     deviceId?: string,
      *     noCampaign?: bool,
      *     page?: int,
      *     cursor?: string,
@@ -85,7 +85,7 @@ final class Groups extends AbstractResource
      *
      * @return GroupResource
      */
-    public function retrieve(int|string $group, array $options = []): mixed
+    public function retrieve(string $group, array $options = []): mixed
     {
         /** @var GroupResource $result */
         $result = $this->client->request('GET', '/api/v1/groups/{group}', ['path' => ['group' => $group]] + $options);
@@ -101,7 +101,7 @@ final class Groups extends AbstractResource
      *
      * Permission: **Groups and campaigns → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param array{
      *     page?: int,
      *     pageSize?: int,
@@ -112,7 +112,7 @@ final class Groups extends AbstractResource
      *
      * @return Paginator<GroupMinResource>
      */
-    public function listByDevice(int|string $device, array $query = [], array $options = []): Paginator
+    public function listByDevice(string $device, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<GroupMinResource> $result */
         $result = $this->client->paginate('/api/v1/devices/{device}/groups', ['path' => ['device' => $device], 'query' => $query] + $options);
@@ -128,7 +128,7 @@ final class Groups extends AbstractResource
      *
      * @param string $groupUid
      * @param array{
-     *     device_id: int,
+     *     device_id: string,
      *     group_uid: string,
      *     type?: 'groups'|'ad-groups'|'channels',
      * } $query
@@ -136,7 +136,7 @@ final class Groups extends AbstractResource
      *
      * @return GroupMetadataResource|ChannelMetadataResource
      */
-    public function metadata(int|string $groupUid, array $query, array $options = []): mixed
+    public function metadata(string $groupUid, array $query, array $options = []): mixed
     {
         /** @var GroupMetadataResource|ChannelMetadataResource $result */
         $result = $this->client->request('GET', '/api/v1/groups/{groupUid}/metadata', ['path' => ['groupUid' => $groupUid], 'query' => $query] + $options);
@@ -196,7 +196,7 @@ final class Groups extends AbstractResource
      *
      * @return Paginator<ParticipantEventResource>
      */
-    public function listParticipantEvents(int|string $group, array $query = [], array $options = []): Paginator
+    public function listParticipantEvents(string $group, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ParticipantEventResource> $result */
         $result = $this->client->paginate('/api/v1/groups/{group}/participant-events', ['path' => ['group' => $group], 'query' => $query] + $options);
@@ -222,7 +222,7 @@ final class Groups extends AbstractResource
      *
      * @return Paginator<ScheduledMessageResource>
      */
-    public function listScheduledMessages(int|string $group, array $query = [], array $options = []): Paginator
+    public function listScheduledMessages(string $group, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ScheduledMessageResource> $result */
         $result = $this->client->paginate('/api/v1/groups/{group}/scheduled-messages', ['path' => ['group' => $group], 'query' => $query] + $options);
@@ -247,7 +247,7 @@ final class Groups extends AbstractResource
      *
      * @return Paginator<ActionGroupResource>
      */
-    public function listActions(int|string $group, array $query = [], array $options = []): Paginator
+    public function listActions(string $group, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ActionGroupResource> $result */
         $result = $this->client->paginate('/api/v1/groups/{group}/actions', ['path' => ['group' => $group], 'query' => $query] + $options);
@@ -276,7 +276,7 @@ final class Groups extends AbstractResource
      *     data: ApiGroupImportResource,
      * }
      */
-    public function follow(int|string $group, array $body, array $options = []): mixed
+    public function follow(string $group, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -307,7 +307,7 @@ final class Groups extends AbstractResource
      *
      * @return ApiGroupActionAcceptedResource
      */
-    public function sendMessage(int|string $group, array $body, array $options = []): mixed
+    public function sendMessage(string $group, array $body, array $options = []): mixed
     {
         /** @var ApiGroupActionAcceptedResource $result */
         $result = $this->client->request('POST', '/api/v1/groups/{group}/messages', ['path' => ['group' => $group], 'body' => $body] + $options);
@@ -329,7 +329,7 @@ final class Groups extends AbstractResource
      *     data: ApiGroupActionResource,
      * }
      */
-    public function retrieveAction(int|string $action, array $options = []): mixed
+    public function retrieveAction(string $action, array $options = []): mixed
     {
         /**
          * @var array{

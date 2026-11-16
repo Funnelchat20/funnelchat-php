@@ -43,9 +43,9 @@ final class PaginationTest extends TestCase
     public function testWalksEveryItemOfEveryPageWithForeach(): void
     {
         $http = new MockHttpClient(
-            self::laravelPage([['id' => 1], ['id' => 2]], 1, 3),
-            self::laravelPage([['id' => 3], ['id' => 4]], 2, 3),
-            self::laravelPage([['id' => 5]], 3, 3),
+            self::laravelPage([['id' => 'tag_00000000000000000000001'], ['id' => 'tag_00000000000000000000002']], 1, 3),
+            self::laravelPage([['id' => 'tag_00000000000000000000003'], ['id' => 'tag_00000000000000000000004']], 2, 3),
+            self::laravelPage([['id' => 'tag_00000000000000000000005']], 3, 3),
         );
 
         $ids = [];
@@ -53,7 +53,7 @@ final class PaginationTest extends TestCase
             $ids[] = $tag['id'];
         }
 
-        self::assertSame([1, 2, 3, 4, 5], $ids);
+        self::assertSame(['tag_00000000000000000000001', 'tag_00000000000000000000002', 'tag_00000000000000000000003', 'tag_00000000000000000000004', 'tag_00000000000000000000005'], $ids);
         self::assertSame(
             ['perPage=2&name=vip', 'perPage=2&name=vip&page=2', 'perPage=2&name=vip&page=3'],
             array_map(static fn($request): string => $request->getUri()->getQuery(), $http->requests),
@@ -62,37 +62,37 @@ final class PaginationTest extends TestCase
 
     public function testKeysAreSequentialAcrossPages(): void
     {
-        $http = new MockHttpClient(self::laravelPage([['id' => 1], ['id' => 2]], 1, 2), self::laravelPage([['id' => 3]], 2, 2));
+        $http = new MockHttpClient(self::laravelPage([['id' => 'tag_00000000000000000000001'], ['id' => 'tag_00000000000000000000002']], 1, 2), self::laravelPage([['id' => 'tag_00000000000000000000003']], 2, 2));
 
-        self::assertSame([['id' => 1], ['id' => 2], ['id' => 3]], iterator_to_array($this->client($http)->tags->list()));
+        self::assertSame([['id' => 'tag_00000000000000000000001'], ['id' => 'tag_00000000000000000000002'], ['id' => 'tag_00000000000000000000003']], iterator_to_array($this->client($http)->tags->list()));
     }
 
     public function testFollowsNextCursorAndDropsPageForCursorRoutes(): void
     {
-        $http = new MockHttpClient(self::cursorPage([['id' => 11], ['id' => 12]], 'CUR2'), self::cursorPage([['id' => 13]], null));
+        $http = new MockHttpClient(self::cursorPage([['id' => 'msg_00000000000000000000011'], ['id' => 'msg_00000000000000000000012']], 'CUR2'), self::cursorPage([['id' => 'msg_00000000000000000000013']], null));
 
         $ids = [];
-        foreach ($this->client($http)->messages->list(2001, ['perPage' => 2, 'page' => 1]) as $message) {
+        foreach ($this->client($http)->messages->list('ctc_00000000000000000002001', ['perPage' => 2, 'page' => 1]) as $message) {
             $ids[] = $message['id'];
         }
 
-        self::assertSame([11, 12, 13], $ids);
-        self::assertSame('https://api.funnelchat.com/api/v1/contacts/2001/messages?perPage=2&page=1', (string) $http->requests[0]->getUri());
-        self::assertSame('https://api.funnelchat.com/api/v1/contacts/2001/messages?perPage=2&cursor=CUR2', (string) $http->requests[1]->getUri());
+        self::assertSame(['msg_00000000000000000000011', 'msg_00000000000000000000012', 'msg_00000000000000000000013'], $ids);
+        self::assertSame('https://api.funnelchat.com/api/v1/contacts/ctc_00000000000000000002001/messages?perPage=2&page=1', (string) $http->requests[0]->getUri());
+        self::assertSame('https://api.funnelchat.com/api/v1/contacts/ctc_00000000000000000002001/messages?perPage=2&cursor=CUR2', (string) $http->requests[1]->getUri());
     }
 
     public function testFirstPageWithHasNextPageAndGetNextPage(): void
     {
-        $http = new MockHttpClient(self::laravelPage([['id' => 1]], 1, 2), self::laravelPage([['id' => 2]], 2, 2));
+        $http = new MockHttpClient(self::laravelPage([['id' => 'tag_00000000000000000000001']], 1, 2), self::laravelPage([['id' => 'tag_00000000000000000000002']], 2, 2));
 
         $first = $this->client($http)->contacts->list()->firstPage();
-        self::assertSame([['id' => 1]], $first->data);
+        self::assertSame([['id' => 'tag_00000000000000000000001']], $first->data);
         self::assertCount(1, $first);
         self::assertTrue($first->hasNextPage());
         self::assertSame(['page' => 2], $first->nextPageQuery());
 
         $second = $first->getNextPage();
-        self::assertSame([['id' => 2]], $second->data);
+        self::assertSame([['id' => 'tag_00000000000000000000002']], $second->data);
         self::assertFalse($second->hasNextPage());
         self::assertCount(2, $http->requests);
 
@@ -114,15 +114,15 @@ final class PaginationTest extends TestCase
 
     public function testTreatsAPlainArrayAsASinglePage(): void
     {
-        $http = new MockHttpClient(Reply::ok([['id' => 3], ['id' => 4]]));
+        $http = new MockHttpClient(Reply::ok([['id' => 'tag_00000000000000000000003'], ['id' => 'tag_00000000000000000000004']]));
 
-        self::assertSame([['id' => 3], ['id' => 4]], iterator_to_array($this->client($http)->devices->list(), false));
+        self::assertSame([['id' => 'tag_00000000000000000000003'], ['id' => 'tag_00000000000000000000004']], iterator_to_array($this->client($http)->devices->list(), false));
         self::assertCount(1, $http->requests);
     }
 
     public function testIteratesPagesWithIterPages(): void
     {
-        $http = new MockHttpClient(self::laravelPage([['id' => 1]], 1, 2), self::laravelPage([['id' => 2]], 2, 2));
+        $http = new MockHttpClient(self::laravelPage([['id' => 'tag_00000000000000000000001']], 1, 2), self::laravelPage([['id' => 'tag_00000000000000000000002']], 2, 2));
 
         $sizes = [];
         foreach ($this->client($http)->tags->list()->iterPages() as $page) {
@@ -141,10 +141,10 @@ final class PaginationTest extends TestCase
 
     public function testPaginatesAnyRouteWithPaginate(): void
     {
-        $http = new MockHttpClient(self::laravelPage([['id' => 1]], 1, 1), Reply::ok(['data' => [['x' => 1]], 'meta' => ['current_page' => '1', 'last_page' => '1']]));
+        $http = new MockHttpClient(self::laravelPage([['id' => 'tag_00000000000000000000001']], 1, 1), Reply::ok(['data' => [['x' => 1]], 'meta' => ['current_page' => '1', 'last_page' => '1']]));
         $client = $this->client($http);
 
-        self::assertSame([['id' => 1]], $client->paginate('/api/v1/custom-fields', ['query' => ['perPage' => 50]])->firstPage()->data);
+        self::assertSame([['id' => 'tag_00000000000000000000001']], $client->paginate('/api/v1/custom-fields', ['query' => ['perPage' => 50]])->firstPage()->data);
         $untyped = $client->paginate('/api/v1/something-new', ['query' => ['page' => 1]])->firstPage();
         self::assertSame([['x' => 1]], $untyped->data);
         self::assertFalse($untyped->hasNextPage());
@@ -153,7 +153,7 @@ final class PaginationTest extends TestCase
 
     public function testThePageCarriesTheWholeBody(): void
     {
-        $http = new MockHttpClient(self::laravelPage([['id' => 1]], 1, 1));
+        $http = new MockHttpClient(self::laravelPage([['id' => 'tag_00000000000000000000001']], 1, 1));
 
         $body = $this->client($http)->tags->list()->firstPage()->body;
         self::assertIsArray($body);

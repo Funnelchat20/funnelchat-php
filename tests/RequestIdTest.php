@@ -45,19 +45,19 @@ final class RequestIdTest extends TestCase
     public function testTheLastResponseOfTheClientHasTheIdOfASuccess(): void
     {
         $http = new MockHttpClient(
-            Reply::json(200, ['id' => 4001], ['x-request-id' => self::ID]),
+            Reply::json(200, ['id' => 'tag_00000000000000000004001'], ['x-request-id' => self::ID]),
             Reply::json(422, ['message' => 'Inválido.', 'errors' => ['name' => ['Falta.']]], ['X-Request-Id' => 'otro-id']),
         );
         $client = $this->client($http);
         self::assertNull($client->lastResponse());
 
-        $client->tags->retrieve(4001);
+        $client->tags->retrieve('tag_00000000000000000004001');
         $last = $client->lastResponse();
         self::assertNotNull($last);
         self::assertSame(200, $last->status);
         self::assertSame(self::ID, $last->requestId);
         self::assertSame('GET', $last->method);
-        self::assertSame('https://api.funnelchat.com/api/v1/tags/4001', $last->url);
+        self::assertSame('https://api.funnelchat.com/api/v1/tags/tag_00000000000000000004001', $last->url);
         self::assertSame('application/json', $last->header('content-type'));
 
         try {
@@ -70,8 +70,8 @@ final class RequestIdTest extends TestCase
     public function testOnResponseSeesEveryPageOfAListAndAnError(): void
     {
         $http = new MockHttpClient(
-            Reply::json(200, ['data' => [['id' => 1]], 'meta' => ['current_page' => 1, 'last_page' => 2]], ['X-Request-Id' => 'pagina-1']),
-            Reply::json(200, ['data' => [['id' => 2]], 'meta' => ['current_page' => 2, 'last_page' => 2]], ['X-Request-Id' => 'pagina-2']),
+            Reply::json(200, ['data' => [['id' => 'tag_00000000000000000000001']], 'meta' => ['current_page' => 1, 'last_page' => 2]], ['X-Request-Id' => 'pagina-1']),
+            Reply::json(200, ['data' => [['id' => 'tag_00000000000000000000002']], 'meta' => ['current_page' => 2, 'last_page' => 2]], ['X-Request-Id' => 'pagina-2']),
             Reply::json(403, ['error' => 'permission_denied', 'message' => 'Sin permiso.'], ['X-Request-Id' => 'error-1']),
         );
         $client = $this->client($http);
@@ -84,10 +84,10 @@ final class RequestIdTest extends TestCase
         foreach ($client->tags->list([], ['onResponse' => $onResponse]) as $tag) {
             $ids[] = $tag['id'];
         }
-        self::assertSame([1, 2], $ids);
+        self::assertSame(['tag_00000000000000000000001', 'tag_00000000000000000000002'], $ids);
 
         try {
-            $client->tags->retrieve(9, ['onResponse' => $onResponse]);
+            $client->tags->retrieve('tag_00000000000000000000009', ['onResponse' => $onResponse]);
         } catch (ApiException) {
         }
         self::assertSame(['200 pagina-1', '200 pagina-2', '403 error-1'], $seen);

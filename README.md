@@ -46,7 +46,7 @@ $sent = $funnelchat->messages->sendDirect([
     'phone' => '5491100000000', // digits, without +
     'text' => 'Hi! This is my first message from the API.',
 ]);
-echo $sent['message']['id'], ' ', $sent['message']['status']; // 9001 queued
+echo $sent['message']['id'], ' ', $sent['message']['status']; // msg_AEd7Kq2LmZ0pXvB5nYtRh3w queued
 ```
 
 One call: if the phone is not a contact yet, Funnelchat creates it, and `$sent['message']['contact_id']` says which one. **Queued is not sent**: the next statuses arrive in step 4. With an official (WhatsApp Cloud) number you can write free text only within 24 hours of the contact's last message; after that, an [approved template](#closed-window-an-approved-template).
@@ -267,7 +267,7 @@ $tickets = $funnelchat->request('GET', '/api/v1/tickets')['data'];
 
 They have the same methods as the [Node SDK](https://github.com/Funnelchat20/funnelchat-node), with the arguments in the same order: path parameters first, then the query or the body (arrays), and the call options last.
 
-The resource classes are generated from the spec: the parameters, query, body and response of each method are typed in its PHPDoc with array shapes (`array{id: int, name: string, …}`). The schemas of the spec are PHPStan aliases in `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), which you can use in your code with `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. For any other function, see [Every function of the portal](#every-function-of-the-portal).
+The resource classes are generated from the spec: the parameters, query, body and response of each method are typed in its PHPDoc with array shapes (`array{id: string, name: string, …}`). The schemas of the spec are PHPStan aliases in `Funnelchat\Generated\Schemas` (`ContactResource`, `TagResource`…), which you can use in your code with `@phpstan-import-type ContactResource from \Funnelchat\Generated\Schemas`. For any other function, see [Every function of the portal](#every-function-of-the-portal).
 
 ## Sending a message
 
@@ -283,20 +283,20 @@ Sending with an API key needs the **Contacts and conversations → Send** permis
 **Open window: free text.** With an official Meta number you can only send free text if the contact wrote to you in the last 24 hours. Check the window first:
 
 ```php
-$window = $funnelchat->contacts->metaWindow(2001, ['device_id' => 3]);
+$window = $funnelchat->contacts->metaWindow('ctc_ABsza6Ialu1BCUyPFZ8WJvV', ['device_id' => 'dev_AFHtaOVjNBTEWzCuDrmxMPP']);
 
 if ($window['is_open']) {
-    $result = $funnelchat->messages->send(2001, [
-        'device_id' => 3,
+    $result = $funnelchat->messages->send('ctc_ABsza6Ialu1BCUyPFZ8WJvV', [
+        'device_id' => 'dev_AFHtaOVjNBTEWzCuDrmxMPP',
         'phone' => '5491100000000',            // the phone of the same contact, without +
         'text' => 'Hi! Here is the info you asked for.',
         'client_reference' => 'order-8841',    // optional: your reference to follow it
     ]);
-    echo $result['message']['id'], ' ', $result['message']['status'], "\n"; // 9001 queued
+    echo $result['message']['id'], ' ', $result['message']['status'], "\n"; // msg_AEd7Kq2LmZ0pXvB5nYtRh3w queued
 }
 ```
 
-- `send` returns `['message' => […]]`: the registered message, with its `id`, `status` `queued` and your `client_reference`. **Queued is not sent:** the next statuses (`sent`, `delivered`, `read` or `failed`) arrive through the `message.status_changed` event, with the same `id` as `message_id`, or you read them with `$funnelchat->messages->get(2001, $id)`.
+- `send` returns `['message' => […]]`: the registered message, with its `id`, `status` `queued` and your `client_reference`. **Queued is not sent:** the next statuses (`sent`, `delivered`, `read` or `failed`) arrive through the `message.status_changed` event, with the same `id` as `message_id`, or you read them with `$funnelchat->messages->get('ctc_ABsza6Ialu1BCUyPFZ8WJvV', $id)`.
 - If the message could not be queued, it still comes back, with `status` `failed` and `error.reason` `not_queued`. When it fails, `error` has Meta's `code` and `title`, or a `null` `code`, a `title` and a Funnelchat `reason` (`device_unavailable`, `insufficient_balance`, `window_closed`, `recipient_unreachable`…).
 - Contact cards (`sendContactCard`) return `['messages' => […]]`, one per card; a forward (`forward`), one item per target with `status` (`queued` or `blocked`), `reason` and its `message`; a template (`templates->send`) and a form (`messages->sendForm`), `['message' => […]]`.
 - `client_reference` (1 to 64 visible ASCII characters, no spaces) comes back in the message, in the contact's history and in `message.status_changed`.
@@ -307,8 +307,8 @@ if ($window['is_open']) {
 **A file by URL.** With `file` (the URL) you send an image, a video, an audio, a document or a sticker. If the URL does not show the format (a signed URL, or one without an extension), say what it is with `file_type` (`image`, `video`, `audio`, `document` or `sticker`); for such a document, also `file_name` with its extension:
 
 ```php
-$funnelchat->messages->send(2001, [
-    'device_id' => 3,
+$funnelchat->messages->send('ctc_ABsza6Ialu1BCUyPFZ8WJvV', [
+    'device_id' => 'dev_AFHtaOVjNBTEWzCuDrmxMPP',
     'phone' => '5491100000000',
     'file' => 'https://files.example/download?signature=…',
     'file_type' => 'document',
@@ -320,10 +320,10 @@ If one is missing, the API answers `422` with the field in `errors` (`file_type`
 
 ### Closed window: an approved template
 
-The route takes the number (`3`) and the template id (`45`), which comes from `$funnelchat->templates->list()`. If a template you created in Meta is not in that list yet, bring the number's templates from Meta with `$funnelchat->templates->sync(3)` and list again (official numbers only; `['status' => 'in_progress']` means the rest are still coming, so list again in a few seconds):
+The route takes the number (`dev_AFHtaOVjNBTEWzCuDrmxMPP`) and the template id (`tpl_AB3kLm9QwErTyUiOp7AsDfG`), which comes from `$funnelchat->templates->list()`. If a template you created in Meta is not in that list yet, bring the number's templates from Meta with `$funnelchat->templates->sync('dev_AFHtaOVjNBTEWzCuDrmxMPP')` and list again (official numbers only; `['status' => 'in_progress']` means the rest are still coming, so list again in a few seconds):
 
 ```php
-$funnelchat->templates->send(3, '45', [
+$funnelchat->templates->send('dev_AFHtaOVjNBTEWzCuDrmxMPP', 'tpl_AB3kLm9QwErTyUiOp7AsDfG', [
     'phone' => '5491100000000',                     // alone: the contact is created if it does not exist
     'template_variables' => ['body' => ['Lucía']], // the body variables, in order
 ]);
@@ -334,7 +334,7 @@ With `contact_id` instead of `phone`, or with both if they are the same contact.
 **A WhatsApp form.** `form_id` is the id of the published form (`family_id`); the answers arrive through `whatsapp_form.completed`:
 
 ```php
-$funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'button_text' => 'Fill in']);
+$funnelchat->messages->sendForm('ctc_ABsza6Ialu1BCUyPFZ8WJvV', ['form_id' => 'frv_Ath9bJ3RpAYPhnQ2wXcVeZk', 'device_id' => 'dev_AFHtaOVjNBTEWzCuDrmxMPP', 'button_text' => 'Fill in']);
 ```
 
 **When a send is stopped.** If a send breaks a WhatsApp rule, it does not go out: you get an exception.
@@ -353,7 +353,7 @@ $funnelchat->messages->sendForm(2001, ['form_id' => 12, 'device_id' => 3, 'butto
 `$exception->isSendRuleError()` tells you whether the exception is one of these rules or one of the other refusals of a send (`not_sent`, `template_not_found`, `form_not_published`, `provider_unsupported`, the refusals of a send to a group…; the list is in `Funnelchat\Exception\SendErrors::CODES`). A send is **never retried by itself**, because a retry can deliver the same message twice. If a `429 rate_limited` sent nothing and you want the SDK to retry for you, ask for it in that call (a `mac_lockout_24h` is never retried):
 
 ```php
-$funnelchat->messages->send(2001, $body, ['retrySend' => true]);
+$funnelchat->messages->send('ctc_ABsza6Ialu1BCUyPFZ8WJvV', $body, ['retrySend' => true]);
 ```
 
 The full example is in [examples/plain-php/send-message.php](examples/plain-php/send-message.php).
@@ -363,12 +363,12 @@ The full example is in [examples/plain-php/send-message.php](examples/plain-php/
 With **Groups and campaigns → View**: the groups of your key's workspace, their participants, joins and leaves, the messages sent to them and their scheduled messages. With **Groups and campaigns → Send**: a message to a group, now.
 
 ```php
-foreach ($funnelchat->groups->list(['deviceId' => 4]) as $group) {
+foreach ($funnelchat->groups->list(['deviceId' => 'dev_AGq1cT0mXzLw9RbKe5NoYhD']) as $group) {
     echo $group['name'], "\n";
 }
 
 $participants = $funnelchat->groups->listParticipants(['groupUid' => '120363000000000001@g.us'])->firstPage();
-$metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id' => 4, 'group_uid' => '120363000000000001@g.us']);
+$metadata = $funnelchat->groups->metadata('120363000000000001@g.us', ['device_id' => 'dev_AGq1cT0mXzLw9RbKe5NoYhD', 'group_uid' => '120363000000000001@g.us']);
 ```
 
 **Sending to a group.** `groups->sendMessage($groupUid, $body)` and `groups->retrieveAction($actionId)`, as in [Groups](#groups) above. The refusals, with nothing sent (all of them in `SendErrors::CODES`, so `isSendRuleError()` is `true`):
@@ -433,7 +433,7 @@ sendToYourCustomer($link['url']); // the URL comes only in this answer
 - `'type' => 'meta'` answers `503 meta_connect_disabled` in production until Funnelchat registers its domain with Meta. A `qr` link works: its page renews the QR every 5 seconds.
 - With `'type' => 'qr'`, `country` (two letters) is the country of the phone, as in `devices->create()`. It does not go with `device_id` nor with `meta` (`422 invalid_request`), and the link returns it in lower case (`'ar'`).
 - With `'type' => 'meta'`, `provision_us_number: true` offers a US number from the pool. A pool number is always dedicated: it needs `dedicated` in `allowed_connection_types` and does not go with `device_id`; otherwise `422 invalid_request`. Your customer pays Meta directly, with a payment method in their WhatsApp account.
-- `'device_id' => 41` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
+- `'device_id' => 'dev_AEx7Vw2hQnJ4sPaUt8LcBzF'` reconnects that number instead of creating one, without new quota. Its method must match the link's `type` (`422 connection_type_mismatch`).
 - The page claims the link when your customer presses its button, not when it opens: a messenger's link preview does not use it up.
 - A `meta` link tolerates retries: after a Facebook or Meta failure it stays `pending` and your customer can try again on the page; the fifth failure makes it `failed` (`facebook_auth_failed` or `meta_error`). `quota_exceeded`, `trial_number_blocked` and `number_not_owned` close it at the first attempt.
 - Learn the result three ways: the `device.connected` event (with `connect_link_id` and `external_reference`), `return_url` (it gets `connect_link_id`, `status`, and `device_id` or `error_code`), or reading the link:
@@ -452,8 +452,8 @@ At most 20 links are open per account, and 10 can be created per minute.
 
 ```php
 foreach ($funnelchat->devices->list(['external_reference' => 'customer-8841']) as $number) { … }
-$funnelchat->devices->update(41, ['external_reference' => 'customer-9000']);
-$funnelchat->devices->delete(41);
+$funnelchat->devices->update('dev_AEx7Vw2hQnJ4sPaUt8LcBzF', ['external_reference' => 'customer-9000']);
+$funnelchat->devices->delete('dev_AEx7Vw2hQnJ4sPaUt8LcBzF');
 ```
 
 Deleting is physical and frees the quota: an official number loses the app subscription but stays registered with Meta, and a QR number's session is closed. It emits `device.deleted`. There is no undo.
@@ -589,7 +589,7 @@ The `list…` methods return a lazy `Paginator`: nothing is requested until you 
 
 ```php
 // Every item of every page (a generator: it requests each page when it needs it).
-foreach ($funnelchat->contacts->list(['perPage' => 100, 'tag_mode' => 'any', 'tag_ids' => [12]]) as $contact) {
+foreach ($funnelchat->contacts->list(['perPage' => 100, 'tag_mode' => 'any', 'tag_ids' => ['tag_AD4nRq8ZxCvBmLk1JhGfSaW']]) as $contact) {
     echo $contact['id'], "\n";
 }
 
@@ -637,7 +637,7 @@ use Funnelchat\Exception\ApiException;
 use Funnelchat\Exception\RateLimitException;
 
 try {
-    $funnelchat->contacts->retrieve(2001);
+    $funnelchat->contacts->retrieve('ctc_ABsza6Ialu1BCUyPFZ8WJvV');
 } catch (RateLimitException $exception) {
     echo "Wait {$exception->retryAfter} s\n";
 } catch (ApiException $exception) {
@@ -669,7 +669,7 @@ Every response of the API, success or error, carries `X-Request-Id`: a different
 ```php
 use Funnelchat\ResponseInfo;
 
-$result = $funnelchat->messages->send(2001, $body);
+$result = $funnelchat->messages->send('ctc_ABsza6Ialu1BCUyPFZ8WJvV', $body);
 $logger->info('sent', ['message_id' => $result['message']['id'], 'request_id' => $funnelchat->lastResponse()?->requestId]);
 
 $funnelchat->contacts->list([], ['onResponse' => fn(ResponseInfo $r) => $logger->debug('page', ['request_id' => $r->requestId])]);
@@ -697,9 +697,9 @@ $funnelchat->tags->list([], ['maxRetries' => 0, 'timeout' => 5, 'headers' => ['X
 `request()` calls any route, whether it is in a resource or not: every function of the portal without a method, one the spec adds after this version of the SDK, or one you want to call with a body the spec does not document. Path parameters go in `path`, the query in `query` and the body in `body`:
 
 ```php
-$contact = $funnelchat->request('GET', '/api/v1/contacts/{contact}', ['path' => ['contact' => 2001]]);
+$contact = $funnelchat->request('GET', '/api/v1/contacts/{contact}', ['path' => ['contact' => 'ctc_ABsza6Ialu1BCUyPFZ8WJvV']]);
 
-$stats = $funnelchat->request('GET', '/api/v1/broadcasts/{broadcast}/statistics', ['path' => ['broadcast' => 77]]);
+$stats = $funnelchat->request('GET', '/api/v1/broadcasts/{broadcast}/statistics', ['path' => ['broadcast' => 'bcs_AFq3Zt9LmXw2KcVnB7YdPeH']]);
 
 $result = $funnelchat->request('POST', '/api/v1/something-new', ['body' => ['a' => 1]]);
 ```
@@ -720,7 +720,7 @@ Everything generated comes from a single script, in PHP, and from the spec **the
 # With the spec the portal publishes, downloaded (say where it came from, and the portal's version):
 curl -fsSL -o funnelchat.json https://developers-portal.funnelchat.app/specs/funnelchat.json
 composer generate -- --spec funnelchat.json \
-  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.6.19
+  --source url=https://developers-portal.funnelchat.app/specs/funnelchat.json --source portal_version=v0.7.0
 
 # With the one already in spec/ (for example, after editing spec/pending.json or spec/resources.json):
 composer generate
@@ -738,6 +738,21 @@ What it does (`scripts/generate.php`):
 **Regenerating never needs anything edited by hand.** `spec/resources.json` says which operation each method of each resource is, with the same resources and names as the Node SDK. A new operation of the spec is in `Routes::ALL`, called with `request()`; an operation of that list the spec no longer has leaves the SDK, and the generation says which one, so it can be deleted from there. The category of each group comes from the spec: `x-fc-categoria` on its `x-tagGroups` entry (or `x-fc-bloque`, as the portal's full spec calls it), the id of a category of `x-fc-categorias` (`whatsapp` → «Funciones de WhatsApp»); `Routes::ALL`, `Routes::GROUPS`, the resources' PHPDoc and the block of this README take it. After regenerating: `composer check` (`composer analyse` flags a method whose shape changed under your code).
 
 **The current spec** is the one the developers portal publishes (since 11-11, when the SDK started taking it), `https://developers-portal.funnelchat.app/specs/funnelchat.json`: the functions of the first use and those of «Más funciones». Its URL, the portal's version, when it was taken and its `sha256` are in `spec/procedencia.json`. Its own texts (summaries, purposes and descriptions of its operations and events) are in Spanish, as the portal publishes them.
+
+### What changed in 0.6.0
+
+**Breaking change: ids are opaque text.** Generated from the spec of portal v0.7.0 (sha256 fadcd737…): the same 253 operations and 56 event types, but the public API moved to opaque ids, with no transition. Every id of ours that was an integer is now a string with a prefix by type: `ctc_ABsza6Ialu1BCUyPFZ8WJvV` (three letters, `_`, 23 base62 characters; `^xxx_[A-Za-z0-9]{23}$`). The page «Identificadores» of the portal has the table of prefixes. An integer, or an id of another type, answers `404`. These did not change: the `uid` of a group, the `uuid` of a campaign, the `uid` of a message, Meta's ids (WABA…) and `workspace_id` (still an integer).
+
+- The path parameters of every method are `string` (they were `int|string`), and every id of the generated shapes (`ContactResource`, `DeviceResource`, the events of `WebhookEvents`, the body and the query: `device_id`, `contact_id`, `tag_ids`, `contactIds`…) is `string` (`list<string>` for the lists).
+- `spec/pending.json` keeps its 44 entries, all still applied; the ones that typed an id as an integer (the `device.*`, `message.*` and `whatsapp_form.completed` events, the connect link) now type it as a string. `workspace_id` stays an integer.
+
+**Migrating from 0.5.x**
+
+1. Store the ids as text (`VARCHAR`, `string`), never as integers: they are opaque. The ones you saved before (`2001`) are no longer valid; read them again from the API (`contacts->list()`, `devices->list()`…).
+2. Do not build them, do not convert them (`(int) $id`, `intval`) and do not compare or sort them as numbers; the prefix says the type, and you use the id exactly as it arrives. Do not parse them either: only their format is promised.
+3. Where you passed `$funnelchat->contacts->retrieve(2001)`, pass the text you were given: `$funnelchat->contacts->retrieve($contact['id'])`. The same in the body (`'device_id' => $number['id']`) and the query.
+4. Check what you read from the events: `data.message_id`, `data.contact_id`, `data.device_id`, `data.device.id` and `data.connect_link_id` arrive as strings. If you deduplicated or indexed by integer, change it.
+5. With PHPStan, passing an integer where an id goes is now an error: that is the list of what to change.
 
 ### What changed in 0.5.5
 
@@ -836,7 +851,7 @@ It needs the repository secrets `PACKAGIST_USERNAME` and `PACKAGIST_TOKEN`, and 
 $funnelchat = new \Funnelchat\Funnelchat(apiKey: '1|fc_live_sandbox', baseUrl: 'http://127.0.0.1:4010');
 ```
 
-The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. Sending by phone (`messages->sendDirect()` without `contact_id`) needs `@funnelchat-hq/sandbox` 0.3.1 or later.
+The first use runs against it as is: `FUNNELCHAT_API_KEY='1|fc_live_sandbox' FUNNELCHAT_BASE_URL=http://127.0.0.1:4010 php examples/plain-php/first-use.php …`, and `POST /_sandbox/devices/{id}/connect` is the scan of the QR. Use `@funnelchat-hq/sandbox` 0.6.0 or later: since this SDK's 0.6.0 the ids are opaque text, and that is the first sandbox that gives out and accepts them with the same format (`ctc_…`, `dev_…`). Sending by phone (`messages->sendDirect()` without `contact_id`) needs 0.3.1 or later.
 
 The Meta sign-up by link starts off in the sandbox, like production: `type: 'meta'` answers `503 meta_connect_disabled`. Turn it on to try it, with `npx @funnelchat-hq/sandbox --meta-connect`, or while it runs:
 

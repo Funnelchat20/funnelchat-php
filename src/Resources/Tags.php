@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -78,12 +78,12 @@ final class Tags extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $tag
+     * @param string $tag
      * @param RequestOptions $options
      *
      * @return TagResource
      */
-    public function retrieve(int|string $tag, array $options = []): mixed
+    public function retrieve(string $tag, array $options = []): mixed
     {
         /** @var TagResource $result */
         $result = $this->client->request('GET', '/api/v1/tags/{tag}', ['path' => ['tag' => $tag]] + $options);
@@ -97,7 +97,7 @@ final class Tags extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $tag
+     * @param string $tag
      * @param array{
      *     name: string,
      *     description?: string|null,
@@ -107,7 +107,7 @@ final class Tags extends AbstractResource
      *
      * @return mixed
      */
-    public function update(int|string $tag, array $body, array $options = []): mixed
+    public function update(string $tag, array $body, array $options = []): mixed
     {
         return $this->client->request('PUT', '/api/v1/tags/{tag}', ['path' => ['tag' => $tag], 'body' => $body] + $options);
     }
@@ -136,7 +136,7 @@ final class Tags extends AbstractResource
      * Permission: **Contacts and conversations → View**.
      * Response: pending of the spec (`conversations-listings` in spec/pending.json); it may change.
      *
-     * @param int $tag
+     * @param string $tag
      * @param array{
      *     perPage?: int,
      *     orderBy?: 'name'|'last_message_time'|'follow_up_date',
@@ -149,7 +149,7 @@ final class Tags extends AbstractResource
      *
      * @return Paginator<ContactResource>
      */
-    public function listContacts(int|string $tag, array $query = [], array $options = []): Paginator
+    public function listContacts(string $tag, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ContactResource> $result */
         $result = $this->client->paginate('/api/v1/tags/{tag}/contacts', ['path' => ['tag' => $tag], 'query' => $query] + $options);

@@ -31,15 +31,16 @@ final class SandboxTest extends TestCase
     /** Any key with the shape of a real one works in the sandbox. Not a real credential. */
     private const SANDBOX_KEY = '1|fc_live_sandbox';
 
-    private const CONTACT = 2001;
+    /** The ids are opaque and the sandbox gives them out: they are looked up after each reset, never written here. */
+    private string $contact = '';
 
     private const PHONE = '5491100000000';
 
     /** The QR number of the sandbox: no 24-hour window and no pace. */
-    private const QR_DEVICE = 4;
+    private string $qrDevice = '';
 
     /** The official (WhatsApp Cloud) number of the sandbox: 24-hour window, pace, forms. */
-    private const OFFICIAL_DEVICE = 3;
+    private string $officialDevice = '';
 
     private static string $url = '';
 
@@ -63,6 +64,28 @@ final class SandboxTest extends TestCase
         }
         $this->sandbox('POST', '/_sandbox/reset');
         $this->funnelchat = new Funnelchat(apiKey: self::SANDBOX_KEY, baseUrl: self::$url, maxRetries: 0);
+        $this->findSeeds();
+    }
+
+    /** Reads the ids of the contact and of the two numbers the sandbox starts with (an official number has a `phone_number_id`). */
+    private function findSeeds(): void
+    {
+        foreach ($this->funnelchat->contacts->list() as $contact) {
+            if (ltrim($contact['phone'], '+') === self::PHONE) {
+                $this->contact = $contact['id'];
+                break;
+            }
+        }
+        foreach ($this->funnelchat->devices->list() as $device) {
+            if ($device['phone_number_id'] !== null) {
+                $this->officialDevice = $this->officialDevice === '' ? $device['id'] : $this->officialDevice;
+            } else {
+                $this->qrDevice = $this->qrDevice === '' ? $device['id'] : $this->qrDevice;
+            }
+        }
+        self::assertNotSame('', $this->contact);
+        self::assertNotSame('', $this->officialDevice);
+        self::assertNotSame('', $this->qrDevice);
     }
 
     protected function tearDown(): void
@@ -83,8 +106,8 @@ final class SandboxTest extends TestCase
         $subscription = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['message.status_changed']]);
         $secret = $subscription['secret'];
 
-        $result = $this->funnelchat->messages->send(self::CONTACT, [
-            'device_id' => self::QR_DEVICE,
+        $result = $this->funnelchat->messages->send($this->contact, [
+            'device_id' => $this->qrDevice,
             'phone' => self::PHONE,
             'text' => 'Hello from the PHP SDK',
             'client_reference' => 'e2e-php-1',
@@ -105,14 +128,14 @@ final class SandboxTest extends TestCase
         }
         self::assertSame(['sent', 'delivered', 'read'], $statuses);
 
-        $read = $this->funnelchat->messages->get(self::CONTACT, $message['id']);
+        $read = $this->funnelchat->messages->get($this->contact, $message['id']);
         self::assertSame('read', $read['status']);
     }
 
     public function testAFileFromAUrlWithoutExtensionGoesWithItsTypeAndName(): void
     {
-        $result = $this->funnelchat->messages->send(self::CONTACT, [
-            'device_id' => self::QR_DEVICE,
+        $result = $this->funnelchat->messages->send($this->contact, [
+            'device_id' => $this->qrDevice,
             'phone' => self::PHONE,
             'file' => 'https://files.example/descarga?firma=abc123',
             'file_type' => 'document',
@@ -127,8 +150,8 @@ final class SandboxTest extends TestCase
     {
         try {
             $this->funnelchat->messages->send(
-                self::CONTACT,
-                ['device_id' => self::QR_DEVICE, 'phone' => self::PHONE, 'text' => 'Hola'],
+                $this->contact,
+                ['device_id' => $this->qrDevice, 'phone' => self::PHONE, 'text' => 'Hola'],
                 ['headers' => ['X-Sandbox-Reject' => 'window_closed']],
             );
             self::fail('should have thrown');
@@ -144,8 +167,8 @@ final class SandboxTest extends TestCase
         $calls = 0;
         try {
             $this->funnelchat->messages->send(
-                self::CONTACT,
-                ['device_id' => self::QR_DEVICE, 'phone' => self::PHONE, 'text' => 'Hola'],
+                $this->contact,
+                ['device_id' => $this->qrDevice, 'phone' => self::PHONE, 'text' => 'Hola'],
                 [
                     'headers' => ['X-Sandbox-Reject' => 'mac_lockout_24h'],
                     'retrySend' => true,
@@ -165,9 +188,9 @@ final class SandboxTest extends TestCase
 
     public function testAMessageReadByIdIsTheSameObjectTheSendReturned(): void
     {
-        $sent = $this->funnelchat->messages->send(self::CONTACT, ['device_id' => self::QR_DEVICE, 'phone' => self::PHONE, 'text' => 'Hola', 'client_reference' => 'e2e-php-2'])['message'];
+        $sent = $this->funnelchat->messages->send($this->contact, ['device_id' => $this->qrDevice, 'phone' => self::PHONE, 'text' => 'Hola', 'client_reference' => 'e2e-php-2'])['message'];
 
-        $read = $this->funnelchat->messages->get(self::CONTACT, $sent['id']);
+        $read = $this->funnelchat->messages->get($this->contact, $sent['id']);
 
         self::assertSame($sent['id'], $read['id']);
         self::assertSame('e2e-php-2', $read['client_reference']);
@@ -179,14 +202,14 @@ final class SandboxTest extends TestCase
         $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['whatsapp_form.completed']])['secret'];
 
         // Forms go only through an official number; its 24-hour window opens with an inbound message.
-        $draft = $this->funnelchat->forms->create(['device_id' => self::OFFICIAL_DEVICE, 'template_key' => 'lead'])['data'];
+        $draft = $this->funnelchat->forms->create(['device_id' => $this->officialDevice, 'template_key' => 'lead'])['data'];
         $published = $this->funnelchat->forms->publish($draft['id'])['data'];
         self::assertSame('published', $published['status']);
-        $this->sandbox('POST', '/_sandbox/inbound/message', ['phone' => self::PHONE, 'device_id' => self::OFFICIAL_DEVICE, 'text' => 'Hola']);
+        $this->sandbox('POST', '/_sandbox/inbound/message', ['phone' => self::PHONE, 'device_id' => $this->officialDevice, 'text' => 'Hola']);
 
-        $message = $this->funnelchat->messages->sendForm(self::CONTACT, [
+        $message = $this->funnelchat->messages->sendForm($this->contact, [
             'form_id' => $published['family_id'],
-            'device_id' => self::OFFICIAL_DEVICE,
+            'device_id' => $this->officialDevice,
             'client_reference' => 'e2e-php-form',
         ])['message'];
         self::assertSame('whatsapp_form', $message['type']);
@@ -207,7 +230,7 @@ final class SandboxTest extends TestCase
     public function testAFormDoesNotGoThroughAQrNumber(): void
     {
         try {
-            $this->funnelchat->forms->create(['device_id' => self::QR_DEVICE, 'template_key' => 'lead']);
+            $this->funnelchat->forms->create(['device_id' => $this->qrDevice, 'template_key' => 'lead']);
             self::fail('should have thrown');
         } catch (UnprocessableEntityException $exception) {
             self::assertSame('NUMBER_NOT_ELIGIBLE', $exception->errorCode);
@@ -303,17 +326,18 @@ final class SandboxTest extends TestCase
         self::assertStringStartsWith('https://app.example/connected?', $location);
         parse_str((string) parse_url($location, \PHP_URL_QUERY), $result);
         self::assertSame('completed', $result['status'] ?? null);
-        self::assertSame((string) $link['id'], $result['connect_link_id'] ?? null);
+        self::assertSame($link['id'], $result['connect_link_id'] ?? null);
 
         $read = $this->funnelchat->connectLinks->get($link['id'])['data'];
         self::assertSame('completed', $read['status']);
         // Production sends `url: null` once the link is read (accounts v1.5.97); the sandbox 0.2.0 leaves it out.
         self::assertNull($read['url'] ?? null);
-        self::assertIsInt($read['device_id']);
-        self::assertSame((string) $read['device_id'], $result['device_id'] ?? null);
+        self::assertIsString($read['device_id']);
+        self::assertStringStartsWith('dev_', $read['device_id']);
+        self::assertSame($read['device_id'], $result['device_id'] ?? null);
 
         [$connected, $connectedDevice] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.connected');
-        // The link id is an integer (amendment v0.1), the same in the event.
+        // The link id is an opaque string (`lnk_…`), the same in the event.
         self::assertSame($link['id'], $connected['connect_link_id']);
         self::assertSame($read['device_id'], $connectedDevice['id']);
         self::assertSame('coexistence', $connectedDevice['connection']);
@@ -335,10 +359,10 @@ final class SandboxTest extends TestCase
         $hook = $this->startReceiver();
         $secret = $this->funnelchat->webhooks->create(['url' => $hook, 'events' => ['device.health_changed']])['secret'];
 
-        $this->sandbox('POST', '/_sandbox/devices/' . self::OFFICIAL_DEVICE . '/health', ['state' => 'limited']);
+        $this->sandbox('POST', '/_sandbox/devices/' . $this->officialDevice . '/health', ['state' => 'limited']);
         [$changed, $device] = $this->event($this->waitForDeliveries(1)[0], $secret, 'device.health_changed');
 
-        self::assertSame(self::OFFICIAL_DEVICE, $device['id']);
+        self::assertSame($this->officialDevice, $device['id']);
         self::assertSame('dedicated', $device['connection']);
         self::assertSame('limited', $changed['state']);
         self::assertContains($changed['previous_state'], ['available', 'limited', 'blocked', 'unknown']);
@@ -351,7 +375,7 @@ final class SandboxTest extends TestCase
         $this->turnMetaOn();
         foreach ([
             ['type' => 'meta', 'allowed_connection_types' => ['coexistence'], 'provision_us_number' => true],
-            ['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'provision_us_number' => true, 'device_id' => self::OFFICIAL_DEVICE],
+            ['type' => 'meta', 'allowed_connection_types' => ['dedicated'], 'provision_us_number' => true, 'device_id' => $this->officialDevice],
         ] as $body) {
             try {
                 $this->funnelchat->connectLinks->create($body);
@@ -443,7 +467,7 @@ final class SandboxTest extends TestCase
         }
 
         try {
-            $this->funnelchat->devices->qr(self::OFFICIAL_DEVICE);
+            $this->funnelchat->devices->qr($this->officialDevice);
             self::fail('should have thrown');
         } catch (UnprocessableEntityException $exception) {
             self::assertSame('provider_unsupported', $exception->errorCode);

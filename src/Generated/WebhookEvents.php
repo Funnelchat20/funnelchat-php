@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Generated;
@@ -68,7 +68,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type BroadcastFinishedData array{
  *     broadcast: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     status: string,
@@ -89,7 +89,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type BroadcastPausedData array{
  *     broadcast: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     reason: string,
@@ -138,7 +138,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ContactCreatedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *         email: string,
@@ -154,22 +154,22 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ContactStageChangedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
  *     board: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     kind: string,
  *     from_stage: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         position: int,
  *     },
  *     to_stage: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         position: int,
  *     },
@@ -184,12 +184,12 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ContactTagAddedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
  *     tag: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     source: string,
@@ -204,12 +204,12 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ContactTagRemovedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
  *     tag: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     source: string,
@@ -224,14 +224,14 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ContactUpdatedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *         email: string,
  *     },
  *     changed: list<string>,
  *     custom_fields: list<array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         value: string,
  *     }>,
@@ -246,7 +246,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ConversationAssignedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
@@ -265,7 +265,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type ConversationClosedData array{
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
@@ -338,7 +338,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type DeviceDisplayNameReviewedData array{
  *     device: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         'number': string,
  *         connection: string,
@@ -377,7 +377,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type DeviceMessagingLimitChangedData array{
  *     device: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         'number': string,
  *         connection: string,
@@ -398,7 +398,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type DeviceQualityChangedData array{
  *     device: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         'number': string,
  *         connection: string,
@@ -419,11 +419,11 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type FlowCompletedData array{
  *     flow: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
@@ -438,11 +438,11 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type FlowFailedData array{
  *     flow: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *     },
  *     contact: array{
- *         id: int,
+ *         id: string,
  *         name: string,
  *         phone: string,
  *     },
@@ -783,9 +783,9 @@ namespace Funnelchat\Generated;
  *     data: MacUsage80Data,
  * }
  * @phpstan-type MessageReactionFailedData array{
- *     message_id: int,
- *     contact_id: int,
- *     device_id: int,
+ *     message_id: string,
+ *     contact_id: string,
+ *     device_id: string,
  *     emoji: string,
  *     reason: string,
  *     requested_at: string,
@@ -801,7 +801,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type MessageReceivedData array{
  *     message: array{
- *         id: int,
+ *         id: string,
  *         type: 'text'|'image'|'video'|'document'|'sticker'|'contact'|'audio'|'note'|'action'|'invalid'|'interactive'|'location'|'voice_call'|'video_call'|'event'|'button'|'template'|'notification'|'option_list'|'template_button_reply'|'poll'|'whatsapp_form'|'call_permission_request'|'call_permission_reply'|'request_contact_info'|string,
  *         text: string|null,
  *         media: array{
@@ -809,14 +809,14 @@ namespace Funnelchat\Generated;
  *         }|null,
  *     },
  *     contact: array{
- *         id: int|null,
+ *         id: string|null,
  *         name: string|null,
  *         phone: string|null,
  *     },
  *     receiver: array{
  *         phone: string|null,
  *     },
- *     device_id: int|null,
+ *     device_id: string|null,
  *     workspace_id: PendingWorkspaceId,
  * }
  * @phpstan-type MessageReceivedEvent array{
@@ -827,9 +827,9 @@ namespace Funnelchat\Generated;
  *     data: MessageReceivedData,
  * }
  * @phpstan-type MessageStatusChangedData array{
- *     message_id: int,
- *     contact_id: int,
- *     device_id: int|null,
+ *     message_id: string,
+ *     contact_id: string,
+ *     device_id: string|null,
  *     status: 'sent'|'delivered'|'read'|'failed',
  *     previous_status: 'sent'|'delivered'|'read'|'failed'|null,
  *     error?: PendingMessageError,
@@ -1010,7 +1010,7 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type TemplateStatusChangedData array{
  *     template: array{
- *         id: int,
+ *         id: string,
  *         uid: string,
  *         name: string,
  *         category: string,
@@ -1041,13 +1041,13 @@ namespace Funnelchat\Generated;
  * }
  * @phpstan-type WhatsappFormCompletedData array{
  *     form: array{
- *         id: int,
+ *         id: string,
  *         name: string,
- *         version_id: int,
+ *         version_id: string,
  *     },
- *     message_id: int|null,
- *     contact_id: int|null,
- *     device_id: int|null,
+ *     message_id: string|null,
+ *     contact_id: string|null,
+ *     device_id: string|null,
  *     answers: list<array{
  *         key: string,
  *         label: string,
@@ -1085,7 +1085,7 @@ final class WebhookEvents
         'account.blocked' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The account was blocked for usage: the 24-hour grace period after using up its monthly active contacts ended.'],
         'billing.payment_failed' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'A subscription charge could not be processed (Stripe subscriptions only).'],
         'billing.upcoming_charge' => ['domains' => ['accounts'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'The next subscription charge is approaching (Stripe subscriptions only).'],
-        'broadcast.finished' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una campaña llegó a su estado final (enviada, fallida o con fallos parciales), con sus conteos.\n\n`status` es `success`, `failed` o `partially_failed`. `reason` dice por qué terminó: `completed` (se enviaron todas las páginas), `cancelled` (se cerró una campaña pausada), `template_rejected` (Meta rechazó la plantilla, o su categoría cambió, mientras la campaña esperaba; también cuando Meta la pausó durante el envío y se detuvo la campaña), `approval_expired` (la plantilla no se aprobó a tiempo), `mac_lockout` (la cuenta alcanzó su límite de contactos activos), `mac_check_unavailable` (la campaña la inició una API key y el límite de contactos activos no se pudo verificar, así que no se envió nada), `no_recipients` (la audiencia quedó vacía) o `error` (el envío no pudo despacharse). `totals` son los conteos del envío: `processed` (destinatarios procesados), `failed` y `skipped_unreachable` (destinatarios que el canal no puede alcanzar); valen 0 si la campaña terminó antes de enviar. Se emite una sola vez por campaña."],
+        'broadcast.finished' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una campaña llegó a su estado final (enviada, fallida o con fallos parciales), con sus conteos.\n\n`status` es `success`, `failed` o `partially_failed`. `reason` dice por qué terminó: `completed` (se enviaron todas las páginas), `cancelled` (se cerró una campaña pausada), `template_rejected` (Meta rechazó la plantilla, o su categoría cambió, mientras la campaña esperaba; también cuando Meta la pausó durante el envío y se detuvo la campaña), `approval_expired` (la plantilla no se aprobó a tiempo), `manual_start_expired` (la plantilla se aprobó tarde, la campaña quedó lista para comenzarla a mano y nadie la comenzó), `mac_lockout` (la cuenta alcanzó su límite de contactos activos), `mac_check_unavailable` (la campaña la inició una API key y el límite de contactos activos no se pudo verificar, así que no se envió nada), `no_recipients` (la audiencia quedó vacía) o `error` (el envío no pudo despacharse). `totals` son los conteos del envío: `processed` (destinatarios procesados), `failed` y `skipped_unreachable` (destinatarios que el canal no puede alcanzar); valen 0 si la campaña terminó antes de enviar. Se emite una sola vez por campaña."],
         'broadcast.paused' => ['domains' => ['conversations'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => "Una campaña se pausó sola, por ejemplo porque bajó la calidad del número.\n\n`reason` es `quality_degraded` (la calidad del número bajó respecto de la del inicio, o llegó a RED), `quality_unreadable` (no se pudo leer la calidad en tres controles seguidos), `template_unavailable` (Meta dejó la plantilla en `PAUSED`, `DISABLED` o `REJECTED` antes de una tanda), `payment_issue` (el 2 % o más de los envíos de la misma campaña, con un mínimo de 20 envíos, fueron rechazados por Meta con el código 131042, un problema de pago o de facturación de la cuenta de WhatsApp Business; el 2 % y el mínimo de 20 envíos son los valores por defecto y se pueden configurar; aplica a cualquier campaña, tenga o no envío inteligente; no frena el número; al reanudar la campaña el conteo, incluidos los envíos que cuentan, vuelve a empezar de cero) o `rejection_rate` (entre los envíos recientes de la propia campaña, por defecto las últimas 24 horas, Meta rechazó una proporción igual o mayor al umbral configurable, por defecto 15 %, con los códigos que indican una restricción de la cuenta o del número; la lista es configurable y por defecto es 131048, 131031 y 368; los códigos 131049 y 131026 no pausan la campaña). Con `rejection_rate` llega además `rejection`: `codes` (los que llegaron a su umbral: hoy `failed`), `rates` (el porcentaje de cada uno; las tasas de `131049` y `131026` se informan como dato aunque no pausen), `attempts` (los envíos medidos) y `window_hours`. `quality` y `quality_baseline` son la calidad de Meta leída en el control y la del inicio del envío (`GREEN`, `YELLOW`, `RED`), o `null` si no se pudo leer, y siempre `null` en una difusión sin envío inteligente. `template` es `{name, status}` con el nombre de la plantilla y su estado en Meta cuando `reason` es `template_unavailable`, y `null` en las demás pausas (por calidad, pago o rechazos). Con `rejection_rate` el número además queda frenado 7 días (configurable): mientras dure no se pueden crear, ejecutar ni reanudar campañas desde ese número, ni mandar plantillas a contactos que no le escribieron en las últimas 24 horas, y solo soporte lo levanta antes. Las pausas por calidad, por plantilla y por rechazos son solo de las campañas con envío inteligente; la pausa por `payment_issue` puede ocurrir en cualquier campaña. Reanudar la campaña y que se pause otra vez emite otro evento."],
         'campaign.no_groups_available' => ['domains' => ['communities'], 'status' => 'live', 'pending' => true, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'A campaign has no groups to send the people who come in through its link to.'],
         'campaign.status_changed' => ['domains' => ['communities'], 'status' => 'live', 'pending' => false, 'pendingFields' => ['workspace_id'], 'typedFrom' => 'example + schema', 'description' => 'Una campaña se activó o se pausó.'],

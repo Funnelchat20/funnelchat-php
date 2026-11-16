@@ -36,7 +36,7 @@ final class NumberOnboardingTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private static function device(int $id, int $connected = 0): array
+    private static function device(string $id, int $connected = 0): array
     {
         return [
             'id' => $id,
@@ -54,7 +54,7 @@ final class NumberOnboardingTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private static function link(int $id, string $status = 'pending', bool $withUrl = false): array
+    private static function link(string $id, string $status = 'pending', bool $withUrl = false): array
     {
         $link = [
             'id' => $id,
@@ -77,7 +77,7 @@ final class NumberOnboardingTest extends TestCase
 
     public function testDevicesCreatePostsTheBodyAndReturnsTheNumber(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => self::device(41)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => self::device('dev_00000000000000000000041')]));
 
         $result = $this->client($http)->devices->create([
             'connection' => 'qr',
@@ -90,25 +90,25 @@ final class NumberOnboardingTest extends TestCase
         self::assertSame('https://api.funnelchat.com/api/v1/devices', (string) $request->getUri());
         self::assertSame(['connection' => 'qr', 'alias' => 'Store 12', 'external_reference' => 'customer-8841'], self::jsonBody($request));
         self::assertFalse($request->hasHeader('Idempotency-Key'));
-        self::assertSame(41, $result['data']['id']);
+        self::assertSame('dev_00000000000000000000041', $result['data']['id']);
         self::assertSame(0, $result['data']['connected']);
         self::assertSame('customer-8841', $result['data']['external_reference'] ?? null);
     }
 
     public function testSameNumberAsGoesInTheBody(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => self::device(42)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => self::device('dev_00000000000000000000042')]));
 
-        $this->client($http)->devices->create(['connection' => 'qr', 'same_number_as' => 3]);
+        $this->client($http)->devices->create(['connection' => 'qr', 'same_number_as' => 'dev_00000000000000000000003']);
 
-        self::assertSame(['connection' => 'qr', 'same_number_as' => 3], self::jsonBody($http->lastRequest()));
+        self::assertSame(['connection' => 'qr', 'same_number_as' => 'dev_00000000000000000000003'], self::jsonBody($http->lastRequest()));
     }
 
     public function testCountryGoesInTheBodyOfBothCreatesAndTheLinkReturnsIt(): void
     {
         $http = new MockHttpClient(
-            Reply::json(201, ['data' => self::device(42)]),
-            Reply::json(201, ['data' => ['type' => 'qr', 'allowed_connection_types' => null, 'country' => 'AR'] + self::link(9, withUrl: true)]),
+            Reply::json(201, ['data' => self::device('dev_00000000000000000000042')]),
+            Reply::json(201, ['data' => ['type' => 'qr', 'allowed_connection_types' => null, 'country' => 'AR'] + self::link('lnk_00000000000000000000009', withUrl: true)]),
         );
         $client = $this->client($http);
 
@@ -125,37 +125,37 @@ final class NumberOnboardingTest extends TestCase
         $qr = ['connected' => false, 'qr_code' => 'data:image/png;base64,iVBORw0KGgo=', 'expires_in' => 5];
         $http = new MockHttpClient(Reply::ok(['data' => $qr]));
 
-        $result = $this->client($http)->devices->qr(41);
+        $result = $this->client($http)->devices->qr('dev_00000000000000000000041');
 
         self::assertSame('GET', $http->lastRequest()->getMethod());
-        self::assertSame('https://api.funnelchat.com/api/v1/devices/41/qr', (string) $http->lastRequest()->getUri());
+        self::assertSame('https://api.funnelchat.com/api/v1/devices/dev_00000000000000000000041/qr', (string) $http->lastRequest()->getUri());
         self::assertSame($qr, $result['data']);
     }
 
     public function testDevicesListFiltersByExternalReference(): void
     {
-        $http = new MockHttpClient(Reply::ok(['data' => [self::device(41)], 'meta' => ['current_page' => 1, 'last_page' => 1]]));
+        $http = new MockHttpClient(Reply::ok(['data' => [self::device('dev_00000000000000000000041')], 'meta' => ['current_page' => 1, 'last_page' => 1]]));
 
         $ids = [];
         foreach ($this->client($http)->devices->list(['external_reference' => 'customer 8841']) as $device) {
             $ids[] = $device['id'];
         }
 
-        self::assertSame([41], $ids);
+        self::assertSame(['dev_00000000000000000000041'], $ids);
         self::assertSame('external_reference=customer%208841', $http->lastRequest()->getUri()->getQuery());
     }
 
     public function testDevicesListStillWorksWithoutArguments(): void
     {
-        $http = new MockHttpClient(Reply::ok(['data' => [self::device(41)]]));
+        $http = new MockHttpClient(Reply::ok(['data' => [self::device('dev_00000000000000000000041')]]));
 
-        self::assertSame(41, $this->client($http)->devices->list()->firstPage()->data[0]['id']);
+        self::assertSame('dev_00000000000000000000041', $this->client($http)->devices->list()->firstPage()->data[0]['id']);
         self::assertSame('', $http->lastRequest()->getUri()->getQuery());
     }
 
     public function testTheCallOfBeforeOfDevicesListStillPassesTheOptions(): void
     {
-        $http = new MockHttpClient(Reply::ok(['data' => [self::device(41)]]));
+        $http = new MockHttpClient(Reply::ok(['data' => [self::device('dev_00000000000000000000041')]]));
         $seen = [];
 
         $this->client($http)->devices->list(['headers' => ['X-Trace' => 'abc'], 'onResponse' => static function () use (&$seen): void {
@@ -184,16 +184,16 @@ final class NumberOnboardingTest extends TestCase
     {
         $http = new MockHttpClient(Reply::text(200, ''));
 
-        self::assertNull($this->client($http)->devices->delete(41));
+        self::assertNull($this->client($http)->devices->delete('dev_00000000000000000000041'));
         self::assertSame('DELETE', $http->lastRequest()->getMethod());
-        self::assertSame('https://api.funnelchat.com/api/v1/devices/41', (string) $http->lastRequest()->getUri());
+        self::assertSame('https://api.funnelchat.com/api/v1/devices/dev_00000000000000000000041', (string) $http->lastRequest()->getUri());
     }
 
     public function testDevicesUpdateCanChangeTheExternalReference(): void
     {
-        $http = new MockHttpClient(Reply::ok(self::device(41)));
+        $http = new MockHttpClient(Reply::ok(self::device('dev_00000000000000000000041')));
 
-        $this->client($http)->devices->update(41, ['external_reference' => 'customer-9000']);
+        $this->client($http)->devices->update('dev_00000000000000000000041', ['external_reference' => 'customer-9000']);
 
         self::assertSame('PUT', $http->lastRequest()->getMethod());
         self::assertSame(['external_reference' => 'customer-9000'], self::jsonBody($http->lastRequest()));
@@ -201,7 +201,7 @@ final class NumberOnboardingTest extends TestCase
 
     public function testConnectLinksCreateReturnsTheLinkWithItsUrl(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => self::link(7, withUrl: true)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => self::link('lnk_00000000000000000000007', withUrl: true)]));
 
         $result = $this->client($http)->connectLinks->create([
             'type' => 'meta',
@@ -229,35 +229,35 @@ final class NumberOnboardingTest extends TestCase
 
     public function testAReconnectLinkCarriesTheNumber(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => ['type' => 'qr', 'device_id' => 41] + self::link(8, withUrl: true)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => ['type' => 'qr', 'device_id' => 'dev_00000000000000000000041'] + self::link('lnk_00000000000000000000008', withUrl: true)]));
 
-        $this->client($http)->connectLinks->create(['type' => 'qr', 'device_id' => 41]);
+        $this->client($http)->connectLinks->create(['type' => 'qr', 'device_id' => 'dev_00000000000000000000041']);
 
-        self::assertSame(['type' => 'qr', 'device_id' => 41], self::jsonBody($http->lastRequest()));
+        self::assertSame(['type' => 'qr', 'device_id' => 'dev_00000000000000000000041'], self::jsonBody($http->lastRequest()));
     }
 
     public function testConnectLinksRetrieveListAndRevoke(): void
     {
         $http = new MockHttpClient(
-            Reply::ok(['data' => self::link(7, 'completed')]),
-            Reply::ok(['data' => [self::link(7, 'completed'), self::link(9)], 'meta' => ['current_page' => 1, 'last_page' => 1]]),
+            Reply::ok(['data' => self::link('lnk_00000000000000000000007', 'completed')]),
+            Reply::ok(['data' => [self::link('lnk_00000000000000000000007', 'completed'), self::link('lnk_00000000000000000000009')], 'meta' => ['current_page' => 1, 'last_page' => 1]]),
             Reply::noContent(),
         );
         $client = $this->client($http);
 
-        self::assertSame('completed', $client->connectLinks->get(7)['data']['status']);
-        self::assertSame('https://api.funnelchat.com/api/v1/connect-links/7', (string) $http->lastRequest()->getUri());
+        self::assertSame('completed', $client->connectLinks->get('lnk_00000000000000000000007')['data']['status']);
+        self::assertSame('https://api.funnelchat.com/api/v1/connect-links/lnk_00000000000000000000007', (string) $http->lastRequest()->getUri());
 
         $ids = [];
         foreach ($client->connectLinks->list(['status' => 'pending', 'external_reference' => 'customer-8841']) as $link) {
             $ids[] = $link['id'];
         }
-        self::assertSame([7, 9], $ids);
+        self::assertSame(['lnk_00000000000000000000007', 'lnk_00000000000000000000009'], $ids);
         self::assertSame('status=pending&external_reference=customer-8841', $http->lastRequest()->getUri()->getQuery());
 
-        self::assertNull($client->connectLinks->revoke(9));
+        self::assertNull($client->connectLinks->revoke('lnk_00000000000000000000009'));
         self::assertSame('DELETE', $http->lastRequest()->getMethod());
-        self::assertSame('https://api.funnelchat.com/api/v1/connect-links/9', (string) $http->lastRequest()->getUri());
+        self::assertSame('https://api.funnelchat.com/api/v1/connect-links/lnk_00000000000000000000009', (string) $http->lastRequest()->getUri());
     }
 
     public function testRevokingALinkThatIsNoLongerPendingIsAConflict(): void
@@ -265,7 +265,7 @@ final class NumberOnboardingTest extends TestCase
         $http = new MockHttpClient(Reply::json(409, ['error' => 'link_not_pending', 'message' => 'The link is no longer pending.']));
 
         try {
-            $this->client($http)->connectLinks->revoke(7);
+            $this->client($http)->connectLinks->revoke('lnk_00000000000000000000007');
             self::fail('should have thrown');
         } catch (ConflictException $exception) {
             self::assertSame('link_not_pending', $exception->errorCode);
@@ -277,7 +277,7 @@ final class NumberOnboardingTest extends TestCase
 
     public function testTheIdempotencyKeyOptionIsSentAsItsHeaderOnBothCreates(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => self::device(41)]), Reply::json(201, ['data' => self::link(7, withUrl: true)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => self::device('dev_00000000000000000000041')]), Reply::json(201, ['data' => self::link('lnk_00000000000000000000007', withUrl: true)]));
         $client = $this->client($http);
 
         $client->devices->create(['connection' => 'qr'], ['idempotencyKey' => 'order-8841-number']);
@@ -311,7 +311,7 @@ final class NumberOnboardingTest extends TestCase
 
     public function testAcceptsAnIdempotencyKeyOf255Characters(): void
     {
-        $http = new MockHttpClient(Reply::json(201, ['data' => self::device(41)]));
+        $http = new MockHttpClient(Reply::json(201, ['data' => self::device('dev_00000000000000000000041')]));
 
         $this->client($http)->devices->create(['connection' => 'qr'], ['idempotencyKey' => str_repeat('k', 255)]);
 
@@ -334,11 +334,11 @@ final class NumberOnboardingTest extends TestCase
     #[DataProvider('answersAfterWhichAWriteMayHaveBeenApplied')]
     public function testRepeatsACreateWithAnIdempotencyKeyWithTheSameKey(ResponseInterface|\Throwable $reply): void
     {
-        $http = new MockHttpClient($reply, Reply::json(201, ['data' => self::device(41)]));
+        $http = new MockHttpClient($reply, Reply::json(201, ['data' => self::device('dev_00000000000000000000041')]));
 
         $result = $this->client($http, maxRetries: 2)->devices->create(['connection' => 'qr'], ['idempotencyKey' => 'order-8841']);
 
-        self::assertSame(41, $result['data']['id']);
+        self::assertSame('dev_00000000000000000000041', $result['data']['id']);
         self::assertCount(2, $http->requests);
         foreach ($http->requests as $request) {
             self::assertSame('order-8841', $request->getHeaderLine('Idempotency-Key'));
@@ -349,7 +349,7 @@ final class NumberOnboardingTest extends TestCase
     #[DataProvider('answersAfterWhichAWriteMayHaveBeenApplied')]
     public function testDoesNotRepeatACreateWithoutAnIdempotencyKey(ResponseInterface|\Throwable $reply): void
     {
-        $http = new MockHttpClient($reply, Reply::json(201, ['data' => self::device(41)]));
+        $http = new MockHttpClient($reply, Reply::json(201, ['data' => self::device('dev_00000000000000000000041')]));
 
         try {
             $this->client($http, maxRetries: 2)->devices->create(['connection' => 'qr']);
@@ -369,7 +369,7 @@ final class NumberOnboardingTest extends TestCase
     {
         return [
             'tags->create()' => [static fn(Funnelchat $client): mixed => $client->tags->create(['name' => 'VIP'], ['idempotencyKey' => 'k-1'])],
-            'a send' => [static fn(Funnelchat $client): mixed => $client->messages->send(2001, ['device_id' => 3, 'phone' => '5491100000000', 'text' => 'Hola'], ['idempotencyKey' => 'k-1'])],
+            'a send' => [static fn(Funnelchat $client): mixed => $client->messages->send('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => 'Hola'], ['idempotencyKey' => 'k-1'])],
             'request() on a route without it' => [static fn(Funnelchat $client): mixed => $client->request('POST', '/api/v1/tags', ['body' => ['name' => 'VIP'], 'idempotencyKey' => 'k-1'])],
         ];
     }
@@ -439,7 +439,7 @@ final class NumberOnboardingTest extends TestCase
     #[DataProvider('refusals')]
     public function testEachRefusalHasItsCodeAndIsNeverRetried(int $status, string $code, string $class): void
     {
-        $http = new MockHttpClient(Reply::json($status, ['error' => $code, 'message' => 'Refused.', 'device_id' => 3]), Reply::ok());
+        $http = new MockHttpClient(Reply::json($status, ['error' => $code, 'message' => 'Refused.', 'device_id' => 'dev_00000000000000000000003']), Reply::ok());
 
         try {
             $this->client($http, maxRetries: 2)->connectLinks->create(['type' => 'meta', 'allowed_connection_types' => ['coexistence']], ['idempotencyKey' => 'k-1']);
@@ -458,14 +458,14 @@ final class NumberOnboardingTest extends TestCase
 
     public function testMethodAlreadyPresentCarriesTheNumberInTheBody(): void
     {
-        $http = new MockHttpClient(Reply::json(422, ['error' => 'method_already_present', 'message' => 'That number already has QR.', 'device_id' => 3]));
+        $http = new MockHttpClient(Reply::json(422, ['error' => 'method_already_present', 'message' => 'That number already has QR.', 'device_id' => 'dev_00000000000000000000003']));
 
         try {
-            $this->client($http)->devices->create(['connection' => 'qr', 'same_number_as' => 3]);
+            $this->client($http)->devices->create(['connection' => 'qr', 'same_number_as' => 'dev_00000000000000000000003']);
             self::fail('should have thrown');
         } catch (UnprocessableEntityException $exception) {
             self::assertIsArray($exception->body);
-            self::assertSame(3, $exception->body['device_id']);
+            self::assertSame('dev_00000000000000000000003', $exception->body['device_id']);
         }
     }
 
@@ -474,7 +474,7 @@ final class NumberOnboardingTest extends TestCase
         $http = new MockHttpClient(Reply::json(502, ['error' => 'provider_error', 'message' => 'The provider failed.']));
 
         try {
-            $this->client($http)->devices->qr(41);
+            $this->client($http)->devices->qr('dev_00000000000000000000041');
             self::fail('should have thrown');
         } catch (InternalServerException $exception) {
             self::assertSame('provider_error', $exception->errorCode);
@@ -485,7 +485,7 @@ final class NumberOnboardingTest extends TestCase
 
     public function testThePendingNumberComesWithItsId(): void
     {
-        $http = new MockHttpClient(Reply::json(409, ['error' => 'pending_number_exists', 'message' => 'There is a number not connected yet.', 'device_id' => 40]));
+        $http = new MockHttpClient(Reply::json(409, ['error' => 'pending_number_exists', 'message' => 'There is a number not connected yet.', 'device_id' => 'dev_00000000000000000000040']));
 
         try {
             $this->client($http)->devices->create(['connection' => 'qr']);
@@ -493,15 +493,15 @@ final class NumberOnboardingTest extends TestCase
         } catch (ConflictException $exception) {
             self::assertSame('pending_number_exists', $exception->errorCode);
             self::assertIsArray($exception->body);
-            self::assertSame(40, $exception->body['device_id']);
+            self::assertSame('dev_00000000000000000000040', $exception->body['device_id']);
         }
     }
 
     public function testAPlainRateLimitOnACreateIsStillRetried(): void
     {
-        $http = new MockHttpClient(Reply::rateLimited('1'), Reply::json(201, ['data' => self::link(7, withUrl: true)]));
+        $http = new MockHttpClient(Reply::rateLimited('1'), Reply::json(201, ['data' => self::link('lnk_00000000000000000000007', withUrl: true)]));
 
-        self::assertSame(7, $this->client($http, maxRetries: 2)->connectLinks->create(['type' => 'qr'])['data']['id']);
+        self::assertSame('lnk_00000000000000000000007', $this->client($http, maxRetries: 2)->connectLinks->create(['type' => 'qr'])['data']['id']);
         self::assertSame([1000], $this->sleeps);
     }
 
@@ -555,7 +555,7 @@ final class NumberOnboardingTest extends TestCase
         $schemas = (string) file_get_contents(__DIR__ . '/../src/Generated/Schemas.php');
         self::assertMatchesRegularExpression('/@phpstan-type PendingWebhookDevice array\\{.*?connection: PendingConnectionType,\\s*\\*\\s*external_reference: PendingExternalReference,/s', $schemas);
         self::assertStringContainsString("@phpstan-type PendingConnectionType 'qr'|'coexistence'|'dedicated'|null", $schemas);
-        self::assertStringContainsString('@phpstan-type PendingConnectLinkId int|null', $schemas);
+        self::assertStringContainsString('@phpstan-type PendingConnectLinkId string|null', $schemas);
         self::assertStringContainsString("@phpstan-type PendingDeviceHealthState 'available'|'limited'|'blocked'|'unknown'", $schemas);
     }
 }

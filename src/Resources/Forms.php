@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -44,7 +44,7 @@ final class Forms extends AbstractResource
      * @param array{
      *     q?: string|null,
      *     status?: 'draft'|'published'|'deprecated'|null,
-     *     device_id?: int|null,
+     *     device_id?: string|null,
      *     page?: int|null,
      *     perPage?: int,
      *     cursor?: string,
@@ -118,7 +118,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
@@ -128,7 +128,7 @@ final class Forms extends AbstractResource
      *     numbers: list<mixed>,
      * }
      */
-    public function retrieve(int|string $id, array $options = []): mixed
+    public function retrieve(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -149,7 +149,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param SaveWhatsappFormRequest $body
      * @param RequestOptions $options
      *
@@ -158,7 +158,7 @@ final class Forms extends AbstractResource
      *     lint: list<mixed>,
      * }
      */
-    public function update(int|string $id, array $body, array $options = []): mixed
+    public function update(string $id, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -177,12 +177,12 @@ final class Forms extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function delete(int|string $id, array $options = []): mixed
+    public function delete(string $id, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/forms/{id}', ['path' => ['id' => $id]] + $options);
     }
@@ -193,7 +193,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
@@ -203,7 +203,7 @@ final class Forms extends AbstractResource
      *     numbers: list<mixed>,
      * }
      */
-    public function createVersion(int|string $id, array $options = []): mixed
+    public function createVersion(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -224,7 +224,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
@@ -233,7 +233,7 @@ final class Forms extends AbstractResource
      *     numbers: list<mixed>,
      * }
      */
-    public function sync(int|string $id, array $options = []): mixed
+    public function sync(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -252,7 +252,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
@@ -261,7 +261,7 @@ final class Forms extends AbstractResource
      *     numbers: list<mixed>,
      * }
      */
-    public function publish(int|string $id, array $options = []): mixed
+    public function publish(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -280,14 +280,14 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
      *     numbers: list<mixed>,
      * }
      */
-    public function numbers(int|string $id, array $options = []): mixed
+    public function numbers(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -304,7 +304,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param AddFormNumberRequest $body
      * @param RequestOptions $options
      *
@@ -312,7 +312,7 @@ final class Forms extends AbstractResource
      *     numbers: list<mixed>,
      * }
      */
-    public function addNumber(int|string $id, array $body, array $options = []): mixed
+    public function addNumber(string $id, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -329,15 +329,15 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
-     * @param int $deviceId
+     * @param string $id
+     * @param string $deviceId
      * @param RequestOptions $options
      *
      * @return array{
      *     numbers: list<mixed>,
      * }
      */
-    public function removeNumber(int|string $id, int|string $deviceId, array $options = []): mixed
+    public function removeNumber(string $id, string $deviceId, array $options = []): mixed
     {
         /**
          * @var array{
@@ -354,14 +354,14 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $id
+     * @param string $id
      * @param RequestOptions $options
      *
      * @return array{
      *     numbers: list<mixed>,
      * }
      */
-    public function retryNumbers(int|string $id, array $options = []): mixed
+    public function retryNumbers(string $id, array $options = []): mixed
     {
         /**
          * @var array{
@@ -379,13 +379,13 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $familyId
+     * @param string $familyId
      * @param RequestOptions $options
      *
      * @return array{
      *     data: array{
-     *         family_id: int,
-     *         form_id: int,
+     *         family_id: string,
+     *         form_id: string,
      *         name: string,
      *         status: string,
      *         version: int,
@@ -397,13 +397,13 @@ final class Forms extends AbstractResource
      *     data: null,
      * }
      */
-    public function definition(int|string $familyId, array $options = []): mixed
+    public function definition(string $familyId, array $options = []): mixed
     {
         /**
          * @var array{
          *     data: array{
-         *         family_id: int,
-         *         form_id: int,
+         *         family_id: string,
+         *         form_id: string,
          *         name: string,
          *         status: string,
          *         version: int,
@@ -425,7 +425,7 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $familyId
+     * @param string $familyId
      * @param array{
      *     perPage?: int,
      *     page?: int,
@@ -434,7 +434,7 @@ final class Forms extends AbstractResource
      * @param RequestOptions $options
      *
      * @return Paginator<array{
-     *     id: int,
+     *     id: string,
      *     version: int,
      *     name: string,
      *     status: string,
@@ -447,11 +447,11 @@ final class Forms extends AbstractResource
      *     templates: int,
      * }>
      */
-    public function versions(int|string $familyId, array $query = [], array $options = []): Paginator
+    public function versions(string $familyId, array $query = [], array $options = []): Paginator
     {
         /**
          * @var Paginator<array{
-         *     id: int,
+         *     id: string,
          *     version: int,
          *     name: string,
          *     status: string,
@@ -475,11 +475,11 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $familyId
+     * @param string $familyId
      * @param array{
      *     from?: string|null,
      *     to?: string|null,
-     *     version_id?: int|null,
+     *     version_id?: string|null,
      *     origin?: string|null,
      *     status?: string|null,
      *     kind?: string|null,
@@ -493,7 +493,7 @@ final class Forms extends AbstractResource
      *
      * @return Paginator<array<string, mixed>>
      */
-    public function listResponses(int|string $familyId, array $query = [], array $options = []): Paginator
+    public function listResponses(string $familyId, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<array<string, mixed>> $result */
         $result = $this->client->paginate('/api/v1/forms/families/{familyId}/responses', ['path' => ['familyId' => $familyId], 'query' => $query] + $options);
@@ -506,16 +506,16 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $familyId
-     * @param int $runId
+     * @param string $familyId
+     * @param string $runId
      * @param RequestOptions $options
      *
      * @return array{
      *     data: array{
-     *         id: int,
+     *         id: string,
      *         flow_token: string,
      *         contact: array{
-     *             id: int,
+     *             id: string,
      *             name: string|null,
      *             phone: string|null,
      *         },
@@ -534,10 +534,10 @@ final class Forms extends AbstractResource
      *         },
      *         origin: string,
      *         node_id: string|null,
-     *         automation_run_id: int|null,
+     *         automation_run_id: string|null,
      *         conversation_id: int|null,
      *         version: int,
-     *         version_id: int,
+     *         version_id: string,
      *         output_id: string|null,
      *         output_label: string|null,
      *         reason: string|null,
@@ -557,8 +557,8 @@ final class Forms extends AbstractResource
      *             unknown: bool,
      *         }>,
      *         effects: list<list<mixed>|array{
-     *             id: int,
-     *             run_id: int,
+     *             id: string,
+     *             run_id: string,
      *             kind: string,
      *             kind_label: string,
      *             status: string,
@@ -574,15 +574,15 @@ final class Forms extends AbstractResource
      *     },
      * }
      */
-    public function retrieveResponse(int|string $familyId, int|string $runId, array $options = []): mixed
+    public function retrieveResponse(string $familyId, string $runId, array $options = []): mixed
     {
         /**
          * @var array{
          *     data: array{
-         *         id: int,
+         *         id: string,
          *         flow_token: string,
          *         contact: array{
-         *             id: int,
+         *             id: string,
          *             name: string|null,
          *             phone: string|null,
          *         },
@@ -601,10 +601,10 @@ final class Forms extends AbstractResource
          *         },
          *         origin: string,
          *         node_id: string|null,
-         *         automation_run_id: int|null,
+         *         automation_run_id: string|null,
          *         conversation_id: int|null,
          *         version: int,
-         *         version_id: int,
+         *         version_id: string,
          *         output_id: string|null,
          *         output_label: string|null,
          *         reason: string|null,
@@ -624,8 +624,8 @@ final class Forms extends AbstractResource
          *             unknown: bool,
          *         }>,
          *         effects: list<list<mixed>|array{
-         *             id: int,
-         *             run_id: int,
+         *             id: string,
+         *             run_id: string,
          *             kind: string,
          *             kind_label: string,
          *             status: string,
@@ -652,11 +652,11 @@ final class Forms extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $familyId
+     * @param string $familyId
      * @param array{
      *     from?: string|null,
      *     to?: string|null,
-     *     version_id?: int|null,
+     *     version_id?: string|null,
      *     origin?: string|null,
      *     status?: string|null,
      *     kind?: string|null,
@@ -693,7 +693,7 @@ final class Forms extends AbstractResource
      *     },
      * }
      */
-    public function metrics(int|string $familyId, array $query = [], array $options = []): mixed
+    public function metrics(string $familyId, array $query = [], array $options = []): mixed
     {
         /**
          * @var array{
