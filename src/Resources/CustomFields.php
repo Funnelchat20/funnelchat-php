@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -80,12 +80,12 @@ final class CustomFields extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $customField
+     * @param string $customField
      * @param RequestOptions $options
      *
      * @return CustomFieldResource
      */
-    public function retrieve(int|string $customField, array $options = []): mixed
+    public function retrieve(string $customField, array $options = []): mixed
     {
         /** @var CustomFieldResource $result */
         $result = $this->client->request('GET', '/api/v1/custom-fields/{customField}', ['path' => ['customField' => $customField]] + $options);
@@ -98,7 +98,7 @@ final class CustomFields extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $customField
+     * @param string $customField
      * @param array{
      *     name?: string,
      *     description?: string|null,
@@ -107,7 +107,7 @@ final class CustomFields extends AbstractResource
      *
      * @return CustomFieldResource
      */
-    public function update(int|string $customField, array $body, array $options = []): mixed
+    public function update(string $customField, array $body, array $options = []): mixed
     {
         /** @var CustomFieldResource $result */
         $result = $this->client->request('PUT', '/api/v1/custom-fields/{customField}', ['path' => ['customField' => $customField], 'body' => $body] + $options);

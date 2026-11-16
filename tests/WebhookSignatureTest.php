@@ -185,10 +185,10 @@ final class WebhookSignatureTest extends TestCase
             'version' => 1,
             'occurred_at' => '2026-11-13T12:00:00Z',
             'data' => [
-                'message' => ['id' => 1001, 'type' => 'a_type_from_the_future', 'text' => null, 'media' => null],
-                'contact' => ['id' => 2001, 'name' => null, 'phone' => '+5491100000000'],
+                'message' => ['id' => 'msg_00000000000000000001001', 'type' => 'a_type_from_the_future', 'text' => null, 'media' => null],
+                'contact' => ['id' => 'ctc_00000000000000000002001', 'name' => null, 'phone' => '+5491100000000'],
                 'receiver' => ['phone' => '+5491100000001'],
-                'device_id' => 4521,
+                'device_id' => 'dev_00000000000000000004521',
                 'workspace_id' => null,
             ],
         ]);

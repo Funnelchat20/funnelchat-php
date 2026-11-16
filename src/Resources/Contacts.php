@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -50,9 +50,9 @@ final class Contacts extends AbstractResource
      *     created_at?: string,
      *     created_from?: string,
      *     created_to?: string,
-     *     tag_ids?: list<int>,
+     *     tag_ids?: list<string>,
      *     tag_mode?: 'all'|'any'|'exclude',
-     *     custom_field_ids?: list<int>,
+     *     custom_field_ids?: list<string>,
      *     custom_field_mode?: 'all'|'any'|'exclude',
      *     custom_field_value?: string,
      *     custom_field_date_from?: string,
@@ -69,7 +69,7 @@ final class Contacts extends AbstractResource
      *     lead_score_disqualified?: 'include'|'exclude'|'only'|null,
      *     tag_filters?: list<array{
      *         mode: 'all'|'any'|'exclude',
-     *         tag_ids?: list<int>,
+     *         tag_ids?: list<string>,
      *     }>,
      *     custom_field_filters?: list<array{
      *         type: 0|1|2|3|4,
@@ -80,7 +80,7 @@ final class Contacts extends AbstractResource
      *         numeric_operator?: 'lt'|'eq'|'gt'|null,
      *         numeric_value?: float|int|null,
      *         date_operator?: 'lt'|'gt'|'eq'|'period'|null,
-     *         custom_field_ids?: list<int>,
+     *         custom_field_ids?: list<string>,
      *     }>,
      *     perPage?: int,
      *     orderBy?: 'id'|'name'|'email'|'phone'|'status'|'favorite'|'unread_messages'|'created_at'|'updated_at',
@@ -142,11 +142,11 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param RequestOptions $options
      *
      * @return array{
-     *     id: int,
+     *     id: string,
      *     name: string,
      *     email: string,
      *     phone: string,
@@ -172,8 +172,8 @@ final class Contacts extends AbstractResource
      *         deleted_at: string,
      *         deleted_scope: string,
      *     },
-     *     device_id: int|null,
-     *     adviser_id: int|null,
+     *     device_id: string|null,
+     *     adviser_id: string|null,
      *     paused_at: string|null,
      *     paused_by?: mixed,
      *     mac_date: string|null,
@@ -195,11 +195,11 @@ final class Contacts extends AbstractResource
      *     name_mismatch: list<mixed>|null,
      * }
      */
-    public function retrieve(int|string $contact, array $options = []): mixed
+    public function retrieve(string $contact, array $options = []): mixed
     {
         /**
          * @var array{
-         *     id: int,
+         *     id: string,
          *     name: string,
          *     email: string,
          *     phone: string,
@@ -225,8 +225,8 @@ final class Contacts extends AbstractResource
          *         deleted_at: string,
          *         deleted_scope: string,
          *     },
-         *     device_id: int|null,
-         *     adviser_id: int|null,
+         *     device_id: string|null,
+         *     adviser_id: string|null,
          *     paused_at: string|null,
          *     paused_by?: mixed,
          *     mac_date: string|null,
@@ -259,13 +259,13 @@ final class Contacts extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $contact
+     * @param string $contact
      * @param UpdateContactRequest $body
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function update(int|string $contact, array $body, array $options = []): mixed
+    public function update(string $contact, array $body, array $options = []): mixed
     {
         return $this->client->request('PUT', '/api/v1/contacts/{contact}', ['path' => ['contact' => $contact], 'body' => $body] + $options);
     }
@@ -278,24 +278,24 @@ final class Contacts extends AbstractResource
      *
      * @param array{
      *     all?: bool,
-     *     contactIds?: list<int>,
+     *     contactIds?: list<string>,
      *     created_from?: string|null,
      *     created_to?: string|null,
      *     tag_mode?: 'all'|'any'|'exclude'|null,
-     *     tag_ids?: list<int>|null,
+     *     tag_ids?: list<string>|null,
      *     tag_filters?: list<array{
-     *         tag_ids: list<int>,
+     *         tag_ids: list<string>,
      *         mode: 'all'|'any'|'exclude',
      *     }>|null,
      *     custom_field_mode?: 'all'|'any'|'exclude'|null,
-     *     custom_field_ids?: list<int>|null,
+     *     custom_field_ids?: list<string>|null,
      *     custom_field_value?: string|null,
      *     custom_field_date_from?: string|null,
      *     custom_field_date_to?: string|null,
      *     custom_field_numeric_operator?: 'lt'|'eq'|'gt'|null,
      *     custom_field_numeric_value?: float|int|null,
      *     custom_field_filters?: list<array{
-     *         custom_field_ids: list<int>,
+     *         custom_field_ids: list<string>,
      *         type: '0'|'1'|'2'|'3'|'4',
      *         mode?: 'all'|'any'|'exclude'|null,
      *         value?: string|null,
@@ -321,7 +321,7 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param array{
      *     perPage?: int,
      *     page?: int,
@@ -331,7 +331,7 @@ final class Contacts extends AbstractResource
      *
      * @return Paginator<ContactTagResource>
      */
-    public function listTags(int|string $contact, array $query = [], array $options = []): Paginator
+    public function listTags(string $contact, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ContactTagResource> $result */
         $result = $this->client->paginate('/api/v1/contacts/{contact}/tags', ['path' => ['contact' => $contact], 'query' => $query] + $options);
@@ -344,7 +344,7 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param array{
      *     name?: string,
      *     perPage?: int,
@@ -355,7 +355,7 @@ final class Contacts extends AbstractResource
      *
      * @return Paginator<ContactCustomFieldResource>
      */
-    public function listCustomFields(int|string $contact, array $query = [], array $options = []): Paginator
+    public function listCustomFields(string $contact, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ContactCustomFieldResource> $result */
         $result = $this->client->paginate('/api/v1/contacts/{contact}/custom-fields', ['path' => ['contact' => $contact], 'query' => $query] + $options);
@@ -369,8 +369,8 @@ final class Contacts extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      *
      * @param list<array{
-     *     customFieldId: int,
-     *     contactId: int,
+     *     customFieldId: string,
+     *     contactId: string,
      *     value: string,
      * }> $body
      * @param RequestOptions $options
@@ -399,8 +399,8 @@ final class Contacts extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      *
      * @param list<array{
-     *     customFieldId: int,
-     *     contactId: int,
+     *     customFieldId: string,
+     *     contactId: string,
      * }> $body
      * @param RequestOptions $options
      *
@@ -426,9 +426,9 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param array{
-     *     device_id: int,
+     *     device_id: string,
      * } $query
      * @param RequestOptions $options
      *
@@ -446,7 +446,7 @@ final class Contacts extends AbstractResource
      *     expires_at: string|null,
      * }
      */
-    public function metaWindow(int|string $contact, array $query, array $options = []): mixed
+    public function metaWindow(string $contact, array $query, array $options = []): mixed
     {
         /**
          * @var array{
@@ -473,7 +473,7 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $device
+     * @param string $device
      * @param array{
      *     perPage?: int,
      *     page?: int,
@@ -483,7 +483,7 @@ final class Contacts extends AbstractResource
      *
      * @return Paginator<ContactResource>
      */
-    public function listByDevice(int|string $device, array $query = [], array $options = []): Paginator
+    public function listByDevice(string $device, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ContactResource> $result */
         $result = $this->client->paginate('/api/v1/devices/{device}/contacts', ['path' => ['device' => $device], 'query' => $query] + $options);
@@ -496,7 +496,7 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param array{
      *     search?: string|null,
      *     perPage?: int,
@@ -507,7 +507,7 @@ final class Contacts extends AbstractResource
      *
      * @return Paginator<ContactNoteResource>
      */
-    public function listNotes(int|string $contact, array $query = [], array $options = []): Paginator
+    public function listNotes(string $contact, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<ContactNoteResource> $result */
         $result = $this->client->paginate('/api/v1/contacts/{contact}/notes', ['path' => ['contact' => $contact], 'query' => $query] + $options);
@@ -520,13 +520,13 @@ final class Contacts extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param StoreContactNoteRequest $body
      * @param RequestOptions $options
      *
      * @return ContactNoteResource
      */
-    public function createNote(int|string $contact, array $body, array $options = []): mixed
+    public function createNote(string $contact, array $body, array $options = []): mixed
     {
         /** @var ContactNoteResource $result */
         $result = $this->client->request('POST', '/api/v1/contacts/{contact}/notes', ['path' => ['contact' => $contact], 'body' => $body] + $options);
@@ -540,13 +540,13 @@ final class Contacts extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $contact
-     * @param int $note
+     * @param string $contact
+     * @param string $note
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function deleteNote(int|string $contact, int|string $note, array $options = []): mixed
+    public function deleteNote(string $contact, string $note, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/contacts/{contact}/notes/{note}', ['path' => ['contact' => $contact, 'note' => $note]] + $options);
     }

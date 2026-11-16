@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -78,14 +78,14 @@ final class ConnectLinks extends AbstractResource
      * Response: pending of the spec (`accounts-number-onboarding` in spec/pending.json); it may
      * change.
      *
-     * @param int $link
+     * @param string $link
      * @param RequestOptions $options
      *
      * @return array{
      *     data: PendingConnectLink,
      * }
      */
-    public function get(int|string $link, array $options = []): mixed
+    public function get(string $link, array $options = []): mixed
     {
         /**
          * @var array{
@@ -134,12 +134,12 @@ final class ConnectLinks extends AbstractResource
      * change.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $link
+     * @param string $link
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function revoke(int|string $link, array $options = []): mixed
+    public function revoke(string $link, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/connect-links/{link}', ['path' => ['link' => $link]] + $options);
     }

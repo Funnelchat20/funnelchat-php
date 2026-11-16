@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -53,13 +53,13 @@ final class Messages extends AbstractResource
      * Permission: **Contacts and conversations → Send**.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
-     * @param int $contact
+     * @param string $contact
      * @param array{
      *     phone?: string,
      *     whatsapp_id?: string,
-     *     device_id: int,
+     *     device_id: string,
      *     text?: string,
-     *     contact_id?: int,
+     *     contact_id?: string,
      *     file?: string,
      *     file_type?: 'image'|'video'|'audio'|'document'|'sticker'|null,
      *     file_name?: string|null,
@@ -87,7 +87,7 @@ final class Messages extends AbstractResource
      *     message: PublicMessageResource,
      * }
      */
-    public function send(int|string $contact, array $body, array $options = []): mixed
+    public function send(string $contact, array $body, array $options = []): mixed
     {
         $body['contact_id'] ??= $contact;
 
@@ -143,7 +143,7 @@ final class Messages extends AbstractResource
      * Permission: **Contacts and conversations → Send**.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
-     * @param int $contact
+     * @param string $contact
      * @param SendWhatsappFormRequest $body
      * @param RequestOptions $options
      *
@@ -151,7 +151,7 @@ final class Messages extends AbstractResource
      *     message: PublicMessageResource,
      * }
      */
-    public function sendForm(int|string $contact, array $body, array $options = []): mixed
+    public function sendForm(string $contact, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -169,7 +169,7 @@ final class Messages extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contactId
+     * @param string $contactId
      * @param array{
      *     cursor?: string,
      *     updated_since?: string,
@@ -180,7 +180,7 @@ final class Messages extends AbstractResource
      *
      * @return Paginator<MessageResource>
      */
-    public function list(int|string $contactId, array $query = [], array $options = []): Paginator
+    public function list(string $contactId, array $query = [], array $options = []): Paginator
     {
         /** @var Paginator<MessageResource> $result */
         $result = $this->client->paginate('/api/v1/contacts/{contactId}/messages', ['path' => ['contactId' => $contactId], 'query' => $query] + $options);
@@ -195,13 +195,13 @@ final class Messages extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $contact
-     * @param int $message
+     * @param string $contact
+     * @param string $message
      * @param RequestOptions $options
      *
      * @return PublicMessageResource
      */
-    public function get(int|string $contact, int|string $message, array $options = []): mixed
+    public function get(string $contact, string $message, array $options = []): mixed
     {
         /** @var PublicMessageResource $result */
         $result = $this->client->request('GET', '/api/v1/contacts/{contact}/messages/{message}', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
@@ -215,7 +215,7 @@ final class Messages extends AbstractResource
      *
      * Permission: **Contacts and conversations → Send**.
      *
-     * @param int $contact
+     * @param string $contact
      * @param StoreContactCardRequest $body
      * @param RequestOptions $options
      *
@@ -223,7 +223,7 @@ final class Messages extends AbstractResource
      *     messages: list<PublicMessageResource>,
      * }
      */
-    public function sendContactCard(int|string $contact, array $body, array $options = []): mixed
+    public function sendContactCard(string $contact, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -242,24 +242,24 @@ final class Messages extends AbstractResource
      *
      * Permission: **Contacts and conversations → Send**.
      *
-     * @param int $contact
-     * @param int $message
+     * @param string $contact
+     * @param string $message
      * @param ForwardMessageRequest $body
      * @param RequestOptions $options
      *
      * @return list<array{
-     *     contact_id: int,
+     *     contact_id: string,
      *     mode: 'internal'|'native',
      *     status: 'queued'|'blocked',
      *     reason: string|null,
      *     message: PublicMessageResource|null,
      * }>
      */
-    public function forward(int|string $contact, int|string $message, array $body, array $options = []): mixed
+    public function forward(string $contact, string $message, array $body, array $options = []): mixed
     {
         /**
          * @var list<array{
-         *     contact_id: int,
+         *     contact_id: string,
          *     mode: 'internal'|'native',
          *     status: 'queued'|'blocked',
          *     reason: string|null,
@@ -277,14 +277,14 @@ final class Messages extends AbstractResource
      * Permission: **Contacts and conversations → Send**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $contact
-     * @param int $message
+     * @param string $contact
+     * @param string $message
      * @param StoreMessageReactionRequest $body
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function react(int|string $contact, int|string $message, array $body, array $options = []): mixed
+    public function react(string $contact, string $message, array $body, array $options = []): mixed
     {
         return $this->client->request('PUT', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message], 'body' => $body] + $options);
     }
@@ -295,13 +295,13 @@ final class Messages extends AbstractResource
      * Permission: **Contacts and conversations → Send**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $contact
-     * @param int $message
+     * @param string $contact
+     * @param string $message
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function removeReaction(int|string $contact, int|string $message, array $options = []): mixed
+    public function removeReaction(string $contact, string $message, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/contacts/{contact}/messages/{message}/reaction', ['path' => ['contact' => $contact, 'message' => $message]] + $options);
     }

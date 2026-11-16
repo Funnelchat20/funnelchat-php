@@ -39,14 +39,14 @@ final class GroupsAndWorkspacesTest extends TestCase
     {
         $http = new MockHttpClient(Reply::json(202, ['action_id' => self::ACTION, 'status' => 'queued']));
 
-        $accepted = $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi, everyone!']);
+        $accepted = $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi, everyone!']);
 
         self::assertSame(['action_id' => self::ACTION, 'status' => 'queued'], $accepted);
         $request = $http->lastRequest();
         self::assertSame('POST', $request->getMethod());
         // The uid goes in the path, encoded: `@` is `%40`.
         self::assertSame('/api/v1/groups/120363000000000001%40g.us/messages', $request->getUri()->getPath());
-        self::assertSame(['device_id' => 4, 'type' => 'text', 'text' => 'Hi, everyone!'], self::jsonBody($request));
+        self::assertSame(['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi, everyone!'], self::jsonBody($request));
     }
 
     public function testFollowsAGroupOfTheNumber(): void
@@ -54,10 +54,10 @@ final class GroupsAndWorkspacesTest extends TestCase
         // communities v2.35.7: POST groups/{group}/import, 201 the first time, inside `data`.
         $http = new MockHttpClient(Reply::json(201, ['data' => ['uid' => self::GROUP, 'name' => 'Customers', 'imported' => true, 'is_admin' => true]]));
 
-        $followed = $this->client($http)->groups->follow(self::GROUP, ['device_id' => 4])['data'];
+        $followed = $this->client($http)->groups->follow(self::GROUP, ['device_id' => 'dev_00000000000000000000004'])['data'];
 
         self::assertSame('/api/v1/groups/120363000000000001%40g.us/import', $http->lastRequest()->getUri()->getPath());
-        self::assertSame(['device_id' => 4], self::jsonBody($http->lastRequest()));
+        self::assertSame(['device_id' => 'dev_00000000000000000000004'], self::jsonBody($http->lastRequest()));
         self::assertTrue($followed['imported']);
         self::assertTrue($followed['is_admin']);
     }
@@ -67,13 +67,13 @@ final class GroupsAndWorkspacesTest extends TestCase
         $http = new MockHttpClient(Reply::json(202, ['action_id' => self::ACTION, 'status' => 'queued']));
 
         $this->client($http)->groups->sendMessage(self::GROUP, [
-            'device_id' => 4,
+            'device_id' => 'dev_00000000000000000000004',
             'type' => 'image',
             'media_url' => 'https://files.example/flyer.png',
             'caption' => 'Saturday at 10',
         ]);
 
-        self::assertSame(['device_id' => 4, 'type' => 'image', 'media_url' => 'https://files.example/flyer.png', 'caption' => 'Saturday at 10'], self::jsonBody($http->lastRequest()));
+        self::assertSame(['device_id' => 'dev_00000000000000000000004', 'type' => 'image', 'media_url' => 'https://files.example/flyer.png', 'caption' => 'Saturday at 10'], self::jsonBody($http->lastRequest()));
     }
 
     public function testASendToAGroupIsNeverRetriedByItself(): void
@@ -81,7 +81,7 @@ final class GroupsAndWorkspacesTest extends TestCase
         $http = new MockHttpClient(Reply::serverError(503), Reply::json(202, ['action_id' => self::ACTION, 'status' => 'queued']));
 
         try {
-            $this->client($http, maxRetries: 2)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi']);
+            $this->client($http, maxRetries: 2)->groups->sendMessage(self::GROUP, ['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi']);
             self::fail('A 503 of a send is thrown, not retried.');
         } catch (InternalServerException $exception) {
             self::assertSame(503, $exception->status);
@@ -97,7 +97,7 @@ final class GroupsAndWorkspacesTest extends TestCase
         );
 
         try {
-            $this->client($http, maxRetries: 2)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi'], ['retrySend' => true]);
+            $this->client($http, maxRetries: 2)->groups->sendMessage(self::GROUP, ['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi'], ['retrySend' => true]);
             self::fail('too_many_pending_actions is thrown.');
         } catch (RateLimitException $exception) {
             self::assertSame('too_many_pending_actions', $exception->errorCode);
@@ -111,7 +111,7 @@ final class GroupsAndWorkspacesTest extends TestCase
         $http = new MockHttpClient(Reply::json(422, ['error' => 'device_not_group_admin', 'message' => 'El número no es administrador del grupo.']));
 
         try {
-            $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi']);
+            $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi']);
             self::fail('A refusal is thrown.');
         } catch (UnprocessableEntityException $exception) {
             self::assertSame('device_not_group_admin', $exception->errorCode);
@@ -127,7 +127,7 @@ final class GroupsAndWorkspacesTest extends TestCase
         $http = new MockHttpClient(Reply::json(403, ['error' => 'permission_denied', 'message' => 'La clave no tiene el permiso.']));
 
         $this->expectException(PermissionDeniedException::class);
-        $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 4, 'type' => 'text', 'text' => 'Hi']);
+        $this->client($http)->groups->sendMessage(self::GROUP, ['device_id' => 'dev_00000000000000000000004', 'type' => 'text', 'text' => 'Hi']);
     }
 
     public function testReadsHowTheSendEnded(): void
@@ -136,7 +136,7 @@ final class GroupsAndWorkspacesTest extends TestCase
             'action_id' => self::ACTION,
             'type' => 'send_message',
             'status' => 'completed',
-            'device_id' => 4,
+            'device_id' => 'dev_00000000000000000000004',
             'group' => ['uid' => self::GROUP, 'name' => 'Customers'],
             'result' => ['message' => ['uid' => '3EB0C431C26A1916E2BA']],
             'reason' => null,

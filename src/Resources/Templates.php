@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /*
  * GENERATED FILE — do not edit. Run `composer generate`.
- * Source: spec/funnelchat.json (sha256 3a5f39f1bd8d62c5…) + spec/pending.json + spec/resources.json.
+ * Source: spec/funnelchat.json (sha256 fadcd73731cba99d…) + spec/pending.json + spec/resources.json.
  */
 
 namespace Funnelchat\Resources;
@@ -39,11 +39,12 @@ final class Templates extends AbstractResource
      *     language_code?: string|null,
      *     status?: 'PENDING'|'APPROVED'|'REJECTED'|'PENDING_DELETION'|'PAUSED'|'DISABLED'|'ARCHIVED'|null,
      *     category?: string|null,
-     *     deviceId?: int|null,
+     *     deviceId?: string|null,
      *     type?: 'text'|'image'|'document'|'video'|'location'|'default'|null,
      *     created_by_webhook?: bool,
      *     quality?: list<'GREEN'|'YELLOW'|'RED'|'UNKNOWN'|'NOT_APPLICABLE'|null>|null,
      *     include?: 'quality_counts'|null,
+     *     scope?: 'waba'|null,
      *     perPage?: int,
      *     orderBy?: 'name'|'created_at'|'updated_at',
      *     orderByMethod?: 'asc'|'desc',
@@ -85,12 +86,12 @@ final class Templates extends AbstractResource
      *
      * Permission: **Contacts and conversations → View**.
      *
-     * @param int $template
+     * @param string $template
      * @param RequestOptions $options
      *
      * @return TemplateResource
      */
-    public function retrieve(int|string $template, array $options = []): mixed
+    public function retrieve(string $template, array $options = []): mixed
     {
         /** @var TemplateResource $result */
         $result = $this->client->request('GET', '/api/v1/templates/{template}', ['path' => ['template' => $template]] + $options);
@@ -104,13 +105,13 @@ final class Templates extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $template
+     * @param string $template
      * @param UpdateMessageTemplateRequest $body
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function update(int|string $template, array $body, array $options = []): mixed
+    public function update(string $template, array $body, array $options = []): mixed
     {
         return $this->client->request('PUT', '/api/v1/templates/{template}', ['path' => ['template' => $template], 'body' => $body] + $options);
     }
@@ -125,10 +126,10 @@ final class Templates extends AbstractResource
      * Permission: **Contacts and conversations → Send**.
      * Response: pending of the spec (`conversations-send` in spec/pending.json); it may change.
      *
-     * @param int $device
+     * @param string $device
      * @param string $template
      * @param array{
-     *     contact_id?: int|null,
+     *     contact_id?: string|null,
      *     phone?: string|null,
      *     whatsapp_id?: string|null,
      *     template_variables?: array{
@@ -142,7 +143,7 @@ final class Templates extends AbstractResource
      *     message: PublicMessageResource,
      * }
      */
-    public function send(int|string $device, int|string $template, array $body, array $options = []): mixed
+    public function send(string $device, string $template, array $body, array $options = []): mixed
     {
         /**
          * @var array{
@@ -169,14 +170,14 @@ final class Templates extends AbstractResource
      *
      * Permission: **Contacts and conversations → Edit**.
      *
-     * @param int $device
+     * @param string $device
      * @param RequestOptions $options
      *
      * @return array{
      *     status: 'in_progress'|'completed',
      * }
      */
-    public function sync(int|string $device, array $options = []): mixed
+    public function sync(string $device, array $options = []): mixed
     {
         /**
          * @var array{
@@ -198,13 +199,13 @@ final class Templates extends AbstractResource
      * Permission: **Contacts and conversations → Edit**.
      * The spec documents no body: returns `null`, or the decoded body if the API sends one.
      *
-     * @param int $device
-     * @param int $template
+     * @param string $device
+     * @param string $template
      * @param RequestOptions $options
      *
      * @return mixed
      */
-    public function delete(int|string $device, int|string $template, array $options = []): mixed
+    public function delete(string $device, string $template, array $options = []): mixed
     {
         return $this->client->request('DELETE', '/api/v1/devices/{device}/templates/{template}', ['path' => ['device' => $device, 'template' => $template]] + $options);
     }

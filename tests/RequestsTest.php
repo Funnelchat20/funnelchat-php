@@ -196,7 +196,7 @@ final class RequestsTest extends TestCase
     {
         $http = new MockHttpClient(Reply::ok([]));
 
-        $this->client($http)->contacts->retrieve(2001);
+        $this->client($http)->contacts->retrieve('ctc_00000000000000000002001');
         self::assertFalse($http->lastRequest()->hasHeader('Content-Type'));
         self::assertSame('', (string) $http->lastRequest()->getBody());
     }
@@ -205,9 +205,9 @@ final class RequestsTest extends TestCase
     {
         $http = new MockHttpClient(Reply::ok([]));
 
-        $this->client($http)->groups->metadata('120363000000000001@g.us', ['device_id' => 3, 'group_uid' => '120363000000000001@g.us']);
+        $this->client($http)->groups->metadata('120363000000000001@g.us', ['device_id' => 'dev_00000000000000000000003', 'group_uid' => '120363000000000001@g.us']);
         self::assertSame(
-            'https://api.funnelchat.com/api/v1/groups/120363000000000001%40g.us/metadata?device_id=3&group_uid=120363000000000001%40g.us',
+            'https://api.funnelchat.com/api/v1/groups/120363000000000001%40g.us/metadata?device_id=dev_00000000000000000000003&group_uid=120363000000000001%40g.us',
             (string) $http->lastRequest()->getUri(),
         );
     }
@@ -272,11 +272,11 @@ final class RequestsTest extends TestCase
     {
         return [
             'scalars' => [['perPage' => 25, 'name' => 'Ana'], 'perPage=25&name=Ana'],
-            'key already with []' => [['tag_ids[]' => [1, 2]], 'tag_ids%5B%5D=1&tag_ids%5B%5D=2'],
-            'list' => [['tag_ids' => [1, 2]], 'tag_ids%5B%5D=1&tag_ids%5B%5D=2'],
+            'key already with []' => [['tag_ids[]' => ['tag_00000000000000000000001', 'tag_00000000000000000000002']], 'tag_ids%5B%5D=tag_00000000000000000000001&tag_ids%5B%5D=tag_00000000000000000000002'],
+            'list' => [['tag_ids' => ['tag_00000000000000000000001', 'tag_00000000000000000000002']], 'tag_ids%5B%5D=tag_00000000000000000000001&tag_ids%5B%5D=tag_00000000000000000000002'],
             'booleans' => [['withContactCount' => true, 'noCampaign' => false], 'withContactCount=1&noCampaign=0'],
             'null is left out' => [['b' => null, 'c' => 'x'], 'c=x'],
-            'list of objects' => [['tag_filters' => [['mode' => 'all', 'tag_ids' => [3]]]], 'tag_filters%5B0%5D%5Bmode%5D=all&tag_filters%5B0%5D%5Btag_ids%5D%5B%5D=3'],
+            'list of objects' => [['tag_filters' => [['mode' => 'all', 'tag_ids' => ['tag_00000000000000000000003']]]], 'tag_filters%5B0%5D%5Bmode%5D=all&tag_filters%5B0%5D%5Btag_ids%5D%5B%5D=tag_00000000000000000000003'],
             'nested object' => [['filters' => ['campaign_ids' => ['abc123']]], 'filters%5Bcampaign_ids%5D%5B%5D=abc123'],
             'date' => [['created_from' => new \DateTimeImmutable('2026-10-01T00:00:00Z')], 'created_from=2026-10-01T00%3A00%3A00.000Z'],
             'date in another zone, in UTC' => [['created_from' => new \DateTimeImmutable('2026-10-01T00:00:00-03:00')], 'created_from=2026-10-01T03%3A00%3A00.000Z'],
@@ -313,54 +313,54 @@ final class RequestsTest extends TestCase
         self::assertSame(
             [
                 'method' => 'POST',
-                'path' => '/api/v1/contacts/2001/message',
+                'path' => '/api/v1/contacts/ctc_00000000000000000002001/message',
                 'query' => '',
-                'body' => ['device_id' => 3, 'phone' => '5491100000000', 'text' => '¡Hola! Te paso la info…', 'client_reference' => 'pedido-123', 'contact_id' => 2001],
+                'body' => ['device_id' => 'dev_00000000000000000000003', 'phone' => '5491100000000', 'text' => '¡Hola! Te paso la info…', 'client_reference' => 'pedido-123', 'contact_id' => 'ctc_00000000000000000002001'],
             ],
-            $this->capture(static fn(Funnelchat $c) => $c->messages->send(2001, [
-                'device_id' => 3,
+            $this->capture(static fn(Funnelchat $c) => $c->messages->send('ctc_00000000000000000002001', [
+                'device_id' => 'dev_00000000000000000000003',
                 'phone' => '5491100000000',
                 'text' => '¡Hola! Te paso la info…',
                 'client_reference' => 'pedido-123',
             ]), Reply::noContent()),
         );
         // A contact_id you pass is kept.
-        self::assertSame(77, $this->capture(static fn(Funnelchat $c) => $c->messages->send(2001, ['device_id' => 3, 'contact_id' => 77]), Reply::noContent())['body']['contact_id'] ?? null);
+        self::assertSame('ctc_00000000000000000000077', $this->capture(static fn(Funnelchat $c) => $c->messages->send('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003', 'contact_id' => 'ctc_00000000000000000000077']), Reply::noContent())['body']['contact_id'] ?? null);
     }
 
     public function testTemplatesSend(): void
     {
         self::assertSame(
-            ['method' => 'POST', 'path' => '/api/v1/devices/3/templates/45/send-template', 'query' => '', 'body' => ['phone' => '5491100000000', 'contact_id' => 2001, 'template_variables' => ['body' => ['Lucía']]]],
-            $this->capture(static fn(Funnelchat $c) => $c->templates->send(3, '45', ['phone' => '5491100000000', 'contact_id' => 2001, 'template_variables' => ['body' => ['Lucía']]])),
+            ['method' => 'POST', 'path' => '/api/v1/devices/dev_00000000000000000000003/templates/tpl_00000000000000000000045/send-template', 'query' => '', 'body' => ['phone' => '5491100000000', 'contact_id' => 'ctc_00000000000000000002001', 'template_variables' => ['body' => ['Lucía']]]],
+            $this->capture(static fn(Funnelchat $c) => $c->templates->send('dev_00000000000000000000003', 'tpl_00000000000000000000045', ['phone' => '5491100000000', 'contact_id' => 'ctc_00000000000000000002001', 'template_variables' => ['body' => ['Lucía']]])),
         );
     }
 
     public function testContactsMetaWindowUpsertAndDelete(): void
     {
         self::assertSame(
-            ['method' => 'GET', 'path' => '/api/v1/contacts/2001/meta-window', 'query' => 'device_id=3', 'body' => null],
-            $this->capture(static fn(Funnelchat $c) => $c->contacts->metaWindow(2001, ['device_id' => 3])),
+            ['method' => 'GET', 'path' => '/api/v1/contacts/ctc_00000000000000000002001/meta-window', 'query' => 'device_id=dev_00000000000000000000003', 'body' => null],
+            $this->capture(static fn(Funnelchat $c) => $c->contacts->metaWindow('ctc_00000000000000000002001', ['device_id' => 'dev_00000000000000000000003'])),
         );
         self::assertSame(
             ['method' => 'POST', 'path' => '/api/v1/contacts/update-or-create', 'query' => '', 'body' => ['phone' => '+5491100000099', 'name' => 'Ana']],
             $this->capture(static fn(Funnelchat $c) => $c->contacts->upsert(['phone' => '+5491100000099', 'name' => 'Ana'])),
         );
         self::assertSame(
-            ['method' => 'POST', 'path' => '/api/v1/contacts/delete', 'query' => '', 'body' => ['contactIds' => [1, 2]]],
-            $this->capture(static fn(Funnelchat $c) => $c->contacts->delete(['contactIds' => [1, 2]])),
+            ['method' => 'POST', 'path' => '/api/v1/contacts/delete', 'query' => '', 'body' => ['contactIds' => ['ctc_00000000000000000000001', 'ctc_00000000000000000000002']]],
+            $this->capture(static fn(Funnelchat $c) => $c->contacts->delete(['contactIds' => ['ctc_00000000000000000000001', 'ctc_00000000000000000000002']])),
         );
     }
 
     public function testMessagesReactAndRemoveReaction(): void
     {
         self::assertSame(
-            ['method' => 'PUT', 'path' => '/api/v1/contacts/2001/messages/99/reaction', 'query' => '', 'body' => ['emoji' => '👍']],
-            $this->capture(static fn(Funnelchat $c) => $c->messages->react(2001, 99, ['emoji' => '👍']), Reply::noContent()),
+            ['method' => 'PUT', 'path' => '/api/v1/contacts/ctc_00000000000000000002001/messages/msg_00000000000000000000099/reaction', 'query' => '', 'body' => ['emoji' => '👍']],
+            $this->capture(static fn(Funnelchat $c) => $c->messages->react('ctc_00000000000000000002001', 'msg_00000000000000000000099', ['emoji' => '👍']), Reply::noContent()),
         );
         self::assertSame(
-            ['method' => 'DELETE', 'path' => '/api/v1/contacts/2001/messages/99/reaction', 'query' => '', 'body' => null],
-            $this->capture(static fn(Funnelchat $c) => $c->messages->removeReaction(2001, 99), Reply::noContent()),
+            ['method' => 'DELETE', 'path' => '/api/v1/contacts/ctc_00000000000000000002001/messages/msg_00000000000000000000099/reaction', 'query' => '', 'body' => null],
+            $this->capture(static fn(Funnelchat $c) => $c->messages->removeReaction('ctc_00000000000000000002001', 'msg_00000000000000000000099'), Reply::noContent()),
         );
     }
 
@@ -387,25 +387,25 @@ final class RequestsTest extends TestCase
     public static function resourceCalls(): array
     {
         return [
-            'devices->retrieve' => [static fn(Funnelchat $c) => $c->devices->retrieve(3), 'GET', '/api/v1/devices/3'],
-            'devices->status' => [static fn(Funnelchat $c) => $c->devices->status(3), 'GET', '/api/v1/devices/3/status'],
-            'devices->health' => [static fn(Funnelchat $c) => $c->devices->health(3), 'GET', '/api/v1/devices/3/health'],
-            'connectLinks->get' => [static fn(Funnelchat $c) => $c->connectLinks->get(7), 'GET', '/api/v1/connect-links/7'],
+            'devices->retrieve' => [static fn(Funnelchat $c) => $c->devices->retrieve('dev_00000000000000000000003'), 'GET', '/api/v1/devices/dev_00000000000000000000003'],
+            'devices->status' => [static fn(Funnelchat $c) => $c->devices->status('dev_00000000000000000000003'), 'GET', '/api/v1/devices/dev_00000000000000000000003/status'],
+            'devices->health' => [static fn(Funnelchat $c) => $c->devices->health('dev_00000000000000000000003'), 'GET', '/api/v1/devices/dev_00000000000000000000003/health'],
+            'connectLinks->get' => [static fn(Funnelchat $c) => $c->connectLinks->get('lnk_00000000000000000000007'), 'GET', '/api/v1/connect-links/lnk_00000000000000000000007'],
             'groups->retrieve' => [static fn(Funnelchat $c) => $c->groups->retrieve('xK9mQz'), 'GET', '/api/v1/groups/xK9mQz'],
             'groups->listActions' => [static fn(Funnelchat $c) => $c->groups->listActions('xK9mQz')->firstPage(), 'GET', '/api/v1/groups/xK9mQz/actions'],
-            'messages->get' => [static fn(Funnelchat $c) => $c->messages->get(2001, 9001), 'GET', '/api/v1/contacts/2001/messages/9001'],
-            'forms->retrieve' => [static fn(Funnelchat $c) => $c->forms->retrieve(31), 'GET', '/api/v1/forms/31'],
-            'forms->publish' => [static fn(Funnelchat $c) => $c->forms->publish(31), 'POST', '/api/v1/forms/31/publish'],
-            'forms->removeNumber' => [static fn(Funnelchat $c) => $c->forms->removeNumber(31, 3), 'DELETE', '/api/v1/forms/31/numbers/3'],
-            'forms->listResponses' => [static fn(Funnelchat $c) => $c->forms->listResponses(12)->firstPage(), 'GET', '/api/v1/forms/families/12/responses'],
-            'customFields->retrieve' => [static fn(Funnelchat $c) => $c->customFields->retrieve(5), 'GET', '/api/v1/custom-fields/5'],
-            'tags->retrieve' => [static fn(Funnelchat $c) => $c->tags->retrieve(8), 'GET', '/api/v1/tags/8'],
+            'messages->get' => [static fn(Funnelchat $c) => $c->messages->get('ctc_00000000000000000002001', 'msg_00000000000000000009001'), 'GET', '/api/v1/contacts/ctc_00000000000000000002001/messages/msg_00000000000000000009001'],
+            'forms->retrieve' => [static fn(Funnelchat $c) => $c->forms->retrieve('frv_00000000000000000000031'), 'GET', '/api/v1/forms/frv_00000000000000000000031'],
+            'forms->publish' => [static fn(Funnelchat $c) => $c->forms->publish('frv_00000000000000000000031'), 'POST', '/api/v1/forms/frv_00000000000000000000031/publish'],
+            'forms->removeNumber' => [static fn(Funnelchat $c) => $c->forms->removeNumber('frv_00000000000000000000031', 'dev_00000000000000000000003'), 'DELETE', '/api/v1/forms/frv_00000000000000000000031/numbers/dev_00000000000000000000003'],
+            'forms->listResponses' => [static fn(Funnelchat $c) => $c->forms->listResponses('frm_00000000000000000000012')->firstPage(), 'GET', '/api/v1/forms/families/frm_00000000000000000000012/responses'],
+            'customFields->retrieve' => [static fn(Funnelchat $c) => $c->customFields->retrieve('fld_00000000000000000000005'), 'GET', '/api/v1/custom-fields/fld_00000000000000000000005'],
+            'tags->retrieve' => [static fn(Funnelchat $c) => $c->tags->retrieve('tag_00000000000000000000008'), 'GET', '/api/v1/tags/tag_00000000000000000000008'],
             'tags->delete' => [static fn(Funnelchat $c) => $c->tags->delete(['tagIds' => ['8']]), 'POST', '/api/v1/tags/delete'],
-            'templates->retrieve' => [static fn(Funnelchat $c) => $c->templates->retrieve(45), 'GET', '/api/v1/templates/45'],
-            'templates->delete' => [static fn(Funnelchat $c) => $c->templates->delete(3, 45), 'DELETE', '/api/v1/devices/3/templates/45'],
+            'templates->retrieve' => [static fn(Funnelchat $c) => $c->templates->retrieve('tpl_00000000000000000000045'), 'GET', '/api/v1/templates/tpl_00000000000000000000045'],
+            'templates->delete' => [static fn(Funnelchat $c) => $c->templates->delete('dev_00000000000000000000003', 'tpl_00000000000000000000045'), 'DELETE', '/api/v1/devices/dev_00000000000000000000003/templates/tpl_00000000000000000000045'],
             'conversations->countUnread' => [static fn(Funnelchat $c) => $c->conversations->countUnread(), 'GET', '/api/v1/conversations/count/unread'],
-            'contacts->createNote' => [static fn(Funnelchat $c) => $c->contacts->createNote(2001, ['body' => 'nota']), 'POST', '/api/v1/contacts/2001/notes'],
-            'contacts->deleteNote' => [static fn(Funnelchat $c) => $c->contacts->deleteNote(2001, 9), 'DELETE', '/api/v1/contacts/2001/notes/9'],
+            'contacts->createNote' => [static fn(Funnelchat $c) => $c->contacts->createNote('ctc_00000000000000000002001', ['body' => 'nota']), 'POST', '/api/v1/contacts/ctc_00000000000000000002001/notes'],
+            'contacts->deleteNote' => [static fn(Funnelchat $c) => $c->contacts->deleteNote('ctc_00000000000000000002001', 'not_00000000000000000000009'), 'DELETE', '/api/v1/contacts/ctc_00000000000000000002001/notes/not_00000000000000000000009'],
             // A function of «Más funciones» without a method, as the Node SDK calls it: by its method and path.
             'request tickets' => [static fn(Funnelchat $c) => $c->request('GET', '/api/v1/tickets'), 'GET', '/api/v1/tickets'],
             'paginate broadcasts' => [static fn(Funnelchat $c) => $c->paginate('/api/v1/broadcasts', ['query' => ['perPage' => 50]])->firstPage(), 'GET', '/api/v1/broadcasts'],
@@ -436,7 +436,7 @@ final class RequestsTest extends TestCase
             }
         };
 
-        (new Funnelchat(apiKey: self::TEST_API_KEY, httpClient: $http, requestFactory: $factory))->devices->retrieve(3);
+        (new Funnelchat(apiKey: self::TEST_API_KEY, httpClient: $http, requestFactory: $factory))->devices->retrieve('dev_00000000000000000000003');
         self::assertSame(1, $factory->created);
     }
 
@@ -449,13 +449,13 @@ final class RequestsTest extends TestCase
         );
         $client = $this->client($http, maxRetries: 2);
 
-        self::assertSame(['status' => 'in_progress'], $client->templates->sync(3));
+        self::assertSame(['status' => 'in_progress'], $client->templates->sync('dev_00000000000000000000003'));
         self::assertSame('POST', $http->lastRequest()->getMethod());
-        self::assertSame('/api/v1/devices/3/templates', $http->lastRequest()->getUri()->getPath());
+        self::assertSame('/api/v1/devices/dev_00000000000000000000003/templates', $http->lastRequest()->getUri()->getPath());
         self::assertSame('', (string) $http->lastRequest()->getBody());
 
         try {
-            $client->templates->sync(3);
+            $client->templates->sync('dev_00000000000000000000003');
             self::fail('A sync already running is a 409.');
         } catch (\Funnelchat\Exception\ConflictException $exception) {
             self::assertSame('template_sync_in_progress', $exception->errorCode);
